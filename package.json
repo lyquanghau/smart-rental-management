@@ -1,0 +1,26 @@
+{
+  "name": "smart-rental",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Smart rental room management graduation project.",
+  "engines": {
+    "node": "22.21.0",
+    "npm": "10.9.4"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "build": "npm run build -w frontend",
+    "lint": "npm run lint -ws --if-present",
+    "seed": "npm run seed -w backend",
+    "seed:reset": "npm run seed:reset -w backend"
+  },
+  "devDependencies": {
+    "concurrently": "9.1.2"
+  }
+}
