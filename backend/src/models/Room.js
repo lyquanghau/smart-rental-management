@@ -22,6 +22,10 @@ const roomSchema = new mongoose.Schema(
       enum: ['available', 'occupied', 'maintenance'],
       default: 'available',
     },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -16,11 +16,18 @@
     "dev:backend": "npm run dev -w backend",
     "dev:frontend": "npm run dev -w frontend",
     "build": "npm run build -w frontend",
-    "lint": "npm run lint -ws --if-present",
+    "lint": "eslint .",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "seed": "npm run seed -w backend",
     "seed:reset": "npm run seed:reset -w backend"
   },
   "devDependencies": {
-    "concurrently": "9.1.2"
+    "@eslint/js": "^9.17.0",
+    "concurrently": "9.1.2",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react": "^7.37.3",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2"
   }
 }

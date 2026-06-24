@@ -1,6 +1,6 @@
 # Setup cho cả nhóm
 
-Tài liệu này là nguồn chuẩn để 3 máy setup giống nhau.
+Tài liệu này là nguồn chuẩn để các máy setup giống nhau.
 
 ## 1. Cài công cụ
 
@@ -19,12 +19,12 @@ npm -v
 ## 2. Clone và cài dependencies
 
 ```bash
-git clone <repo-url>
-cd smart-rental
+git clone https://github.com/lyquanghau/smart-rental-management.git
+cd smart-rental-management
 npm ci
 ```
 
-Không dùng `npm install` sau khi clone nếu chỉ muốn đồng bộ dependencies. `npm ci` sẽ cài đúng theo `package-lock.json`.
+Dùng `npm ci` sau khi clone hoặc pull code mới để cài đúng theo `package-lock.json`.
 
 ## 3. Tạo file môi trường
 
@@ -46,7 +46,7 @@ cp frontend/.env.example frontend/.env
 
 ## 4. MongoDB Atlas
 
-Tạo database:
+Database dev thống nhất:
 
 ```txt
 smart_rental_dev
@@ -54,9 +54,9 @@ smart_rental_dev
 
 Khuyến nghị:
 
-- Tạo 1 database dev dùng chung.
 - Tạo user riêng cho project.
-- Không nhập dữ liệu mẫu thủ công nếu dữ liệu đó cần dùng chung; hãy cập nhật seed script.
+- Chỉ cấp quyền cần thiết cho database dev.
+- Không nhập dữ liệu mẫu thủ công nếu dữ liệu đó cần chia sẻ; cập nhật seed script.
 
 ## 5. Seed dữ liệu mẫu
 
@@ -64,11 +64,16 @@ Khuyến nghị:
 npm run seed
 ```
 
-Nếu muốn reset lại dữ liệu phòng mẫu:
+Reset lại dữ liệu mẫu:
 
 ```bash
 npm run seed:reset
 ```
+
+Tài khoản mẫu:
+
+- `admin@smartrental.local` / `Admin@123456`
+- `tenant@smartrental.local` / `Tenant@123456`
 
 ## 6. Chạy dự án
 
@@ -81,21 +86,16 @@ URL mặc định:
 - Frontend: http://localhost:5173
 - Backend: http://localhost:5000/api/health
 
-## 7. Khi thêm package
-
-Ví dụ thêm package cho backend:
+## 7. Kiểm tra trước khi push
 
 ```bash
-npm install <package-name> -w backend
+npm run lint
+npm run format:check
+npm run build
 ```
 
-Ví dụ thêm package cho frontend:
+Nếu thêm hoặc sửa dữ liệu mẫu, chạy thêm:
 
 ```bash
-npm install <package-name> -w frontend
+npm run seed:reset
 ```
-
-Sau đó commit cả:
-
-- `package.json`
-- `package-lock.json`

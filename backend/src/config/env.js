@@ -16,6 +16,8 @@ export function validateEnv() {
   if (!env.jwtSecret) missing.push('JWT_SECRET');
 
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    throw new Error(
+      `Missing required environment variables: ${missing.join(', ')}`,
+    );
   }
 }

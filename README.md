@@ -2,6 +2,12 @@
 
 Ứng dụng quản lý phòng trọ thông minh cho đồ án tốt nghiệp.
 
+## Stack chính
+
+- Frontend: React 18, Vite, React Router, Axios
+- Backend: Node.js, Express, MongoDB Atlas, Mongoose
+- Tooling: npm workspaces, ESLint, Prettier
+
 ## Yêu cầu môi trường
 
 - Git
@@ -9,7 +15,7 @@
 - npm `10.9.4`
 - MongoDB Atlas account
 
-Toàn bộ thành viên phải dùng cùng Node/npm version ở trên. Nếu dùng `nvm`, chạy:
+Nếu dùng `nvm`, chạy:
 
 ```bash
 nvm install
@@ -47,11 +53,39 @@ Reset dữ liệu mẫu:
 npm run seed:reset
 ```
 
-## Quy tắc đồng bộ nhóm
+Tài khoản mẫu:
+
+- Chủ trọ: `admin@smartrental.local` / `Admin@123456`
+- Khách thuê: `tenant@smartrental.local` / `Tenant@123456`
+
+## Kiểm tra code
+
+```bash
+npm run lint
+npm run format:check
+npm run build
+```
+
+## Nhánh Git của team
+
+Dùng ít nhánh để cả nhóm dễ nhớ:
+
+- `main`: code ổn định để demo hoặc nộp, không code trực tiếp.
+- `dev`: nhánh làm việc chung, chức năng xong thì merge vào đây trước.
+- `feature/auth`: đăng nhập, đăng xuất, bảo vệ trang.
+- `feature/rooms`: quản lý phòng, gồm API và giao diện.
+- `feature/tenants`: quản lý khách thuê, gồm API và giao diện.
+- `feature/docs`: cập nhật README, setup guide và tài liệu API.
+
+Ngày mai nên bắt đầu từ `dev`, sau đó mỗi người checkout đúng nhánh feature của mình.
+
+## Quy tắc nhóm
 
 - Không commit `.env`.
-- Không sửa database thủ công nếu dữ liệu đó cần dùng lại; hãy viết seed script.
-- Cài package bằng `npm ci` sau khi clone hoặc pull code mới.
-- Khi thêm package mới, người thêm chạy `npm install <package> -w <workspace>` và commit `package.json` cùng `package-lock.json`.
-- Backend schema phải nằm trong `backend/src/models`.
-- API route phải nằm trong `backend/src/routes`.
+- Không commit `node_modules`, `dist`, `coverage`.
+- Không sửa database thủ công nếu dữ liệu đó cần dùng chung; hãy cập nhật seed script.
+- Khi thêm package mới, chạy `npm install <package> -w <workspace>` hoặc cài ở root nếu là tooling chung, rồi commit `package.json` và `package-lock.json`.
+- Backend schema nằm trong `backend/src/models`.
+- Backend route nằm trong `backend/src/routes`.
+- Frontend page nằm trong `frontend/src/pages`.
+- Frontend API service nằm trong `frontend/src/services`.
