@@ -158,3 +158,37 @@ DELETE /api/tenants/:id
 - Thêm wrapper chạy Vite để bỏ qua bước gọi `net use` trên Windows khi lệnh này bị hệ thống chặn và gây lỗi `spawn EPERM`.
 - Cập nhật script `dev`, `build`, `preview` của frontend dùng wrapper này thay vì gọi trực tiếp `vite`.
 - Không sửa `node_modules`; workaround nằm trong source của dự án để các máy trong nhóm dùng giống nhau.
+
+### Sửa lỗi frontend runtime
+
+- Sửa lỗi `React is not defined` khi mở giao diện trên trình duyệt.
+- Thêm import `React` vào các file JSX đang render component.
+- Chỉnh ESLint theo hướng classic JSX runtime để không báo sai các import `React`.
+
+### Hoàn thiện luồng khách thuê và phòng
+
+- Sửa lỗi cập nhật khách thuê không lưu đúng khi bỏ trống các trường tùy chọn như phòng, email, CCCD/CMND.
+- Frontend gửi giá trị trống thành `null` thay vì `undefined` để backend có thể xóa giá trị cũ.
+- Thêm nút `Tải lại` ở trang `Khách thuê`, chỉ gọi lại API của trang thay vì reload toàn bộ trình duyệt.
+- Đồng bộ trạng thái phòng theo khách thuê active:
+  - Có khách thuê đang gán phòng thì phòng chuyển sang `occupied`.
+  - Không còn khách thuê active thì phòng về `available`.
+  - Phòng đang `maintenance` không bị tự động đổi trạng thái.
+- Sửa seed data để các phòng có khách thuê mẫu ban đầu không bị ghi nhầm là `available`.
+
+### Kiểm tra sau khi sửa
+
+- Test thêm khách thuê: pass.
+- Test sửa khách thuê: pass.
+- Test bỏ gán phòng khỏi khách thuê: pass.
+- Test xóa mềm khách thuê: pass.
+- Test phòng `C301` có khách thuê thì hiển thị `Đã thuê`: pass.
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: pass khi chạy ngoài sandbox.
+
+### Push code
+
+- Đã push nhánh `dev` lên remote `origin/dev`.
+- Commit cuối đã push: `9b4b7c4 fix: sync room status from active tenants`.
+- Các file phụ trợ chưa đưa vào Git: `chuyen_de_2.xlsx`, `code.txt`, `docs/image/`.
