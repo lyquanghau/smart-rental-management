@@ -38,7 +38,7 @@ export default [
     },
     rules: {
       ...react.configs.recommended.rules,
-      ...react.configs['jsx-runtime'].rules,
+      'react/jsx-uses-react': 'error',
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'react/prop-types': 'off',
     },

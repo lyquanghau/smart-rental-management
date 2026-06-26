@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RoomStatusBadge } from '../components/RoomStatusBadge.jsx';
 import { getRooms } from '../services/roomService.js';
 

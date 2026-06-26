@@ -1,3 +1,4 @@
+import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout.jsx';
 import { DashboardPage } from './pages/DashboardPage.jsx';

@@ -1,3 +1,5 @@
+import React from 'react';
+
 const statusLabels = {
   available: 'Trống',
   occupied: 'Đã thuê',
