@@ -131,3 +131,24 @@ Quy ước đơn giản:
 - Chưa chạy `npm run seed:reset` vì lệnh này xóa toàn bộ dữ liệu trong các collection trước khi seed lại. Chỉ dùng khi chắc chắn đang trỏ vào database dev và cả nhóm đồng ý reset dữ liệu.
 - Nội dung tiếng Việt trong file nguồn không bị hỏng; hiện tượng chữ lỗi khi đọc bằng PowerShell là do cách terminal render output.
 - Ngày tiếp theo nên bắt đầu từ nhánh `dev`, sau đó chia việc theo `feature/auth`, `feature/rooms`, `feature/tenants` hoặc nhánh feature nhỏ hơn theo module.
+
+### Module khách thuê
+
+- Thêm Tenant API:
+
+```txt
+GET /api/tenants
+GET /api/tenants/:id
+POST /api/tenants
+PUT /api/tenants/:id
+DELETE /api/tenants/:id
+```
+
+- Các API khách thuê yêu cầu JWT; tạo, sửa, xóa yêu cầu role `landlord`.
+- `DELETE /api/tenants/:id` dùng soft delete qua `deletedAt`.
+- Frontend thêm trang `Khách thuê` tại `/tenants`, có danh sách, form thêm mới, sửa và xóa mềm.
+- Cập nhật `docs/API.md` và `docs/MODULES.md` cho module khách thuê.
+- Kiểm tra CRUD khách thuê bằng API thật: list, create, update, soft delete đều pass với JWT admin.
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: pass khi chạy ngoài sandbox.

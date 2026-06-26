@@ -186,3 +186,103 @@ Request:
 Yêu cầu role `landlord`.
 
 Phòng được soft delete bằng `deletedAt`, không xóa cứng khỏi database.
+
+## Tenants
+
+Tenant APIs yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, xóa yêu cầu role
+`landlord`.
+
+### GET /tenants
+
+Query optional:
+
+```txt
+room=<roomId>
+page=1
+limit=20
+```
+
+Response:
+
+```json
+{
+  "data": [
+    {
+      "_id": "...",
+      "fullName": "Nguyen Van An",
+      "phone": "0901000001",
+      "email": "an@example.com",
+      "identityNumber": "079200000001",
+      "room": {
+        "_id": "...",
+        "name": "A102",
+        "floor": 1,
+        "price": 2700000,
+        "status": "occupied"
+      },
+      "deletedAt": null
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1
+  }
+}
+```
+
+### GET /tenants/:id
+
+Response:
+
+```json
+{
+  "data": {
+    "_id": "...",
+    "fullName": "Nguyen Van An",
+    "phone": "0901000001",
+    "email": "an@example.com",
+    "identityNumber": "079200000001",
+    "room": {
+      "_id": "...",
+      "name": "A102",
+      "floor": 1,
+      "price": 2700000,
+      "status": "occupied"
+    },
+    "deletedAt": null
+  }
+}
+```
+
+### POST /tenants
+
+Request:
+
+```json
+{
+  "fullName": "Nguyen Van An",
+  "phone": "0901000001",
+  "email": "an@example.com",
+  "identityNumber": "079200000001",
+  "room": "room-object-id"
+}
+```
+
+### PUT /tenants/:id
+
+Request:
+
+```json
+{
+  "fullName": "Nguyen Van An",
+  "phone": "0901000001",
+  "email": "an@example.com",
+  "identityNumber": "079200000001",
+  "room": "room-object-id"
+}
+```
+
+### DELETE /tenants/:id
+
+Khách thuê được soft delete bằng `deletedAt`, không xóa cứng khỏi database.

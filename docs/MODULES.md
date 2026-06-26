@@ -24,7 +24,15 @@ Endpoint nền:
 
 ## Tenants
 
-Quản lý thông tin khách thuê. Ngày 1 mới tạo model và seed data, chưa mở API riêng.
+Quản lý thông tin khách thuê, thông tin liên hệ và phòng đang gán.
+
+Endpoint nền:
+
+- `GET /api/tenants`
+- `GET /api/tenants/:id`
+- `POST /api/tenants`
+- `PUT /api/tenants/:id`
+- `DELETE /api/tenants/:id`
 
 ## Contracts
 

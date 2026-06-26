@@ -7,6 +7,7 @@ export function Sidebar() {
       <nav className="nav">
         <NavLink to="/">Tổng quan</NavLink>
         <NavLink to="/rooms">Phòng</NavLink>
+        <NavLink to="/tenants">Khách thuê</NavLink>
         <NavLink to="/login">Đăng nhập</NavLink>
       </nav>
     </aside>

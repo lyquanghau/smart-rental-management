@@ -3,6 +3,7 @@ import { MainLayout } from './layouts/MainLayout.jsx';
 import { DashboardPage } from './pages/DashboardPage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { RoomsPage } from './pages/RoomsPage.jsx';
+import { TenantsPage } from './pages/TenantsPage.jsx';
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
       <Route element={<MainLayout />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/rooms" element={<RoomsPage />} />
+        <Route path="/tenants" element={<TenantsPage />} />
         <Route path="/login" element={<LoginPage />} />
       </Route>
     </Routes>
