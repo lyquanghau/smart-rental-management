@@ -1,4 +1,5 @@
 import { Room } from '../models/Room.js';
+import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
 
 function normalizeRoomPayload(body) {
@@ -10,8 +11,48 @@ function normalizeRoomPayload(body) {
   };
 }
 
+async function syncRoomOccupancyStatuses() {
+  const activeTenantsByRoom = await Tenant.aggregate([
+    {
+      $match: {
+        deletedAt: null,
+        room: { $ne: null },
+      },
+    },
+    {
+      $group: {
+        _id: '$room',
+        total: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const occupiedRoomIds = new Set(
+    activeTenantsByRoom.map((item) => String(item._id)),
+  );
+  const rooms = await Room.find({
+    deletedAt: null,
+    status: { $ne: 'maintenance' },
+  });
+
+  await Promise.all(
+    rooms.map((room) => {
+      const nextStatus = occupiedRoomIds.has(String(room._id))
+        ? 'occupied'
+        : 'available';
+
+      if (room.status === nextStatus) return Promise.resolve();
+
+      room.status = nextStatus;
+      return room.save();
+    }),
+  );
+}
+
 export async function listRooms(req, res, next) {
   try {
+    await syncRoomOccupancyStatuses();
+
     const { status, floor, page = 1, limit = 20 } = req.query;
     const filters = { deletedAt: null };
     const safePage = Math.max(Number(page) || 1, 1);
@@ -43,6 +84,8 @@ export async function listRooms(req, res, next) {
 
 export async function getRoom(req, res, next) {
   try {
+    await syncRoomOccupancyStatuses();
+
     const room = await Room.findOne({ _id: req.params.id, deletedAt: null });
 
     if (!room) {

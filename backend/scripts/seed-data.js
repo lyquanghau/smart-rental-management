@@ -15,7 +15,7 @@ export const rooms = [
     name: 'B201',
     floor: 2,
     price: 3000000,
-    status: 'available',
+    status: 'occupied',
   },
   {
     name: 'B202',
@@ -27,7 +27,7 @@ export const rooms = [
     name: 'C301',
     floor: 3,
     price: 3500000,
-    status: 'available',
+    status: 'occupied',
   },
 ];
 
