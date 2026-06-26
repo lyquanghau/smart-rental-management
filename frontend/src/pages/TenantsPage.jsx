@@ -29,9 +29,9 @@ function toPayload(formData) {
   return {
     fullName: formData.fullName.trim(),
     phone: formData.phone.trim(),
-    email: formData.email.trim(),
-    identityNumber: formData.identityNumber.trim(),
-    room: formData.room || undefined,
+    email: formData.email.trim() || null,
+    identityNumber: formData.identityNumber.trim() || null,
+    room: formData.room || null,
   };
 }
 
@@ -141,9 +141,19 @@ export function TenantsPage() {
     <section>
       <div className="page-heading">
         <h1>Khách thuê</h1>
-        <span className="page-summary">
-          {tenants.length} khách đang quản lý
-        </span>
+        <div className="page-actions">
+          <span className="page-summary">
+            {tenants.length} khách đang quản lý
+          </span>
+          <button
+            className="secondary-button"
+            disabled={isLoading}
+            type="button"
+            onClick={loadData}
+          >
+            {isLoading ? 'Đang tải...' : 'Tải lại'}
+          </button>
+        </div>
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}

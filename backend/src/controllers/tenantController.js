@@ -3,23 +3,48 @@ import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
 
 async function normalizeTenantPayload(body) {
+  const room = body.room || null;
   const payload = {
-    fullName: body.fullName,
-    phone: body.phone,
-    email: body.email || undefined,
-    identityNumber: body.identityNumber || undefined,
-    room: body.room || undefined,
+    fullName: body.fullName?.trim(),
+    phone: body.phone?.trim(),
+    email: body.email?.trim() || null,
+    identityNumber: body.identityNumber?.trim() || null,
+    room,
   };
 
-  if (payload.room) {
-    const room = await Room.findOne({ _id: payload.room, deletedAt: null });
+  if (room) {
+    const existingRoom = await Room.findOne({ _id: room, deletedAt: null });
 
-    if (!room) {
+    if (!existingRoom) {
       throw createHttpError(400, 'Room does not exist');
     }
   }
 
   return payload;
+}
+
+async function syncRoomStatus(roomId) {
+  if (!roomId) return;
+
+  const room = await Room.findOne({ _id: roomId, deletedAt: null });
+
+  if (!room || room.status === 'maintenance') return;
+
+  const activeTenantCount = await Tenant.countDocuments({
+    room: roomId,
+    deletedAt: null,
+  });
+
+  room.status = activeTenantCount > 0 ? 'occupied' : 'available';
+  await room.save();
+}
+
+async function syncRelatedRoomStatuses(...roomIds) {
+  const uniqueRoomIds = [
+    ...new Set(roomIds.filter(Boolean).map((roomId) => String(roomId))),
+  ];
+
+  await Promise.all(uniqueRoomIds.map((roomId) => syncRoomStatus(roomId)));
 }
 
 export async function listTenants(req, res, next) {
@@ -73,6 +98,7 @@ export async function getTenant(req, res, next) {
 export async function createTenant(req, res, next) {
   try {
     const tenant = await Tenant.create(await normalizeTenantPayload(req.body));
+    await syncRelatedRoomStatuses(tenant.room);
     const populatedTenant = await tenant.populate(
       'room',
       'name floor price status',
@@ -89,6 +115,15 @@ export async function createTenant(req, res, next) {
 
 export async function updateTenant(req, res, next) {
   try {
+    const currentTenant = await Tenant.findOne({
+      _id: req.params.id,
+      deletedAt: null,
+    });
+
+    if (!currentTenant) {
+      throw createHttpError(404, 'Tenant not found');
+    }
+
     const tenant = await Tenant.findOneAndUpdate(
       { _id: req.params.id, deletedAt: null },
       await normalizeTenantPayload(req.body),
@@ -98,9 +133,7 @@ export async function updateTenant(req, res, next) {
       },
     ).populate('room', 'name floor price status');
 
-    if (!tenant) {
-      throw createHttpError(404, 'Tenant not found');
-    }
+    await syncRelatedRoomStatuses(currentTenant.room, tenant.room);
 
     res.json({
       data: tenant,
@@ -113,15 +146,22 @@ export async function updateTenant(req, res, next) {
 
 export async function deleteTenant(req, res, next) {
   try {
+    const currentTenant = await Tenant.findOne({
+      _id: req.params.id,
+      deletedAt: null,
+    });
+
+    if (!currentTenant) {
+      throw createHttpError(404, 'Tenant not found');
+    }
+
     const tenant = await Tenant.findOneAndUpdate(
       { _id: req.params.id, deletedAt: null },
       { deletedAt: new Date() },
       { new: true },
     ).populate('room', 'name floor price status');
 
-    if (!tenant) {
-      throw createHttpError(404, 'Tenant not found');
-    }
+    await syncRelatedRoomStatuses(currentTenant.room);
 
     res.json({
       data: tenant,

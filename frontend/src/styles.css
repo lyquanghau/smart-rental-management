@@ -226,6 +226,13 @@ h1 {
   color: #6b7280;
 }
 
+.page-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .form-page {
   max-width: 420px;
 }
