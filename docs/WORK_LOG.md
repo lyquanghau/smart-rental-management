@@ -108,3 +108,26 @@ Quy ước đơn giản:
 - `main` để code ổn định.
 - `dev` để gom code hằng ngày.
 - `feature/*` để mỗi người làm một phần riêng.
+
+## 2026-06-26
+
+### Tổng kết kiểm tra ngày khởi chạy
+
+- Xác nhận môi trường local đang dùng đúng Node.js `22.21.0` và npm `10.9.4`.
+- Xác nhận `backend/.env` và `frontend/.env` đã tồn tại trên máy local.
+- Kiểm tra Git: code chính đang sạch trên `main`; chỉ còn `chuyen_de_2.xlsx` và `code.txt` là file phụ trợ chưa theo dõi.
+- Chạy `npm run seed`: pass, MongoDB kết nối thành công và seed 5 phòng, 2 user, 3 khách thuê.
+- Kiểm tra backend tạm thời bằng `npm run start -w backend`:
+  - `GET /api/health`: pass, trả về `status: ok`.
+  - `POST /api/auth/login`: pass với tài khoản `admin@smartrental.local`.
+  - `GET /api/rooms`: pass, trả về 5 phòng.
+- Kiểm tra frontend tạm thời bằng `npm run dev -w frontend -- --host 127.0.0.1 --port 5173`: pass, trả về HTTP 200 và có React root.
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: pass khi chạy ngoài sandbox; lần chạy trong sandbox bị lỗi quyền `spawn EPERM` của Vite trên Windows, không phải lỗi code.
+
+### Ghi chú cho nhóm
+
+- Chưa chạy `npm run seed:reset` vì lệnh này xóa toàn bộ dữ liệu trong các collection trước khi seed lại. Chỉ dùng khi chắc chắn đang trỏ vào database dev và cả nhóm đồng ý reset dữ liệu.
+- Nội dung tiếng Việt trong file nguồn không bị hỏng; hiện tượng chữ lỗi khi đọc bằng PowerShell là do cách terminal render output.
+- Ngày tiếp theo nên bắt đầu từ nhánh `dev`, sau đó chia việc theo `feature/auth`, `feature/rooms`, `feature/tenants` hoặc nhánh feature nhỏ hơn theo module.
