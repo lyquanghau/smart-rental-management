@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "node scripts/vite-with-windows-net-use-workaround.mjs",
+    "build": "node scripts/vite-with-windows-net-use-workaround.mjs build",
+    "preview": "node scripts/vite-with-windows-net-use-workaround.mjs preview"
   },
   "dependencies": {
     "@vitejs/plugin-react": "4.3.4",

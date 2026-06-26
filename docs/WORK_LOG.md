@@ -152,3 +152,9 @@ DELETE /api/tenants/:id
 - `npm run lint`: pass.
 - `npm run format:check`: pass.
 - `npm run build`: pass khi chạy ngoài sandbox.
+
+### Sửa lỗi Vite trắng trang trên Windows
+
+- Thêm wrapper chạy Vite để bỏ qua bước gọi `net use` trên Windows khi lệnh này bị hệ thống chặn và gây lỗi `spawn EPERM`.
+- Cập nhật script `dev`, `build`, `preview` của frontend dùng wrapper này thay vì gọi trực tiếp `vite`.
+- Không sửa `node_modules`; workaround nằm trong source của dự án để các máy trong nhóm dùng giống nhau.
