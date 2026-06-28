@@ -17,6 +17,12 @@ const roomSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    maxOccupants: {
+      type: Number,
+      required: true,
+      default: 2,
+      min: 1,
+    },
     status: {
       type: String,
       enum: ['available', 'occupied', 'maintenance'],

@@ -64,6 +64,7 @@ export function RoomsPage() {
               <div>
                 <h2>{room.name}</h2>
                 <p>Tầng {room.floor}</p>
+                <p>Tối đa {room.maxOccupants || 2} người</p>
               </div>
               <RoomStatusBadge status={room.status} />
               <strong>{room.price.toLocaleString('vi-VN')}đ/tháng</strong>

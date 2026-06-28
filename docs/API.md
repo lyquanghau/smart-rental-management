@@ -122,6 +122,7 @@ Response:
       "name": "A101",
       "floor": 1,
       "price": 2500000,
+      "maxOccupants": 2,
       "status": "available",
       "deletedAt": null
     }
@@ -162,6 +163,7 @@ Request:
   "name": "D401",
   "floor": 4,
   "price": 3800000,
+  "maxOccupants": 2,
   "status": "available"
 }
 ```
@@ -177,6 +179,7 @@ Request:
   "name": "D401",
   "floor": 4,
   "price": 3900000,
+  "maxOccupants": 3,
   "status": "maintenance"
 }
 ```
@@ -286,3 +289,66 @@ Request:
 ### DELETE /tenants/:id
 
 Khách thuê được soft delete bằng `deletedAt`, không xóa cứng khỏi database.
+
+## Contracts
+
+Contract APIs yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, kết thúc hợp đồng yêu cầu role
+`landlord`.
+
+Contract status:
+
+- `active`
+- `ended`
+- `cancelled`
+
+### GET /contracts
+
+Query optional:
+
+```txt
+room=<roomId>
+tenant=<tenantId>
+status=active
+page=1
+limit=20
+```
+
+### GET /contracts/:id
+
+Trả về chi tiết hợp đồng kèm thông tin phòng và khách thuê.
+
+### POST /contracts
+
+Request:
+
+```json
+{
+  "room": "room-object-id",
+  "tenant": "tenant-object-id",
+  "startDate": "2026-06-01",
+  "endDate": "2027-06-01",
+  "monthlyPrice": 2700000,
+  "deposit": 2700000,
+  "status": "active"
+}
+```
+
+### PUT /contracts/:id
+
+Request:
+
+```json
+{
+  "room": "room-object-id",
+  "tenant": "tenant-object-id",
+  "startDate": "2026-06-01",
+  "endDate": "2027-06-01",
+  "monthlyPrice": 2800000,
+  "deposit": 2800000,
+  "status": "active"
+}
+```
+
+### DELETE /contracts/:id
+
+Hợp đồng không bị xóa cứng. API này chuyển `status` của hợp đồng sang `ended`.

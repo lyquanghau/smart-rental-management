@@ -36,7 +36,15 @@ Endpoint nền:
 
 ## Contracts
 
-Quản lý hợp đồng giữa khách thuê và phòng. Ngày 1 mới tạo model và seed data, chưa mở API riêng.
+Quản lý hợp đồng giữa khách thuê và phòng. Module đã có model, seed data, API CRUD cơ bản và giao diện quản lý hợp đồng trong frontend.
+
+Endpoint nền:
+
+- `GET /api/contracts`
+- `GET /api/contracts/:id`
+- `POST /api/contracts`
+- `PUT /api/contracts/:id`
+- `DELETE /api/contracts/:id`
 
 ## Payments
 

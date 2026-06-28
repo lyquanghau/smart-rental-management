@@ -58,7 +58,7 @@ export async function listTenants(req, res, next) {
 
     const [tenants, total] = await Promise.all([
       Tenant.find(filters)
-        .populate('room', 'name floor price status')
+        .populate('room', 'name floor price maxOccupants status')
         .sort({ fullName: 1 })
         .skip((safePage - 1) * safeLimit)
         .limit(safeLimit),
@@ -83,7 +83,7 @@ export async function getTenant(req, res, next) {
     const tenant = await Tenant.findOne({
       _id: req.params.id,
       deletedAt: null,
-    }).populate('room', 'name floor price status');
+    }).populate('room', 'name floor price maxOccupants status');
 
     if (!tenant) {
       throw createHttpError(404, 'Tenant not found');
@@ -101,7 +101,7 @@ export async function createTenant(req, res, next) {
     await syncRelatedRoomStatuses(tenant.room);
     const populatedTenant = await tenant.populate(
       'room',
-      'name floor price status',
+      'name floor price maxOccupants status',
     );
 
     res.status(201).json({
@@ -131,7 +131,7 @@ export async function updateTenant(req, res, next) {
         new: true,
         runValidators: true,
       },
-    ).populate('room', 'name floor price status');
+    ).populate('room', 'name floor price maxOccupants status');
 
     await syncRelatedRoomStatuses(currentTenant.room, tenant.room);
 
@@ -159,7 +159,7 @@ export async function deleteTenant(req, res, next) {
       { _id: req.params.id, deletedAt: null },
       { deletedAt: new Date() },
       { new: true },
-    ).populate('room', 'name floor price status');
+    ).populate('room', 'name floor price maxOccupants status');
 
     await syncRelatedRoomStatuses(currentTenant.room);
 

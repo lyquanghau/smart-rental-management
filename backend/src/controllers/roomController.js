@@ -7,6 +7,7 @@ function normalizeRoomPayload(body) {
     name: body.name,
     floor: Number(body.floor),
     price: Number(body.price),
+    maxOccupants: Number(body.maxOccupants || 2),
     status: body.status,
   };
 }

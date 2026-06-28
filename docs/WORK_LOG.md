@@ -192,3 +192,61 @@ DELETE /api/tenants/:id
 - Đã push nhánh `dev` lên remote `origin/dev`.
 - Commit cuối đã push: `9b4b7c4 fix: sync room status from active tenants`.
 - Các file phụ trợ chưa đưa vào Git: `chuyen_de_2.xlsx`, `code.txt`, `docs/image/`.
+
+## 2026-06-28
+
+### Đánh giá đầu phiên
+
+- Đang ở nhánh `dev`, đồng bộ với `origin/dev`.
+- Không có thay đổi tracked cần push trước khi code.
+- Các file phụ trợ chưa theo dõi vẫn là `chuyen_de_2.xlsx`, `code.txt`, `docs/image/`.
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: pass khi chạy ngoài sandbox; lỗi `spawn EPERM` trong sandbox là lỗi môi trường Windows/Vite, không phải lỗi code.
+
+### Module hợp đồng
+
+- Thêm Contracts API:
+
+```txt
+GET /api/contracts
+GET /api/contracts/:id
+POST /api/contracts
+PUT /api/contracts/:id
+DELETE /api/contracts/:id
+```
+
+- Các API hợp đồng yêu cầu JWT; tạo, sửa, kết thúc hợp đồng yêu cầu role `landlord`.
+- Danh sách và chi tiết hợp đồng trả kèm thông tin phòng và khách thuê qua `populate`.
+- Validate nghiệp vụ cơ bản: phòng tồn tại, khách thuê tồn tại, ngày bắt đầu hợp lệ, ngày kết thúc sau ngày bắt đầu, tiền thuê và tiền cọc không âm.
+- `DELETE /api/contracts/:id` không xóa cứng, chỉ chuyển trạng thái hợp đồng sang `ended`.
+
+### Frontend hợp đồng
+
+- Thêm service `contractService`.
+- Thêm trang `Hợp đồng` tại `/contracts`.
+- Trang hợp đồng có danh sách, form thêm mới, sửa, kết thúc hợp đồng, loading state, error state và empty state.
+- Thêm menu `Hợp đồng` vào sidebar.
+
+### Tài liệu
+
+- Cập nhật `docs/API.md` cho Contracts API.
+- Cập nhật `docs/MODULES.md` để phản ánh module hợp đồng đã có API/UI cơ bản.
+
+### Kiểm tra sau triển khai
+
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: pass khi chạy ngoài sandbox.
+- Ghi chú: build trong sandbox vẫn lỗi `spawn EPERM` tại bước Vite/esbuild trên Windows, giống các phiên trước.
+
+### Điều chỉnh flow tạo hợp đồng
+
+- Thêm lựa chọn thời hạn hợp đồng: 3 tháng, 6 tháng, 12 tháng, 24 tháng.
+- Ngày kết thúc được tự tính từ ngày bắt đầu và thời hạn đã chọn.
+- Khi chọn phòng, giá thuê mỗi tháng được tự điền theo giá phòng hiện tại.
+- Thêm giải thích rằng giá thuê mỗi tháng là giá chốt trong hợp đồng, có thể khác giá niêm yết của phòng nếu có thỏa thuận riêng.
+- Đổi tiền cọc từ nhập số tiền sang chọn số tháng cọc: 1 tháng, 2 tháng, 3 tháng.
+- Hiển thị dòng phụ bên dưới để người dùng thấy số tiền cọc tương ứng.
+- Thêm giải thích ý nghĩa trạng thái hợp đồng: đang hiệu lực, đã kết thúc, đã hủy.
+- Thêm số người ở tối đa cho mỗi phòng và hiển thị ở danh sách phòng, form hợp đồng.

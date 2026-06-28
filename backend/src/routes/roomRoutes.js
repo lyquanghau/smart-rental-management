@@ -20,6 +20,7 @@ const roomRules = {
   name: [required('Room name')],
   floor: [required('Floor'), minNumber('Floor', 1)],
   price: [required('Price'), minNumber('Price', 0)],
+  maxOccupants: [minNumber('Max occupants', 1)],
   status: [oneOf('Status', ['available', 'occupied', 'maintenance'])],
 };
 
