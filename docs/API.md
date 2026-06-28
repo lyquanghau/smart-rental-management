@@ -352,3 +352,99 @@ Request:
 ### DELETE /contracts/:id
 
 Hợp đồng không bị xóa cứng. API này chuyển `status` của hợp đồng sang `ended`.
+
+## Payments
+
+Payment APIs yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, đánh dấu đã thu
+và hủy khoản thu yêu cầu role `landlord`.
+
+Payment status:
+
+- `pending`
+- `paid`
+- `overdue`
+- `cancelled`
+
+Payment method:
+
+- `cash`
+- `bank_transfer`
+- `momo`
+- `vnpay`
+
+### GET /payments
+
+Query optional:
+
+```txt
+contract=<contractId>
+status=pending
+method=cash
+month=6
+year=2026
+page=1
+limit=20
+```
+
+Response trả danh sách khoản thu kèm hợp đồng, phòng và khách thuê.
+
+### GET /payments/:id
+
+Trả về chi tiết khoản thu kèm hợp đồng, phòng và khách thuê.
+
+### POST /payments
+
+Request:
+
+```json
+{
+  "contract": "contract-object-id",
+  "amount": 2700000,
+  "dueDate": "2026-06-30",
+  "method": "cash",
+  "status": "pending",
+  "note": "Tien phong thang 6/2026"
+}
+```
+
+### PUT /payments/:id
+
+Request:
+
+```json
+{
+  "contract": "contract-object-id",
+  "amount": 2800000,
+  "dueDate": "2026-07-30",
+  "method": "bank_transfer",
+  "status": "pending",
+  "note": "Tien phong thang 7/2026"
+}
+```
+
+### PATCH /payments/:id/mark-paid
+
+Request optional:
+
+```json
+{
+  "method": "bank_transfer",
+  "paidAt": "2026-06-20",
+  "note": "Da thu qua chuyen khoan"
+}
+```
+
+API chuyển `status` sang `paid` và tự set `paidAt` bằng thời điểm hiện tại nếu
+request không truyền `paidAt`.
+
+### PATCH /payments/:id/cancel
+
+Request optional:
+
+```json
+{
+  "note": "Huy do tao nham ky thu"
+}
+```
+
+API chuyển `status` sang `cancelled`, không xóa cứng khoản thu khỏi database.

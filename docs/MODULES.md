@@ -48,7 +48,19 @@ Endpoint nền:
 
 ## Payments
 
-Quản lý thanh toán tiền phòng. Ngày 1 mới tạo model và seed data, chưa tích hợp cổng thanh toán.
+Quản lý thanh toán tiền phòng. Module đã có model, seed data, API quản lý khoản
+thu cơ bản và giao diện frontend tại `/payments`. Hiện tại hỗ trợ ghi nhận thủ
+công/mock theo phương thức `cash`, `bank_transfer`, `momo`, `vnpay`; chưa tích
+hợp redirect thật sang VNPay/MoMo sandbox.
+
+Endpoint nền:
+
+- `GET /api/payments`
+- `GET /api/payments/:id`
+- `POST /api/payments`
+- `PUT /api/payments/:id`
+- `PATCH /api/payments/:id/mark-paid`
+- `PATCH /api/payments/:id/cancel`
 
 ## Dashboard
 

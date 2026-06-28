@@ -10,6 +10,7 @@ export default [
       'build/**',
       'coverage/**',
       'frontend/dist/**',
+      '.tmp-*/**',
     ],
   },
   js.configs.recommended,
