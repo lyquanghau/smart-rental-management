@@ -66,6 +66,15 @@ npm run format:check
 npm run build
 ```
 
+## Tài liệu phân tích nhanh
+
+- `docs/REQUIREMENTS.md`: danh sách MVP và phạm vi.
+- `docs/USER_STORY.md`: user story cho chủ trọ và khách thuê.
+- `docs/USER_FLOW.md`: luồng đăng nhập, quản lý phòng, hợp đồng và thanh toán.
+- `docs/COMPONENT_LIST.md`: danh sách page, component, service frontend.
+- `docs/DATABASE_DECISIONS.md`: quyết định dùng MongoDB Atlas + Mongoose thay cho Mongo local/migration SQL.
+- `design/wireframe/README.md`: wireframe text cho các màn hình chính.
+
 ## Nhánh Git của team
 
 Dùng ít nhánh để cả nhóm dễ nhớ:

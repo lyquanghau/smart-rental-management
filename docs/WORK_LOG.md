@@ -301,3 +301,11 @@ PATCH /api/payments/:id/cancel
 - Bổ sung `frontend/src/hooks/README.md` để hoàn thiện cấu trúc thư mục frontend theo kế hoạch; chưa tạo hook code vì hiện chưa có logic lặp lại cần tách.
 - Cập nhật `docs/CONVENTIONS.md` về quy ước hooks và quyết định dùng CSS thuần thay vì TailwindCSS/MUI trong giai đoạn MVP.
 - Cập nhật README để stack frontend ghi rõ đang dùng CSS thuần.
+
+### Bổ sung tài liệu cho các mục kế hoạch còn thiếu
+
+- Thêm `docs/USER_FLOW.md` mô tả luồng đăng nhập, quản lý phòng, hợp đồng và thanh toán.
+- Thêm `docs/COMPONENT_LIST.md` liệt kê layout, component, page, service và hooks của frontend.
+- Thêm `docs/DATABASE_DECISIONS.md` ghi rõ quyết định dùng MongoDB Atlas + Mongoose, không dùng Mongo local/migration SQL làm hướng chính.
+- Thêm `design/wireframe/README.md` mô tả wireframe text cho các màn hình: đăng nhập, layout quản trị, phòng, khách thuê, hợp đồng, thanh toán và dashboard.
+- Cập nhật README để gom các tài liệu phân tích nhanh cho nhóm dễ tìm.
