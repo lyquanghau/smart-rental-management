@@ -4,7 +4,7 @@
 
 ## Stack chính
 
-- Frontend: React 18, Vite, React Router, Axios
+- Frontend: React 18, Vite, React Router, Axios, CSS thuần
 - Backend: Node.js, Express, MongoDB Atlas, Mongoose
 - Tooling: npm workspaces, ESLint, Prettier
 

@@ -292,3 +292,12 @@ PATCH /api/payments/:id/cancel
 - Test nút `Đã thu`: pass, khoản thu chuyển sang trạng thái `Đã thanh toán`, có ngày thu và chỉ còn thao tác `Sửa`.
 - Test nút `Hủy`: pass, khoản thu test riêng chuyển sang trạng thái `Đã hủy` và chỉ còn thao tác `Sửa`.
 - Ảnh chụp kiểm tra giao diện được lưu tạm tại `.tmp-test-logs/payments-ui-test.png`.
+
+### Hoàn thiện tài liệu phân tích ban đầu
+
+- Thêm `docs/USER_STORY.md` với user story cho 2 vai: chủ trọ và khách thuê.
+- Mỗi vai có 5 user story theo format `As a... I want... so that...` và acceptance criteria.
+- Cập nhật `docs/REQUIREMENTS.md` để trỏ sang tài liệu user story chi tiết.
+- Bổ sung `frontend/src/hooks/README.md` để hoàn thiện cấu trúc thư mục frontend theo kế hoạch; chưa tạo hook code vì hiện chưa có logic lặp lại cần tách.
+- Cập nhật `docs/CONVENTIONS.md` về quy ước hooks và quyết định dùng CSS thuần thay vì TailwindCSS/MUI trong giai đoạn MVP.
+- Cập nhật README để stack frontend ghi rõ đang dùng CSS thuần.
