@@ -64,4 +64,9 @@ Endpoint nền:
 
 ## Dashboard
 
-Hiển thị số liệu tổng quan. Ngày 1 frontend đang dùng số liệu tĩnh, các API thống kê sẽ làm sau khi module chính ổn định.
+Hiển thị số liệu tổng quan từ dữ liệu thật trong MongoDB. Module đã có API thống
+kê tổng phòng, khách thuê active, hợp đồng active và thanh toán trong tháng.
+
+Endpoint nền:
+
+- `GET /api/dashboard/summary`

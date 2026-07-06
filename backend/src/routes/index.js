@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import authRoutes from './authRoutes.js';
 import contractRoutes from './contractRoutes.js';
+import dashboardRoutes from './dashboardRoutes.js';
 import healthRoutes from './healthRoutes.js';
 import paymentRoutes from './paymentRoutes.js';
 import roomRoutes from './roomRoutes.js';
@@ -9,6 +10,7 @@ import tenantRoutes from './tenantRoutes.js';
 const router = Router();
 
 router.use('/auth', authRoutes);
+router.use('/dashboard', dashboardRoutes);
 router.use('/health', healthRoutes);
 router.use('/rooms', roomRoutes);
 router.use('/tenants', tenantRoutes);

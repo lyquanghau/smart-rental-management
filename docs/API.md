@@ -448,3 +448,48 @@ Request optional:
 ```
 
 API chuyển `status` sang `cancelled`, không xóa cứng khoản thu khỏi database.
+
+## Dashboard
+
+Dashboard API yêu cầu đăng nhập bằng JWT.
+
+### GET /dashboard/summary
+
+Response:
+
+```json
+{
+  "data": {
+    "rooms": {
+      "total": 5,
+      "available": 3,
+      "occupied": 1,
+      "maintenance": 1
+    },
+    "tenants": {
+      "active": 3
+    },
+    "contracts": {
+      "active": 1,
+      "ended": 0,
+      "cancelled": 0
+    },
+    "payments": {
+      "month": 7,
+      "year": 2026,
+      "pendingAmount": 2700000,
+      "paidAmount": 2700000,
+      "pendingCount": 1,
+      "paidCount": 1,
+      "overdueCount": 0
+    }
+  }
+}
+```
+
+Ghi chú:
+
+- `rooms` chỉ tính phòng chưa bị soft delete.
+- `tenants.active` tính khách thuê chưa bị soft delete.
+- `payments` thống kê theo tháng hiện tại dựa trên `dueDate`.
+- `overdueCount` tính cả khoản `overdue` và khoản `pending` đã quá hạn.

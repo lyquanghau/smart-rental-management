@@ -177,6 +177,21 @@ h1 {
   font-size: 32px;
 }
 
+.metric-card small {
+  color: #6b7280;
+  display: block;
+  margin-top: 8px;
+}
+
+.dashboard-section {
+  margin-top: 28px;
+}
+
+.dashboard-section h2 {
+  font-size: 20px;
+  margin: 0 0 16px;
+}
+
 .room-card {
   display: grid;
   gap: 14px;

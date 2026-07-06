@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getToken } from './sessionStorage.js';
+import { clearSession, getToken } from './sessionStorage.js';
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
@@ -18,6 +18,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (
+      error.response?.status === 401 &&
+      window.location.pathname !== '/login'
+    ) {
+      clearSession();
+      window.location.href = '/login';
+    }
+
     const message =
       error.response?.data?.message ||
       'Không thể kết nối máy chủ. Vui lòng thử lại.';

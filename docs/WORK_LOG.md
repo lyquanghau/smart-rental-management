@@ -309,3 +309,37 @@ PATCH /api/payments/:id/cancel
 - Thêm `docs/DATABASE_DECISIONS.md` ghi rõ quyết định dùng MongoDB Atlas + Mongoose, không dùng Mongo local/migration SQL làm hướng chính.
 - Thêm `design/wireframe/README.md` mô tả wireframe text cho các màn hình: đăng nhập, layout quản trị, phòng, khách thuê, hợp đồng, thanh toán và dashboard.
 - Cập nhật README để gom các tài liệu phân tích nhanh cho nhóm dễ tìm.
+
+## 2026-07-06
+
+### Kiểm tra Git trước khi code
+
+- Kiểm tra remote heads bằng `git ls-remote --heads origin`: remote có `main`,
+  `dev`, `feature/auth`, `feature/docs`, `feature/rooms`, `feature/tenants`.
+- Không phát hiện nhánh remote mới bị thiếu ở local.
+- Xác nhận `dev` đang sau `main` ở 2 commit tài liệu; đã fast-forward `dev`
+  theo `main` và push lại `origin/dev`.
+- Tạo nhánh `feature/dashboard-stats` để triển khai dashboard thống kê.
+- Các file phụ trợ chưa theo dõi vẫn giữ nguyên: `chuyen_de_2.xlsx`,
+  `code.txt`, `docs/image/`.
+
+### Dashboard thống kê thật
+
+- Thêm `GET /api/dashboard/summary`, yêu cầu JWT.
+- API tổng hợp số liệu phòng, khách thuê active, hợp đồng theo trạng thái và
+  thanh toán trong tháng hiện tại từ MongoDB.
+- Frontend thêm `dashboardService` và cập nhật `DashboardPage` để bỏ số liệu
+  tĩnh, thay bằng số liệu từ API.
+- Dashboard có loading state, error state và nút tải lại.
+- Cập nhật `docs/API.md` và `docs/MODULES.md` cho Dashboard API.
+
+### Sửa lỗi token hết hạn trên giao diện
+
+- Sau khi Dashboard bắt đầu gọi API yêu cầu JWT, trình duyệt có thể hiển thị lỗi
+  `Invalid or expired token` nếu local storage còn giữ token cũ hoặc token đã hết
+  hạn.
+- Cập nhật Axios response interceptor trong `frontend/src/services/api.js`:
+  khi backend trả `401`, frontend tự xóa session cũ và chuyển người dùng về
+  `/login`.
+- Cách xử lý này áp dụng chung cho các API có đăng nhập, không chỉ riêng
+  Dashboard.
