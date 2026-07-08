@@ -343,3 +343,56 @@ PATCH /api/payments/:id/cancel
   `/login`.
 - Cách xử lý này áp dụng chung cho các API có đăng nhập, không chỉ riêng
   Dashboard.
+
+## 2026-07-08
+
+### Kiem tra Git truoc khi code
+
+- Kiem tra nhanh tat ca nhanh local/remote: chi co `feature/dashboard-stats` chua nhap vao
+  `main`.
+- Chay `npm run lint`: pass.
+- Chay `npm run format:check`: pass.
+- Chay `npm run build`: pass khi chay ngoai sandbox Windows.
+- Fast-forward `feature/dashboard-stats` vao `main`.
+- Fast-forward `dev` theo `main`.
+- Tao nhanh `feature/contract-pdf-dashboard-details` de lam cong viec hom nay.
+- Cac file phu tro chua dua vao Git van giu nguyen: `chuyen_de_2.xlsx`, `code.txt`,
+  `docs/image/`.
+
+### PDF hop dong
+
+- Them package `pdfkit` cho backend.
+- Them API `GET /api/contracts/:id/pdf`, yeu cau JWT.
+- API lay hop dong kem phong va khach thue, sau do sinh file PDF hop dong tu du lieu that.
+- Frontend trang `Hop dong` co nut `PDF` tren tung dong de tai file hop dong.
+- PDF hien tai dung font mac dinh cua PDFKit va noi dung ASCII de tranh loi font Unicode khi deploy.
+
+### Dashboard mo rong
+
+- Mo rong `GET /api/dashboard/summary` nhung khong pha response cu.
+- Bo sung `revenue.currentMonth`, `revenue.previousMonth`, `revenue.previousMonthPaidCount`.
+- Bo sung `alerts.expiringContracts` cho hop dong active sap het han trong 30 ngay.
+- Bo sung `alerts.unpaidPayments` cho khoan thu `pending` hoac `overdue` can xu ly.
+- Frontend dashboard hien thi doanh thu thang nay/thang truoc, hop dong sap het han va khoan thu can xu ly.
+
+### Tai lieu
+
+- Cap nhat `docs/API.md` cho endpoint PDF va response dashboard moi.
+- Cap nhat `docs/MODULES.md` de phan anh PDF hop dong va dashboard canh bao hanh dong.
+
+### Kiem tra cuoi ngay
+
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: pass khi chay ngoai sandbox Windows.
+- Smoke test API local:
+  - `POST /api/auth/login`: pass voi tai khoan admin mau.
+  - `GET /api/health`: pass.
+  - `GET /api/dashboard/summary`: pass, tra du lieu phong va alert dashboard.
+  - `GET /api/contracts`: pass.
+  - `GET /api/contracts/:id/pdf`: pass, tra `200 OK` va sinh file PDF hop dong.
+- Dev server local da chay duoc:
+  - Frontend: `http://localhost:5173`
+  - Backend: `http://localhost:5000`
+- Ghi chu: build trong sandbox Windows van co the gap loi `spawn EPERM` cua Vite/esbuild;
+  chay ngoai sandbox thi build thanh cong.

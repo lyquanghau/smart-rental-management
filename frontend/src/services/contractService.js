@@ -24,3 +24,11 @@ export async function deleteContract(id) {
   const response = await api.delete(`/contracts/${id}`);
   return response.data.data;
 }
+
+export async function downloadContractPdf(id) {
+  const response = await api.get(`/contracts/${id}/pdf`, {
+    responseType: 'blob',
+  });
+
+  return response.data;
+}

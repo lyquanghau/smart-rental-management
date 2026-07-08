@@ -192,6 +192,42 @@ h1 {
   margin: 0 0 16px;
 }
 
+.dashboard-details {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.dashboard-list-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.alert-list {
+  display: grid;
+  gap: 12px;
+}
+
+.alert-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.alert-item span,
+.alert-item small,
+.empty-note {
+  color: #6b7280;
+}
+
+.empty-note {
+  margin: 0;
+}
+
 .room-card {
   display: grid;
   gap: 14px;

@@ -25,10 +25,36 @@ const emptySummary = {
     paidCount: 0,
     overdueCount: 0,
   },
+  revenue: {
+    currentMonth: 0,
+    previousMonth: 0,
+    previousMonthPaidCount: 0,
+  },
+  alerts: {
+    expiringContracts: [],
+    unpaidPayments: [],
+  },
 };
 
 function formatMoney(value) {
   return Number(value || 0).toLocaleString('vi-VN');
+}
+
+function formatDate(value) {
+  if (!value) return 'Chua co';
+  return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
+}
+
+function getRevenueDelta(currentMonth, previousMonth) {
+  if (!previousMonth) {
+    return currentMonth ? 'Thang truoc chua co doanh thu' : 'Chua co doanh thu';
+  }
+
+  const delta = currentMonth - previousMonth;
+  const percent = Math.round((delta / previousMonth) * 100);
+
+  if (delta === 0) return 'Bang thang truoc';
+  return `${delta > 0 ? 'Tang' : 'Giam'} ${Math.abs(percent)}% so voi thang truoc`;
 }
 
 export function DashboardPage() {
@@ -42,7 +68,18 @@ export function DashboardPage() {
 
     try {
       const data = await getDashboardSummary();
-      setSummary(data);
+      setSummary({
+        ...emptySummary,
+        ...data,
+        revenue: {
+          ...emptySummary.revenue,
+          ...(data.revenue || {}),
+        },
+        alerts: {
+          ...emptySummary.alerts,
+          ...(data.alerts || {}),
+        },
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -108,8 +145,19 @@ export function DashboardPage() {
         <div className="metric-grid">
           <article className="metric-card">
             <span>Đã thu</span>
-            <strong>{formatMoney(summary.payments.paidAmount)}đ</strong>
-            <small>{summary.payments.paidCount} khoản</small>
+            <strong>{formatMoney(summary.revenue.currentMonth)}đ</strong>
+            <small>
+              {summary.payments.paidCount} khoản.{' '}
+              {getRevenueDelta(
+                summary.revenue.currentMonth,
+                summary.revenue.previousMonth,
+              )}
+            </small>
+          </article>
+          <article className="metric-card">
+            <span>Tháng trước</span>
+            <strong>{formatMoney(summary.revenue.previousMonth)}đ</strong>
+            <small>{summary.revenue.previousMonthPaidCount} khoản</small>
           </article>
           <article className="metric-card">
             <span>Chưa thu</span>
@@ -122,6 +170,51 @@ export function DashboardPage() {
             <small>khoản cần kiểm tra</small>
           </article>
         </div>
+      </div>
+
+      <div className="dashboard-details">
+        <section className="dashboard-section dashboard-list-panel">
+          <h2>Hop dong sap het han</h2>
+          {summary.alerts.expiringContracts.length === 0 ? (
+            <p className="empty-note">
+              Khong co hop dong het han trong 30 ngay.
+            </p>
+          ) : (
+            <div className="alert-list">
+              {summary.alerts.expiringContracts.map((contract) => (
+                <article className="alert-item" key={contract._id}>
+                  <strong>{contract.room?.name || 'Chua co phong'}</strong>
+                  <span>{contract.tenant?.fullName || 'Chua co khach'}</span>
+                  <small>Het han: {formatDate(contract.endDate)}</small>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="dashboard-section dashboard-list-panel">
+          <h2>Khoan thu can xu ly</h2>
+          {summary.alerts.unpaidPayments.length === 0 ? (
+            <p className="empty-note">
+              Khong co khoan thu dang cho hoac qua han.
+            </p>
+          ) : (
+            <div className="alert-list">
+              {summary.alerts.unpaidPayments.map((payment) => (
+                <article className="alert-item" key={payment._id}>
+                  <strong>{formatMoney(payment.amount)}d</strong>
+                  <span>
+                    {payment.contract?.room?.name || 'Chua co phong'} -{' '}
+                    {payment.contract?.tenant?.fullName || 'Chua co khach'}
+                  </span>
+                  <small>
+                    Han: {formatDate(payment.dueDate)} - {payment.status}
+                  </small>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </section>
   );

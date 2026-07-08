@@ -42,6 +42,7 @@ Endpoint nền:
 
 - `GET /api/contracts`
 - `GET /api/contracts/:id`
+- `GET /api/contracts/:id/pdf`
 - `POST /api/contracts`
 - `PUT /api/contracts/:id`
 - `DELETE /api/contracts/:id`
@@ -65,7 +66,8 @@ Endpoint nền:
 ## Dashboard
 
 Hiển thị số liệu tổng quan từ dữ liệu thật trong MongoDB. Module đã có API thống
-kê tổng phòng, khách thuê active, hợp đồng active và thanh toán trong tháng.
+kê tổng phòng, khách thuê active, hợp đồng active, thanh toán trong tháng, doanh thu tháng trước,
+hợp đồng sắp hết hạn và khoản thu cần xử lý.
 
 Endpoint nền:
 

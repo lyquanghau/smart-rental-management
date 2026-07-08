@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   createContract,
   deleteContract,
+  downloadContractPdf,
   getContract,
   listContracts,
   updateContract,
@@ -26,6 +27,7 @@ const contractRules = {
 };
 
 router.get('/', requireAuth, listContracts);
+router.get('/:id/pdf', requireAuth, downloadContractPdf);
 router.get('/:id', requireAuth, getContract);
 router.post(
   '/',

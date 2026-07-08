@@ -23,9 +23,53 @@ function currentMonthRange(now = new Date()) {
   };
 }
 
+function previousMonthRange(now = new Date()) {
+  const month = now.getMonth();
+  const year = now.getFullYear();
+
+  return {
+    start: new Date(year, month - 1, 1),
+    end: new Date(year, month, 1),
+  };
+}
+
+function expiringContractRange(now = new Date(), days = 30) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = new Date(today);
+  end.setDate(end.getDate() + days);
+
+  return { today, end };
+}
+
+function mapContractPreview(contract) {
+  return {
+    _id: contract._id,
+    room: contract.room,
+    tenant: contract.tenant,
+    startDate: contract.startDate,
+    endDate: contract.endDate,
+    monthlyPrice: contract.monthlyPrice,
+    status: contract.status,
+  };
+}
+
+function mapPaymentPreview(payment) {
+  return {
+    _id: payment._id,
+    contract: payment.contract,
+    amount: payment.amount,
+    dueDate: payment.dueDate,
+    method: payment.method,
+    status: payment.status,
+    note: payment.note,
+  };
+}
+
 export async function getDashboardSummary(_req, res, next) {
   try {
     const monthRange = currentMonthRange();
+    const lastMonthRange = previousMonthRange();
+    const contractRange = expiringContractRange();
 
     const [
       roomStatusRows,
@@ -33,6 +77,9 @@ export async function getDashboardSummary(_req, res, next) {
       activeTenants,
       contractStatusRows,
       paymentRows,
+      previousPaymentRows,
+      expiringContracts,
+      unpaidPayments,
     ] = await Promise.all([
       Room.aggregate([
         { $match: { deletedAt: null } },
@@ -95,11 +142,50 @@ export async function getDashboardSummary(_req, res, next) {
           },
         },
       ]),
+      Payment.aggregate([
+        {
+          $match: {
+            dueDate: { $gte: lastMonthRange.start, $lt: lastMonthRange.end },
+            status: 'paid',
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            paidAmount: { $sum: '$amount' },
+            paidCount: { $sum: 1 },
+          },
+        },
+      ]),
+      Contract.find({
+        status: 'active',
+        endDate: { $gte: contractRange.today, $lte: contractRange.end },
+      })
+        .populate([
+          { path: 'room', select: 'name floor price maxOccupants status' },
+          { path: 'tenant', select: 'fullName phone email identityNumber' },
+        ])
+        .sort({ endDate: 1 })
+        .limit(5),
+      Payment.find({
+        status: { $in: ['pending', 'overdue'] },
+      })
+        .populate({
+          path: 'contract',
+          select: 'room tenant startDate endDate monthlyPrice status',
+          populate: [
+            { path: 'room', select: 'name floor price maxOccupants status' },
+            { path: 'tenant', select: 'fullName phone email identityNumber' },
+          ],
+        })
+        .sort({ dueDate: 1 })
+        .limit(5),
     ]);
 
     const roomCounts = mapStatusCounts(roomStatusRows);
     const contractCounts = mapStatusCounts(contractStatusRows);
     const paymentSummary = paymentRows[0] || {};
+    const previousPaymentSummary = previousPaymentRows[0] || {};
 
     res.json({
       data: {
@@ -125,6 +211,15 @@ export async function getDashboardSummary(_req, res, next) {
           pendingCount: paymentSummary.pendingCount || 0,
           paidCount: paymentSummary.paidCount || 0,
           overdueCount: paymentSummary.overdueCount || 0,
+        },
+        revenue: {
+          currentMonth: paymentSummary.paidAmount || 0,
+          previousMonth: previousPaymentSummary.paidAmount || 0,
+          previousMonthPaidCount: previousPaymentSummary.paidCount || 0,
+        },
+        alerts: {
+          expiringContracts: expiringContracts.map(mapContractPreview),
+          unpaidPayments: unpaidPayments.map(mapPaymentPreview),
         },
       },
     });

@@ -317,6 +317,13 @@ limit=20
 
 Trả về chi tiết hợp đồng kèm thông tin phòng và khách thuê.
 
+### GET /contracts/:id/pdf
+
+Yeu cau dang nhap bang JWT.
+
+Tra ve file PDF hop dong tao tu du lieu hop dong, phong va khach thue.
+Response dung `Content-Type: application/pdf`.
+
 ### POST /contracts
 
 Request:
@@ -482,6 +489,15 @@ Response:
       "pendingCount": 1,
       "paidCount": 1,
       "overdueCount": 0
+    },
+    "revenue": {
+      "currentMonth": 2700000,
+      "previousMonth": 0,
+      "previousMonthPaidCount": 0
+    },
+    "alerts": {
+      "expiringContracts": [],
+      "unpaidPayments": []
     }
   }
 }
@@ -493,3 +509,7 @@ Ghi chú:
 - `tenants.active` tính khách thuê chưa bị soft delete.
 - `payments` thống kê theo tháng hiện tại dựa trên `dueDate`.
 - `overdueCount` tính cả khoản `overdue` và khoản `pending` đã quá hạn.
+- `revenue.currentMonth` la tong khoan `paid` trong thang hien tai.
+- `revenue.previousMonth` la tong khoan `paid` trong thang truoc.
+- `alerts.expiringContracts` tra toi da 5 hop dong active sap het han trong 30 ngay.
+- `alerts.unpaidPayments` tra toi da 5 khoan `pending` hoac `overdue` can xu ly.

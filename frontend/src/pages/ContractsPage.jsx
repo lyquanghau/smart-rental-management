@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   createContract,
   deleteContract,
+  downloadContractPdf,
   getContracts,
   updateContract,
 } from '../services/contractService.js';
@@ -142,6 +143,7 @@ export function ContractsPage() {
   const [editingContractId, setEditingContractId] = useState('');
   const [viewingContractId, setViewingContractId] = useState('');
   const [error, setError] = useState('');
+  const [downloadingContractId, setDownloadingContractId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -270,6 +272,29 @@ export function ContractsPage() {
       await loadData();
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function handleDownloadPdf(contract) {
+    setDownloadingContractId(contract._id);
+    setError('');
+
+    try {
+      const pdfBlob = await downloadContractPdf(contract._id);
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      const roomName = contract.room?.name || 'hop-dong';
+
+      link.href = url;
+      link.download = `hop-dong-${roomName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingContractId('');
     }
   }
 
@@ -502,31 +527,43 @@ export function ContractsPage() {
                         <strong>{getStatusLabel(contract.status)}</strong>
                       </td>
                       <td>
-                        {isActiveContract ? (
-                          <div className="row-actions">
+                        <div className="row-actions">
+                          {isActiveContract ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => startEdit(contract)}
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                className="danger-button"
+                                type="button"
+                                onClick={() => handleDelete(contract)}
+                              >
+                                Kết thúc
+                              </button>
+                            </>
+                          ) : (
                             <button
+                              className="secondary-button"
                               type="button"
-                              onClick={() => startEdit(contract)}
+                              onClick={() => startView(contract)}
                             >
-                              Sửa
+                              Xem
                             </button>
-                            <button
-                              className="danger-button"
-                              type="button"
-                              onClick={() => handleDelete(contract)}
-                            >
-                              Kết thúc
-                            </button>
-                          </div>
-                        ) : (
+                          )}
                           <button
                             className="secondary-button"
+                            disabled={downloadingContractId === contract._id}
                             type="button"
-                            onClick={() => startView(contract)}
+                            onClick={() => handleDownloadPdf(contract)}
                           >
-                            Xem
+                            {downloadingContractId === contract._id
+                              ? 'Dang tai'
+                              : 'PDF'}
                           </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   );
