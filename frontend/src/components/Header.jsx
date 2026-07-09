@@ -13,7 +13,7 @@ export function Header() {
   return (
     <header className="topbar">
       <div>
-        <span className="eyebrow">Smart Rental</span>
+        <span className="eyebrow">Quản lý phòng trọ thông minh</span>
         <strong>Quản lý phòng trọ</strong>
       </div>
       {user ? (

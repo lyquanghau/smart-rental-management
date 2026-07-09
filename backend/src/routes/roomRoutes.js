@@ -17,11 +17,11 @@ import {
 const router = Router();
 
 const roomRules = {
-  name: [required('Room name')],
-  floor: [required('Floor'), minNumber('Floor', 1)],
-  price: [required('Price'), minNumber('Price', 0)],
-  maxOccupants: [minNumber('Max occupants', 1)],
-  status: [oneOf('Status', ['available', 'occupied', 'maintenance'])],
+  name: [required('Tên phòng')],
+  floor: [required('Tầng'), minNumber('Tầng', 1)],
+  price: [required('Giá phòng'), minNumber('Giá phòng', 0)],
+  maxOccupants: [minNumber('Số người tối đa', 1)],
+  status: [oneOf('Trạng thái', ['available', 'occupied', 'maintenance'])],
 };
 
 router.get('/', listRooms);

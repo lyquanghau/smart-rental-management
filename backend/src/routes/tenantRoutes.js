@@ -12,8 +12,8 @@ import { required, validateBody } from '../middleware/validateRequest.js';
 const router = Router();
 
 const tenantRules = {
-  fullName: [required('Full name')],
-  phone: [required('Phone')],
+  fullName: [required('Họ tên')],
+  phone: [required('Số điện thoại')],
 };
 
 router.get('/', requireAuth, listTenants);

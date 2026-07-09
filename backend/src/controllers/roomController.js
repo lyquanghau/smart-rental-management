@@ -90,7 +90,7 @@ export async function getRoom(req, res, next) {
     const room = await Room.findOne({ _id: req.params.id, deletedAt: null });
 
     if (!room) {
-      throw createHttpError(404, 'Room not found');
+      throw createHttpError(404, 'Không tìm thấy phòng');
     }
 
     res.json({ data: room });
@@ -105,7 +105,7 @@ export async function createRoom(req, res, next) {
 
     res.status(201).json({
       data: room,
-      message: 'Room created successfully',
+      message: 'Tạo phòng thành công',
     });
   } catch (error) {
     next(error);
@@ -124,12 +124,12 @@ export async function updateRoom(req, res, next) {
     );
 
     if (!room) {
-      throw createHttpError(404, 'Room not found');
+      throw createHttpError(404, 'Không tìm thấy phòng');
     }
 
     res.json({
       data: room,
-      message: 'Room updated successfully',
+      message: 'Cập nhật phòng thành công',
     });
   } catch (error) {
     next(error);
@@ -145,12 +145,12 @@ export async function deleteRoom(req, res, next) {
     );
 
     if (!room) {
-      throw createHttpError(404, 'Room not found');
+      throw createHttpError(404, 'Không tìm thấy phòng');
     }
 
     res.json({
       data: room,
-      message: 'Room deleted successfully',
+      message: 'Xóa phòng thành công',
     });
   } catch (error) {
     next(error);

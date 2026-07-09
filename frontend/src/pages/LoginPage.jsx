@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { login } from '../services/authService.js';
+import { getToken } from '../services/sessionStorage.js';
 
 export function LoginPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     email: 'admin@smartrental.local',
@@ -10,6 +12,14 @@ export function LoginPage() {
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fromLocation = location.state?.from;
+  const redirectPath = fromLocation
+    ? `${fromLocation.pathname}${fromLocation.search || ''}`
+    : '/';
+
+  if (getToken()) {
+    return <Navigate to={redirectPath} replace />;
+  }
 
   function handleChange(event) {
     setForm((currentForm) => ({
@@ -25,7 +35,7 @@ export function LoginPage() {
 
     try {
       await login(form);
-      navigate('/rooms');
+      navigate(redirectPath, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -34,34 +44,36 @@ export function LoginPage() {
   }
 
   return (
-    <section className="form-page">
-      <h1>Đăng nhập</h1>
-      <form className="form-panel" onSubmit={handleSubmit}>
-        <label>
-          Email
-          <input
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <label>
-          Mật khẩu
-          <input
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        {error ? <p className="error-message">{error}</p> : null}
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
-        </button>
-      </form>
-    </section>
+    <main className="login-shell">
+      <section className="form-page">
+        <h1>Đăng nhập</h1>
+        <form className="form-panel" onSubmit={handleSubmit}>
+          <label>
+            Email
+            <input
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+          </label>
+          <label>
+            Mật khẩu
+            <input
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+            />
+          </label>
+          {error ? <p className="error-message">{error}</p> : null}
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          </button>
+        </form>
+      </section>
+    </main>
   );
 }

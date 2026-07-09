@@ -1,5 +1,56 @@
 # Work Log
 
+## 2026-07-09
+
+### Kiem tra dau phien
+
+- Dang o nhanh `dev`, dong bo voi `origin/dev`.
+- Kiem tra tat ca nhanh local/remote: khong co nhanh local nao co commit chua merge vao `main`.
+- File untracked giu nguyen, chua dua vao Git: `chuyen_de_2.xlsx`, `code.txt`,
+  `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: gap loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild,
+  chay lai ngoai sandbox thi pass. Day la loi moi truong/sandbox, khong phai loi code.
+- Tao nhanh `feature/auth-validation-dashboard-polish` de lam viec hom nay.
+
+### Auth frontend
+
+- Tach `/login` ra khoi layout quan tri de trang dang nhap khong hien sidebar/header.
+- Them `ProtectedRoute` de bao ve cac trang chinh bang JWT trong local storage.
+- Neu chua dang nhap va truy cap trang chinh, frontend redirect ve `/login`.
+- Sau khi dang nhap thanh cong, frontend dua nguoi dung ve trang dang muon mo truoc do.
+- Bo menu `Dang nhap` khoi sidebar trong khu vuc quan tri.
+
+### Validation nghiep vu backend
+
+- Bo sung chan tao/cap nhat hop dong `active` khi phong da co hop dong `active` khac.
+- Bo sung kiem tra khoan thu chi gan voi hop dong dang `active`.
+- Bo sung kiem tra `amount` phai la so khong am trong controller payment.
+- Bo sung validate `paidAt` cho thao tac danh dau da thu de khong am tham doi ngay sai thanh ngay hien tai.
+
+### Dashboard
+
+- Chuan hoa text tieng Viet co dau trong khu vuc canh bao dashboard.
+- Them bieu do cot don gian so sanh doanh thu thang nay va thang truoc bang HTML/CSS,
+  khong them chart library de giu MVP gon nhe.
+
+### Viet hoa giao dien va thong bao
+
+- Viet hoa thong bao loi/thanh cong tu backend de frontend khong hien chu tieng Anh nhu
+  `Room already has an active contract`.
+- Viet hoa validation middleware, auth middleware, not found handler va error handler chung.
+- Viet hoa noi dung PDF hop dong: tieu de, thong tin phong, khach thue, dieu khoan va chu ky.
+- Them co che dang ky font Arial/DejaVu/Liberation neu co tren may chu de PDF hien thi duoc tieng Viet co dau.
+- Chuan hoa text dashboard con thieu dau va map trang thai thanh toan sang tieng Viet.
+
+### Kiem tra sau khi code
+
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: van gap `spawn EPERM` khi chay trong sandbox Windows.
+- `npm run build`: pass khi chay ngoai sandbox.
+
 ## 2026-06-22
 
 - Tạo cấu trúc monorepo gồm `frontend` và `backend`.

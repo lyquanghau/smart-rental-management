@@ -34,28 +34,44 @@ function monthDateRange(month, year) {
   };
 }
 
+function assertValidAmount(amount) {
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw createHttpError(400, 'Số tiền không hợp lệ', {
+      amount: 'Số tiền phải là số lớn hơn hoặc bằng 0',
+    });
+  }
+}
+
 async function normalizePaymentPayload(body) {
   const dueDate = parseOptionalDate(body.dueDate);
   const paidAt = parseOptionalDate(body.paidAt);
   const amount = Number(body.amount);
 
+  assertValidAmount(amount);
+
   if (!dueDate) {
-    throw createHttpError(400, 'Due date is invalid', {
-      dueDate: 'Due date must be a valid date',
+    throw createHttpError(400, 'Hạn thanh toán không hợp lệ', {
+      dueDate: 'Hạn thanh toán phải là ngày hợp lệ',
     });
   }
 
   if (body.paidAt && !paidAt) {
-    throw createHttpError(400, 'Paid date is invalid', {
-      paidAt: 'Paid date must be a valid date',
+    throw createHttpError(400, 'Ngày thu không hợp lệ', {
+      paidAt: 'Ngày thu phải là ngày hợp lệ',
     });
   }
 
   const contract = await Contract.findById(body.contract);
 
   if (!contract) {
-    throw createHttpError(400, 'Contract does not exist', {
-      contract: 'Contract does not exist',
+    throw createHttpError(400, 'Hợp đồng không tồn tại', {
+      contract: 'Hợp đồng không tồn tại',
+    });
+  }
+
+  if (contract.status !== 'active') {
+    throw createHttpError(400, 'Hợp đồng không còn hiệu lực', {
+      contract: 'Chỉ được tạo khoản thu cho hợp đồng đang hiệu lực',
     });
   }
 
@@ -121,7 +137,7 @@ export async function getPayment(req, res, next) {
     );
 
     if (!payment) {
-      throw createHttpError(404, 'Payment not found');
+      throw createHttpError(404, 'Không tìm thấy khoản thu');
     }
 
     res.json({ data: payment });
@@ -139,7 +155,7 @@ export async function createPayment(req, res, next) {
 
     res.status(201).json({
       data: populatedPayment,
-      message: 'Payment created successfully',
+      message: 'Tạo khoản thu thành công',
     });
   } catch (error) {
     next(error);
@@ -158,12 +174,12 @@ export async function updatePayment(req, res, next) {
     ).populate(paymentPopulate);
 
     if (!payment) {
-      throw createHttpError(404, 'Payment not found');
+      throw createHttpError(404, 'Không tìm thấy khoản thu');
     }
 
     res.json({
       data: payment,
-      message: 'Payment updated successfully',
+      message: 'Cập nhật khoản thu thành công',
     });
   } catch (error) {
     next(error);
@@ -173,6 +189,13 @@ export async function updatePayment(req, res, next) {
 export async function markPaymentPaid(req, res, next) {
   try {
     const paidAt = parseOptionalDate(req.body.paidAt) || new Date();
+
+    if (req.body.paidAt && !parseOptionalDate(req.body.paidAt)) {
+      throw createHttpError(400, 'Ngày thu không hợp lệ', {
+        paidAt: 'Ngày thu phải là ngày hợp lệ',
+      });
+    }
+
     const update = {
       paidAt,
       status: 'paid',
@@ -187,12 +210,12 @@ export async function markPaymentPaid(req, res, next) {
     }).populate(paymentPopulate);
 
     if (!payment) {
-      throw createHttpError(404, 'Payment not found');
+      throw createHttpError(404, 'Không tìm thấy khoản thu');
     }
 
     res.json({
       data: payment,
-      message: 'Payment marked as paid successfully',
+      message: 'Đánh dấu đã thu thành công',
     });
   } catch (error) {
     next(error);
@@ -211,12 +234,12 @@ export async function cancelPayment(req, res, next) {
     }).populate(paymentPopulate);
 
     if (!payment) {
-      throw createHttpError(404, 'Payment not found');
+      throw createHttpError(404, 'Không tìm thấy khoản thu');
     }
 
     res.json({
       data: payment,
-      message: 'Payment cancelled successfully',
+      message: 'Hủy khoản thu thành công',
     });
   } catch (error) {
     next(error);

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import PDFDocument from 'pdfkit';
 import { Contract } from '../models/Contract.js';
 import { Room } from '../models/Room.js';
@@ -9,6 +10,16 @@ const contractPopulate = [
   { path: 'tenant', select: 'fullName phone email identityNumber room' },
 ];
 
+const vietnameseFontPaths = [
+  'C:/Windows/Fonts/arial.ttf',
+  '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+  '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+];
+
+function getVietnameseFontPath() {
+  return vietnameseFontPaths.find((fontPath) => existsSync(fontPath));
+}
+
 function parseOptionalDate(value) {
   if (!value) return null;
 
@@ -19,7 +30,7 @@ function parseOptionalDate(value) {
 }
 
 function formatDate(value) {
-  if (!value) return 'Not set';
+  if (!value) return 'Chưa có';
 
   return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
 }
@@ -30,73 +41,79 @@ function formatMoney(value) {
 
 function formatStatus(status) {
   const statusLabels = {
-    active: 'Active',
-    ended: 'Ended',
-    cancelled: 'Cancelled',
+    active: 'Đang hiệu lực',
+    ended: 'Đã kết thúc',
+    cancelled: 'Đã hủy',
   };
 
-  return statusLabels[status] || 'Unknown';
+  return statusLabels[status] || 'Không xác định';
 }
 
 function buildContractPdf(contract, res) {
   const room = contract.room || {};
   const tenant = contract.tenant || {};
   const document = new PDFDocument({ margin: 48, size: 'A4' });
+  const vietnameseFontPath = getVietnameseFontPath();
 
   document.pipe(res);
 
+  if (vietnameseFontPath) {
+    document.registerFont('Vietnamese', vietnameseFontPath);
+    document.font('Vietnamese');
+  }
+
   document.fontSize(20).text('SMART RENTAL', { align: 'center' });
   document.moveDown(0.4);
-  document.fontSize(16).text('RENTAL CONTRACT', { align: 'center' });
+  document.fontSize(16).text('HỢP ĐỒNG THUÊ PHÒNG', { align: 'center' });
   document.moveDown(1.2);
 
-  document.fontSize(11).text(`Contract ID: ${contract._id}`);
-  document.text(`Generated at: ${formatDate(new Date())}`);
+  document.fontSize(11).text(`Mã hợp đồng: ${contract._id}`);
+  document.text(`Ngày tạo file: ${formatDate(new Date())}`);
   document.moveDown();
 
-  document.fontSize(13).text('1. Room information', { underline: true });
+  document.fontSize(13).text('1. Thông tin phòng', { underline: true });
   document.moveDown(0.3);
   document.fontSize(11);
-  document.text(`Room: ${room.name || 'Not set'}`);
-  document.text(`Floor: ${room.floor ?? 'Not set'}`);
-  document.text(`Listed price: ${formatMoney(room.price)}`);
-  document.text(`Max occupants: ${room.maxOccupants || 2}`);
+  document.text(`Phòng: ${room.name || 'Chưa có'}`);
+  document.text(`Tầng: ${room.floor ?? 'Chưa có'}`);
+  document.text(`Giá niêm yết: ${formatMoney(room.price)}`);
+  document.text(`Số người tối đa: ${room.maxOccupants || 2}`);
   document.moveDown();
 
-  document.fontSize(13).text('2. Tenant information', { underline: true });
+  document.fontSize(13).text('2. Thông tin khách thuê', { underline: true });
   document.moveDown(0.3);
   document.fontSize(11);
-  document.text(`Full name: ${tenant.fullName || 'Not set'}`);
-  document.text(`Phone: ${tenant.phone || 'Not set'}`);
-  document.text(`Email: ${tenant.email || 'Not set'}`);
-  document.text(`Identity number: ${tenant.identityNumber || 'Not set'}`);
+  document.text(`Họ tên: ${tenant.fullName || 'Chưa có'}`);
+  document.text(`Số điện thoại: ${tenant.phone || 'Chưa có'}`);
+  document.text(`Email: ${tenant.email || 'Chưa có'}`);
+  document.text(`CCCD/CMND: ${tenant.identityNumber || 'Chưa có'}`);
   document.moveDown();
 
-  document.fontSize(13).text('3. Contract terms', { underline: true });
+  document.fontSize(13).text('3. Điều khoản hợp đồng', { underline: true });
   document.moveDown(0.3);
   document.fontSize(11);
-  document.text(`Start date: ${formatDate(contract.startDate)}`);
-  document.text(`End date: ${formatDate(contract.endDate)}`);
-  document.text(`Monthly rent: ${formatMoney(contract.monthlyPrice)}`);
-  document.text(`Deposit: ${formatMoney(contract.deposit)}`);
-  document.text(`Status: ${formatStatus(contract.status)}`);
+  document.text(`Ngày bắt đầu: ${formatDate(contract.startDate)}`);
+  document.text(`Ngày kết thúc: ${formatDate(contract.endDate)}`);
+  document.text(`Tiền thuê hằng tháng: ${formatMoney(contract.monthlyPrice)}`);
+  document.text(`Tiền cọc: ${formatMoney(contract.deposit)}`);
+  document.text(`Trạng thái: ${formatStatus(contract.status)}`);
   document.moveDown(1.4);
 
   document
     .fontSize(10)
     .text(
-      'This PDF is generated from Smart Rental data for graduation project demo purposes.',
+      'File PDF này được tạo từ dữ liệu Smart Rental để phục vụ demo chuyên đề tốt nghiệp.',
     );
   document.moveDown(2);
 
   const signatureY = document.y;
-  document.text('Landlord signature', 80, signatureY, { width: 180 });
-  document.text('Tenant signature', 340, signatureY, { width: 180 });
+  document.text('Chữ ký chủ trọ', 80, signatureY, { width: 180 });
+  document.text('Chữ ký khách thuê', 340, signatureY, { width: 180 });
 
   document.end();
 }
 
-async function normalizeContractPayload(body) {
+async function normalizeContractPayload(body, currentContractId = null) {
   const room = body.room;
   const tenant = body.tenant;
   const startDate = parseOptionalDate(body.startDate);
@@ -105,20 +122,20 @@ async function normalizeContractPayload(body) {
   const deposit = body.deposit === undefined ? 0 : Number(body.deposit);
 
   if (!startDate) {
-    throw createHttpError(400, 'Start date is invalid', {
-      startDate: 'Start date must be a valid date',
+    throw createHttpError(400, 'Ngày bắt đầu không hợp lệ', {
+      startDate: 'Ngày bắt đầu phải là ngày hợp lệ',
     });
   }
 
   if (body.endDate && !endDate) {
-    throw createHttpError(400, 'End date is invalid', {
-      endDate: 'End date must be a valid date',
+    throw createHttpError(400, 'Ngày kết thúc không hợp lệ', {
+      endDate: 'Ngày kết thúc phải là ngày hợp lệ',
     });
   }
 
   if (endDate && endDate <= startDate) {
-    throw createHttpError(400, 'End date must be after start date', {
-      endDate: 'End date must be after start date',
+    throw createHttpError(400, 'Ngày kết thúc phải sau ngày bắt đầu', {
+      endDate: 'Ngày kết thúc phải sau ngày bắt đầu',
     });
   }
 
@@ -128,15 +145,34 @@ async function normalizeContractPayload(body) {
   ]);
 
   if (!existingRoom) {
-    throw createHttpError(400, 'Room does not exist', {
-      room: 'Room does not exist',
+    throw createHttpError(400, 'Phòng không tồn tại', {
+      room: 'Phòng không tồn tại',
     });
   }
 
   if (!existingTenant) {
-    throw createHttpError(400, 'Tenant does not exist', {
-      tenant: 'Tenant does not exist',
+    throw createHttpError(400, 'Khách thuê không tồn tại', {
+      tenant: 'Khách thuê không tồn tại',
     });
+  }
+
+  if ((body.status || 'active') === 'active') {
+    const activeContractFilters = {
+      room,
+      status: 'active',
+    };
+
+    if (currentContractId) {
+      activeContractFilters._id = { $ne: currentContractId };
+    }
+
+    const activeContract = await Contract.findOne(activeContractFilters);
+
+    if (activeContract) {
+      throw createHttpError(400, 'Phòng đã có hợp đồng đang hiệu lực', {
+        room: 'Phòng đã có hợp đồng đang hiệu lực',
+      });
+    }
   }
 
   return {
@@ -190,7 +226,7 @@ export async function getContract(req, res, next) {
     );
 
     if (!contract) {
-      throw createHttpError(404, 'Contract not found');
+      throw createHttpError(404, 'Không tìm thấy hợp đồng');
     }
 
     res.json({ data: contract });
@@ -206,11 +242,11 @@ export async function downloadContractPdf(req, res, next) {
     );
 
     if (!contract) {
-      throw createHttpError(404, 'Contract not found');
+      throw createHttpError(404, 'Không tìm thấy hợp đồng');
     }
 
     const roomName = contract.room?.name || 'contract';
-    const filename = `contract-${roomName}-${contract._id}.pdf`;
+    const filename = `hop-dong-${roomName}-${contract._id}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -230,7 +266,7 @@ export async function createContract(req, res, next) {
 
     res.status(201).json({
       data: populatedContract,
-      message: 'Contract created successfully',
+      message: 'Tạo hợp đồng thành công',
     });
   } catch (error) {
     next(error);
@@ -241,7 +277,7 @@ export async function updateContract(req, res, next) {
   try {
     const contract = await Contract.findByIdAndUpdate(
       req.params.id,
-      await normalizeContractPayload(req.body),
+      await normalizeContractPayload(req.body, req.params.id),
       {
         new: true,
         runValidators: true,
@@ -249,12 +285,12 @@ export async function updateContract(req, res, next) {
     ).populate(contractPopulate);
 
     if (!contract) {
-      throw createHttpError(404, 'Contract not found');
+      throw createHttpError(404, 'Không tìm thấy hợp đồng');
     }
 
     res.json({
       data: contract,
-      message: 'Contract updated successfully',
+      message: 'Cập nhật hợp đồng thành công',
     });
   } catch (error) {
     next(error);
@@ -273,12 +309,12 @@ export async function deleteContract(req, res, next) {
     ).populate(contractPopulate);
 
     if (!contract) {
-      throw createHttpError(404, 'Contract not found');
+      throw createHttpError(404, 'Không tìm thấy hợp đồng');
     }
 
     res.json({
       data: contract,
-      message: 'Contract ended successfully',
+      message: 'Kết thúc hợp đồng thành công',
     });
   } catch (error) {
     next(error);

@@ -16,7 +16,7 @@ async function normalizeTenantPayload(body) {
     const existingRoom = await Room.findOne({ _id: room, deletedAt: null });
 
     if (!existingRoom) {
-      throw createHttpError(400, 'Room does not exist');
+      throw createHttpError(400, 'Phòng không tồn tại');
     }
   }
 
@@ -86,7 +86,7 @@ export async function getTenant(req, res, next) {
     }).populate('room', 'name floor price maxOccupants status');
 
     if (!tenant) {
-      throw createHttpError(404, 'Tenant not found');
+      throw createHttpError(404, 'Không tìm thấy khách thuê');
     }
 
     res.json({ data: tenant });
@@ -106,7 +106,7 @@ export async function createTenant(req, res, next) {
 
     res.status(201).json({
       data: populatedTenant,
-      message: 'Tenant created successfully',
+      message: 'Tạo khách thuê thành công',
     });
   } catch (error) {
     next(error);
@@ -121,7 +121,7 @@ export async function updateTenant(req, res, next) {
     });
 
     if (!currentTenant) {
-      throw createHttpError(404, 'Tenant not found');
+      throw createHttpError(404, 'Không tìm thấy khách thuê');
     }
 
     const tenant = await Tenant.findOneAndUpdate(
@@ -137,7 +137,7 @@ export async function updateTenant(req, res, next) {
 
     res.json({
       data: tenant,
-      message: 'Tenant updated successfully',
+      message: 'Cập nhật khách thuê thành công',
     });
   } catch (error) {
     next(error);
@@ -152,7 +152,7 @@ export async function deleteTenant(req, res, next) {
     });
 
     if (!currentTenant) {
-      throw createHttpError(404, 'Tenant not found');
+      throw createHttpError(404, 'Không tìm thấy khách thuê');
     }
 
     const tenant = await Tenant.findOneAndUpdate(
@@ -165,7 +165,7 @@ export async function deleteTenant(req, res, next) {
 
     res.json({
       data: tenant,
-      message: 'Tenant deleted successfully',
+      message: 'Xóa khách thuê thành công',
     });
   } catch (error) {
     next(error);

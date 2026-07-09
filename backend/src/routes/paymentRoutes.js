@@ -18,15 +18,15 @@ import {
 const router = Router();
 
 const paymentRules = {
-  contract: [required('Contract')],
-  amount: [required('Amount'), minNumber('Amount', 0)],
-  dueDate: [required('Due date')],
-  method: [oneOf('Method', ['cash', 'bank_transfer', 'momo', 'vnpay'])],
-  status: [oneOf('Status', ['pending', 'paid', 'overdue', 'cancelled'])],
+  contract: [required('Hợp đồng')],
+  amount: [required('Số tiền'), minNumber('Số tiền', 0)],
+  dueDate: [required('Hạn thanh toán')],
+  method: [oneOf('Phương thức', ['cash', 'bank_transfer', 'momo', 'vnpay'])],
+  status: [oneOf('Trạng thái', ['pending', 'paid', 'overdue', 'cancelled'])],
 };
 
 const markPaidRules = {
-  method: [oneOf('Method', ['cash', 'bank_transfer', 'momo', 'vnpay'])],
+  method: [oneOf('Phương thức', ['cash', 'bank_transfer', 'momo', 'vnpay'])],
 };
 
 router.get('/', requireAuth, listPayments);

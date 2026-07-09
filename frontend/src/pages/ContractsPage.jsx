@@ -560,7 +560,7 @@ export function ContractsPage() {
                             onClick={() => handleDownloadPdf(contract)}
                           >
                             {downloadingContractId === contract._id
-                              ? 'Dang tai'
+                              ? 'Đang tải'
                               : 'PDF'}
                           </button>
                         </div>

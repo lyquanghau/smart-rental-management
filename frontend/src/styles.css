@@ -147,6 +147,14 @@ input:disabled {
   padding: 32px;
 }
 
+.login-shell {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
 h1 {
   font-size: 28px;
   margin: 0 0 20px;
@@ -203,6 +211,40 @@ h1 {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 18px;
+}
+
+.revenue-chart {
+  align-items: end;
+  display: flex;
+  gap: 36px;
+  min-height: 190px;
+  padding-top: 18px;
+}
+
+.revenue-bar-group {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-width: 120px;
+}
+
+.revenue-bar {
+  background: #2563eb;
+  border-radius: 6px 6px 0 0;
+  width: 56px;
+}
+
+.revenue-bar-muted {
+  background: #94a3b8;
+}
+
+.revenue-bar-group strong {
+  font-size: 15px;
+}
+
+.revenue-bar-group span {
+  color: #6b7280;
 }
 
 .alert-list {

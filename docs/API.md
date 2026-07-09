@@ -1,4 +1,4 @@
-# API Documentation
+# Tài Liệu API
 
 Base URL:
 
@@ -6,24 +6,24 @@ Base URL:
 http://localhost:5000/api
 ```
 
-## Response format
+## Định dạng phản hồi
 
-Success:
+Thành công:
 
 ```json
 {
   "data": {},
-  "message": "Optional message"
+  "message": "Thông báo tùy chọn"
 }
 ```
 
-Error:
+Lỗi:
 
 ```json
 {
-  "message": "Validation failed",
+  "message": "Dữ liệu không hợp lệ",
   "errors": {
-    "field": "Reason"
+    "field": "Lý do lỗi"
   }
 }
 ```
@@ -81,7 +81,7 @@ Response:
     },
     "token": "jwt-token"
   },
-  "message": "Logged in successfully"
+  "message": "Đăng nhập thành công"
 }
 ```
 
@@ -95,7 +95,7 @@ Authorization: Bearer <token>
 
 ## Rooms
 
-Room status:
+Trạng thái phòng:
 
 - `available`
 - `occupied`
@@ -192,7 +192,7 @@ Phòng được soft delete bằng `deletedAt`, không xóa cứng khỏi databa
 
 ## Tenants
 
-Tenant APIs yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, xóa yêu cầu role
+API khách thuê yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, xóa yêu cầu role
 `landlord`.
 
 ### GET /tenants
@@ -292,10 +292,10 @@ Khách thuê được soft delete bằng `deletedAt`, không xóa cứng khỏi 
 
 ## Contracts
 
-Contract APIs yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, kết thúc hợp đồng yêu cầu role
+API hợp đồng yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, kết thúc hợp đồng yêu cầu role
 `landlord`.
 
-Contract status:
+Trạng thái hợp đồng:
 
 - `active`
 - `ended`
@@ -319,10 +319,10 @@ Trả về chi tiết hợp đồng kèm thông tin phòng và khách thuê.
 
 ### GET /contracts/:id/pdf
 
-Yeu cau dang nhap bang JWT.
+Yêu cầu đăng nhập bằng JWT.
 
-Tra ve file PDF hop dong tao tu du lieu hop dong, phong va khach thue.
-Response dung `Content-Type: application/pdf`.
+Trả về file PDF hợp đồng tạo từ dữ liệu hợp đồng, phòng và khách thuê.
+Phản hồi dùng `Content-Type: application/pdf`.
 
 ### POST /contracts
 
@@ -340,6 +340,10 @@ Request:
 }
 ```
 
+Ghi chú:
+
+- Không cho tạo thêm hợp đồng `active` nếu phòng đã có hợp đồng `active` khác.
+
 ### PUT /contracts/:id
 
 Request:
@@ -356,23 +360,28 @@ Request:
 }
 ```
 
+Ghi chú:
+
+- Khi cập nhật sang trạng thái `active`, hệ thống cũng kiểm tra trùng hợp đồng
+  active theo phòng.
+
 ### DELETE /contracts/:id
 
 Hợp đồng không bị xóa cứng. API này chuyển `status` của hợp đồng sang `ended`.
 
 ## Payments
 
-Payment APIs yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, đánh dấu đã thu
+API thanh toán yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, đánh dấu đã thu
 và hủy khoản thu yêu cầu role `landlord`.
 
-Payment status:
+Trạng thái thanh toán:
 
 - `pending`
 - `paid`
 - `overdue`
 - `cancelled`
 
-Payment method:
+Phương thức thanh toán:
 
 - `cash`
 - `bank_transfer`
@@ -410,9 +419,14 @@ Request:
   "dueDate": "2026-06-30",
   "method": "cash",
   "status": "pending",
-  "note": "Tien phong thang 6/2026"
+  "note": "Tiền phòng tháng 6/2026"
 }
 ```
+
+Ghi chú:
+
+- Khoản thu chỉ được tạo/cập nhật cho hợp đồng đang `active`.
+- `amount` phải là số không âm.
 
 ### PUT /payments/:id
 
@@ -425,7 +439,7 @@ Request:
   "dueDate": "2026-07-30",
   "method": "bank_transfer",
   "status": "pending",
-  "note": "Tien phong thang 7/2026"
+  "note": "Tiền phòng tháng 7/2026"
 }
 ```
 
@@ -437,7 +451,7 @@ Request optional:
 {
   "method": "bank_transfer",
   "paidAt": "2026-06-20",
-  "note": "Da thu qua chuyen khoan"
+  "note": "Đã thu qua chuyển khoản"
 }
 ```
 
@@ -450,7 +464,7 @@ Request optional:
 
 ```json
 {
-  "note": "Huy do tao nham ky thu"
+  "note": "Hủy do tạo nhầm kỳ thu"
 }
 ```
 
@@ -509,7 +523,7 @@ Ghi chú:
 - `tenants.active` tính khách thuê chưa bị soft delete.
 - `payments` thống kê theo tháng hiện tại dựa trên `dueDate`.
 - `overdueCount` tính cả khoản `overdue` và khoản `pending` đã quá hạn.
-- `revenue.currentMonth` la tong khoan `paid` trong thang hien tai.
-- `revenue.previousMonth` la tong khoan `paid` trong thang truoc.
-- `alerts.expiringContracts` tra toi da 5 hop dong active sap het han trong 30 ngay.
-- `alerts.unpaidPayments` tra toi da 5 khoan `pending` hoac `overdue` can xu ly.
+- `revenue.currentMonth` là tổng khoản `paid` trong tháng hiện tại.
+- `revenue.previousMonth` là tổng khoản `paid` trong tháng trước.
+- `alerts.expiringContracts` trả tối đa 5 hợp đồng active sắp hết hạn trong 30 ngày.
+- `alerts.unpaidPayments` trả tối đa 5 khoản `pending` hoặc `overdue` cần xử lý.

@@ -1,7 +1,7 @@
 export function errorHandler(error, _req, res, _next) {
   if (error.name === 'CastError') {
     return res.status(400).json({
-      message: 'Invalid resource id',
+      message: 'Mã dữ liệu không hợp lệ',
     });
   }
 
@@ -9,19 +9,19 @@ export function errorHandler(error, _req, res, _next) {
     const errors = Object.fromEntries(
       Object.entries(error.errors).map(([field, detail]) => [
         field,
-        detail.message,
+        detail.message || 'Giá trị không hợp lệ',
       ]),
     );
 
     return res.status(400).json({
-      message: 'Validation failed',
+      message: 'Dữ liệu không hợp lệ',
       errors,
     });
   }
 
   if (error.code === 11000) {
     return res.status(409).json({
-      message: 'Duplicate value',
+      message: 'Dữ liệu đã tồn tại',
       errors: error.keyValue,
     });
   }
@@ -29,7 +29,7 @@ export function errorHandler(error, _req, res, _next) {
   const statusCode = error.statusCode || 500;
 
   res.status(statusCode).json({
-    message: error.message || 'Internal server error',
+    message: error.message || 'Lỗi máy chủ',
     errors: error.errors,
   });
 }

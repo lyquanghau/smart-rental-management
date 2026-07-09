@@ -11,15 +11,15 @@ const router = Router();
 
 const authRules = {
   email: [required('Email')],
-  password: [required('Password')],
+  password: [required('Mật khẩu')],
 };
 
 router.post(
   '/register',
   validateBody({
-    fullName: [required('Full name')],
+    fullName: [required('Họ tên')],
     ...authRules,
-    role: [oneOf('Role', ['landlord', 'tenant'])],
+    role: [oneOf('Vai trò', ['landlord', 'tenant'])],
   }),
   register,
 );

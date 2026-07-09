@@ -18,12 +18,15 @@ import {
 const router = Router();
 
 const contractRules = {
-  room: [required('Room')],
-  tenant: [required('Tenant')],
-  startDate: [required('Start date')],
-  monthlyPrice: [required('Monthly price'), minNumber('Monthly price', 0)],
-  deposit: [minNumber('Deposit', 0)],
-  status: [oneOf('Status', ['active', 'ended', 'cancelled'])],
+  room: [required('Phòng')],
+  tenant: [required('Khách thuê')],
+  startDate: [required('Ngày bắt đầu')],
+  monthlyPrice: [
+    required('Giá thuê hằng tháng'),
+    minNumber('Giá thuê hằng tháng', 0),
+  ],
+  deposit: [minNumber('Tiền cọc', 0)],
+  status: [oneOf('Trạng thái', ['active', 'ended', 'cancelled'])],
 };
 
 router.get('/', requireAuth, listContracts);

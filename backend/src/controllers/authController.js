@@ -33,7 +33,7 @@ export async function register(req, res, next) {
     const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
-      throw createHttpError(409, 'Email already exists');
+      throw createHttpError(409, 'Email đã tồn tại');
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -49,7 +49,7 @@ export async function register(req, res, next) {
         user: serializeUser(user),
         token: signToken(user),
       },
-      message: 'Registered successfully',
+      message: 'Đăng ký thành công',
     });
   } catch (error) {
     next(error);
@@ -62,13 +62,13 @@ export async function login(req, res, next) {
     const user = await User.findOne({ email: email.trim().toLowerCase() });
 
     if (!user) {
-      throw createHttpError(401, 'Invalid email or password');
+      throw createHttpError(401, 'Email hoặc mật khẩu không đúng');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      throw createHttpError(401, 'Invalid email or password');
+      throw createHttpError(401, 'Email hoặc mật khẩu không đúng');
     }
 
     res.json({
@@ -76,7 +76,7 @@ export async function login(req, res, next) {
         user: serializeUser(user),
         token: signToken(user),
       },
-      message: 'Logged in successfully',
+      message: 'Đăng nhập thành công',
     });
   } catch (error) {
     next(error);

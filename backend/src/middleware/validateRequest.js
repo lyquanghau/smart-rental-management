@@ -15,7 +15,7 @@ export function validateBody(rules) {
     }
 
     if (Object.keys(errors).length > 0) {
-      return next(createHttpError(400, 'Validation failed', errors));
+      return next(createHttpError(400, 'Dữ liệu không hợp lệ', errors));
     }
 
     return next();
@@ -24,7 +24,7 @@ export function validateBody(rules) {
 
 export const required = (label) => (value) => {
   if (value === undefined || value === null || value === '') {
-    return `${label} is required`;
+    return `${label} là bắt buộc`;
   }
   return '';
 };
@@ -32,7 +32,7 @@ export const required = (label) => (value) => {
 export const minNumber = (label, min) => (value) => {
   if (value === undefined || value === null || value === '') return '';
   if (Number.isNaN(Number(value)) || Number(value) < min) {
-    return `${label} must be at least ${min}`;
+    return `${label} phải lớn hơn hoặc bằng ${min}`;
   }
   return '';
 };
@@ -40,7 +40,9 @@ export const minNumber = (label, min) => (value) => {
 export const oneOf = (label, allowedValues) => (value) => {
   if (value === undefined || value === null || value === '') return '';
   if (!allowedValues.includes(value)) {
-    return `${label} must be one of: ${allowedValues.join(', ')}`;
+    return `${label} phải là một trong các giá trị: ${allowedValues.join(
+      ', ',
+    )}`;
   }
   return '';
 };
