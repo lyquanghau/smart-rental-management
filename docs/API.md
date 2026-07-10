@@ -44,6 +44,13 @@ Response:
 
 ## Auth
 
+Ghi chú nghiệp vụ:
+
+- Frontend không có form đăng ký public cho khách thuê.
+- Tài khoản khách thuê được hệ thống tạo khi chủ trọ tạo hợp đồng hiệu lực cho khách thuê chưa có tài khoản.
+- Tài khoản dùng mật khẩu tạm trong 3 ngày. Nếu khách thuê không đổi mật khẩu trong thời hạn này,
+  tài khoản bị khóa và chỉ chủ trọ mới có thể mở khóa/cấp lại mật khẩu tạm.
+
 ### POST /auth/register
 
 Request:
@@ -77,7 +84,10 @@ Response:
       "_id": "...",
       "fullName": "Admin Smart Rental",
       "email": "admin@smartrental.local",
-      "role": "landlord"
+      "username": "admin",
+      "role": "landlord",
+      "mustChangePassword": false,
+      "temporaryPasswordExpiresAt": null
     },
     "token": "jwt-token"
   },
@@ -91,6 +101,47 @@ Header:
 
 ```txt
 Authorization: Bearer <token>
+```
+
+### PATCH /auth/change-password
+
+Yêu cầu đăng nhập bằng JWT.
+
+Request:
+
+```json
+{
+  "currentPassword": "TempPassword123",
+  "newPassword": "NewPassword123"
+}
+```
+
+Response trả session mới và xóa trạng thái `mustChangePassword`.
+
+### PATCH /auth/users/:id/unlock
+
+Yêu cầu role `landlord`.
+
+API mở khóa tài khoản, sinh mật khẩu tạm mới và đặt hạn đổi mật khẩu sau 3 ngày.
+
+Response:
+
+```json
+{
+  "data": {
+    "user": {
+      "_id": "...",
+      "fullName": "Nguyen Van An",
+      "email": "an@example.com",
+      "username": "0901000001",
+      "role": "tenant",
+      "mustChangePassword": true,
+      "temporaryPasswordExpiresAt": "2026-07-13T00:00:00.000Z"
+    },
+    "temporaryPassword": "Sr@temporary"
+  },
+  "message": "Mở khóa tài khoản và cấp lại mật khẩu tạm thành công"
+}
 ```
 
 ## Rooms
@@ -146,8 +197,20 @@ Response:
     "name": "A101",
     "floor": 1,
     "price": 2500000,
+    "maxOccupants": 2,
     "status": "available",
-    "deletedAt": null
+    "deletedAt": null,
+    "currentTenants": [
+      {
+        "_id": "...",
+        "fullName": "Nguyen Van An",
+        "phone": "0901000001",
+        "email": "an@example.com",
+        "identityNumber": "079200000001",
+        "room": "...",
+        "deletedAt": null
+      }
+    ]
   }
 }
 ```
@@ -343,6 +406,11 @@ Request:
 Ghi chú:
 
 - Không cho tạo thêm hợp đồng `active` nếu phòng đã có hợp đồng `active` khác.
+- Khi tạo hợp đồng `active` cho khách thuê chưa có tài khoản, backend tạo tài khoản `tenant` và
+  trả thêm `temporaryAccount` trong response để chủ trọ gửi thông tin đăng nhập cho khách.
+- `temporaryAccount.user.username` mặc định là số điện thoại khách thuê.
+- `temporaryAccount.temporaryPassword` chỉ trả về một lần trong response tạo hợp đồng; backend chỉ lưu
+  password hash, không lưu plaintext.
 
 ### PUT /contracts/:id
 

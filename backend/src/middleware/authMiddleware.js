@@ -19,6 +19,18 @@ export async function requireAuth(req, _res, next) {
       throw createHttpError(401, 'Tài khoản đăng nhập không hợp lệ');
     }
 
+    if (
+      user.mustChangePassword &&
+      user.temporaryPasswordExpiresAt &&
+      user.temporaryPasswordExpiresAt <= new Date()
+    ) {
+      await User.updateOne({ _id: user._id }, { $set: { isActive: false } });
+      throw createHttpError(
+        403,
+        'Tài khoản đã bị khóa vì quá hạn đổi mật khẩu tạm. Vui lòng liên hệ chủ trọ để mở khóa.',
+      );
+    }
+
     req.user = user;
     next();
   } catch (error) {

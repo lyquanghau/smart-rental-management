@@ -25,6 +25,10 @@ const tenantSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Room',
     },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
     deletedAt: {
       type: Date,
       default: null,
@@ -34,5 +38,8 @@ const tenantSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+tenantSchema.index({ deletedAt: 1, room: 1 });
+tenantSchema.index({ deletedAt: 1, fullName: 1 });
 
 export const Tenant = mongoose.model('Tenant', tenantSchema);

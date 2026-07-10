@@ -1,13 +1,19 @@
 import { existsSync } from 'node:fs';
+import bcrypt from 'bcryptjs';
 import PDFDocument from 'pdfkit';
+import {
+  generateTemporaryPassword,
+  getTemporaryPasswordExpiresAt,
+} from './authController.js';
 import { Contract } from '../models/Contract.js';
 import { Room } from '../models/Room.js';
 import { Tenant } from '../models/Tenant.js';
+import { User } from '../models/User.js';
 import { createHttpError } from '../utils/httpError.js';
 
 const contractPopulate = [
   { path: 'room', select: 'name floor price maxOccupants status' },
-  { path: 'tenant', select: 'fullName phone email identityNumber room' },
+  { path: 'tenant', select: 'fullName phone email identityNumber room user' },
 ];
 
 const vietnameseFontPaths = [
@@ -47,6 +53,71 @@ function formatStatus(status) {
   };
 
   return statusLabels[status] || 'Không xác định';
+}
+
+function buildTenantUsername(tenant) {
+  return tenant.phone.trim().toLowerCase();
+}
+
+function buildTenantEmail(tenant) {
+  if (tenant.email) return tenant.email.trim().toLowerCase();
+
+  const safePhone = tenant.phone.replace(/\D/g, '') || String(tenant._id);
+  return `${safePhone}@tenant.smartrental.local`;
+}
+
+async function ensureTenantAccount(tenantId) {
+  const tenant = await Tenant.findOne({ _id: tenantId, deletedAt: null });
+
+  if (!tenant) {
+    throw createHttpError(400, 'Khách thuê không tồn tại', {
+      tenant: 'Khách thuê không tồn tại',
+    });
+  }
+
+  if (tenant.user) {
+    return null;
+  }
+
+  const username = buildTenantUsername(tenant);
+  const email = buildTenantEmail(tenant);
+  const existingUser = await User.findOne({
+    $or: [{ email }, { username }],
+  });
+
+  if (existingUser) {
+    tenant.user = existingUser._id;
+    await tenant.save();
+    return null;
+  }
+
+  const temporaryPassword = generateTemporaryPassword();
+  const user = await User.create({
+    fullName: tenant.fullName,
+    email,
+    username,
+    passwordHash: await bcrypt.hash(temporaryPassword, 10),
+    role: 'tenant',
+    isActive: true,
+    mustChangePassword: true,
+    temporaryPasswordExpiresAt: getTemporaryPasswordExpiresAt(),
+  });
+
+  tenant.user = user._id;
+  await tenant.save();
+
+  return {
+    user: {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+      temporaryPasswordExpiresAt: user.temporaryPasswordExpiresAt,
+    },
+    temporaryPassword,
+  };
 }
 
 function buildContractPdf(contract, res) {
@@ -259,13 +330,19 @@ export async function downloadContractPdf(req, res, next) {
 
 export async function createContract(req, res, next) {
   try {
-    const contract = await Contract.create(
-      await normalizeContractPayload(req.body),
-    );
+    const payload = await normalizeContractPayload(req.body);
+    const contract = await Contract.create(payload);
+    const temporaryAccount =
+      payload.status === 'active'
+        ? await ensureTenantAccount(payload.tenant)
+        : null;
     const populatedContract = await contract.populate(contractPopulate);
 
     res.status(201).json({
-      data: populatedContract,
+      data: {
+        ...populatedContract.toObject(),
+        temporaryAccount,
+      },
       message: 'Tạo hợp đồng thành công',
     });
   } catch (error) {

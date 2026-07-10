@@ -14,6 +14,13 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       unique: true,
     },
+    username: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      unique: true,
+      sparse: true,
+    },
     passwordHash: {
       type: String,
       required: true,
@@ -26,6 +33,14 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+    temporaryPasswordExpiresAt: {
+      type: Date,
+      default: null,
     },
   },
   {

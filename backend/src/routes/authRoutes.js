@@ -1,6 +1,12 @@
 import { Router } from 'express';
-import { getProfile, login, register } from '../controllers/authController.js';
-import { requireAuth } from '../middleware/authMiddleware.js';
+import {
+  changePassword,
+  getProfile,
+  login,
+  register,
+  unlockUser,
+} from '../controllers/authController.js';
+import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
 import {
   oneOf,
   required,
@@ -14,6 +20,11 @@ const authRules = {
   password: [required('Mật khẩu')],
 };
 
+const passwordRules = {
+  currentPassword: [required('Mật khẩu hiện tại')],
+  newPassword: [required('Mật khẩu mới')],
+};
+
 router.post(
   '/register',
   validateBody({
@@ -25,5 +36,17 @@ router.post(
 );
 router.post('/login', validateBody(authRules), login);
 router.get('/me', requireAuth, getProfile);
+router.patch(
+  '/change-password',
+  requireAuth,
+  validateBody(passwordRules),
+  changePassword,
+);
+router.patch(
+  '/users/:id/unlock',
+  requireAuth,
+  requireRole('landlord'),
+  unlockUser,
+);
 
 export default router;

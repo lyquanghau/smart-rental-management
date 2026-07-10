@@ -2,17 +2,22 @@
 
 ## Auth
 
-Quản lý đăng ký, đăng nhập, JWT và thông tin người dùng hiện tại.
+Quản lý đăng nhập, JWT, thông tin người dùng hiện tại và đổi mật khẩu. Frontend không mở form đăng ký
+public cho khách thuê; tài khoản khách thuê được tạo khi chủ trọ tạo hợp đồng hiệu lực. Mật khẩu tạm
+có hạn 3 ngày, quá hạn chưa đổi thì tài khoản bị khóa và chủ trọ phải mở khóa/cấp lại mật khẩu tạm.
 
 Endpoint nền:
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `GET /api/auth/me`
+- `PATCH /api/auth/change-password`
+- `PATCH /api/auth/users/:id/unlock`
 
 ## Rooms
 
-Quản lý phòng trọ và trạng thái phòng.
+Quản lý phòng trọ và trạng thái phòng. Module đã có API CRUD, frontend thêm/sửa/xóa mềm phòng,
+lọc theo trạng thái và xem chi tiết phòng kèm khách thuê hiện tại.
 
 Endpoint nền:
 

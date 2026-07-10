@@ -28,9 +28,12 @@ async function seed() {
         $set: {
           fullName: user.fullName,
           email: user.email,
+          username: user.username,
           passwordHash,
           role: user.role,
           isActive: true,
+          mustChangePassword: false,
+          temporaryPasswordExpiresAt: null,
         },
       },
       { upsert: true },

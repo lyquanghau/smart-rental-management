@@ -1,5 +1,68 @@
 # Work Log
 
+## 2026-07-10
+
+### Kiem tra dau phien
+
+- Dang o nhanh `dev`, dong bo voi `origin/dev`.
+- Kiem tra tat ca nhanh local/remote: `dev`, `main`, `origin/dev`, `origin/main` dang cung commit `8458510`.
+- Khong co nhanh local hoac remote nao chua merge vao `main`.
+- File untracked giu nguyen, chua dua vao Git: `chuyen_de_2.xlsx`, `code.txt`,
+  `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: gap loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+- `npm run build`: pass khi chay ngoai sandbox. Day la loi moi truong/sandbox, khong phai loi code.
+
+### Danh gia tien do va pham vi hom nay
+
+- Doi chieu `chuyen_de_2.xlsx`, `docs/WORK_LOG.md`, docs va code hien tai.
+- Xac nhan du an dang bam MVP: Auth JWT, Rooms, Tenants, Contracts, Payments va Dashboard da co nen tang.
+- Cac hang muc tuan 2 con thieu trong code: CRUD phong tren frontend, chi tiet phong kem khach thue
+  hien tai, index MongoDB cho cac filter thuong dung.
+- Cac hang muc staging Render/Postman can tai khoan/cau hinh ben ngoai nen tach ra lam checklist rieng.
+
+### Hoan thien module phong
+
+- Mo rong `GET /api/rooms/:id` de tra them `currentTenants`, gom cac khach thue chua bi xoa mem
+  dang gan voi phong.
+- Bo sung index MongoDB:
+  - `Room`: `deletedAt + status`, `deletedAt + floor`.
+  - `Tenant`: `deletedAt + room`, `deletedAt + fullName`.
+  - `Contract`: `room + status`, `tenant + status`, `status + endDate`.
+  - `Payment`: `contract + status`, `status + dueDate`, `dueDate + method`.
+- Cap nhat trang `Phong` tren frontend:
+  - Them form tao phong moi.
+  - Them sua phong.
+  - Them xoa mem phong.
+  - Them nut tai lai danh sach.
+  - Them panel chi tiet phong, hien thi thong tin phong va khach thue hien tai.
+  - Giu logic trang thai `occupied` duoc dong bo tu khach thue dang gan phong.
+
+### Tai lieu
+
+- Cap nhat `docs/API.md` cho response `GET /rooms/:id` co `currentTenants`.
+- Cap nhat `docs/MODULES.md` de ghi ro module phong da co CRUD frontend va chi tiet phong.
+
+### Tai khoan khach thue va mat khau tam
+
+- Chot huong nghiep vu: khong tao form dang ky public cho khach thue.
+- Khi chu tro tao hop dong `active` cho khach thue chua co tai khoan, backend tu tao user role
+  `tenant`.
+- Ten dang nhap mac dinh cua khach thue la so dien thoai; neu khach khong co email thi backend tao
+  email noi bo dang `<so-dien-thoai>@tenant.smartrental.local`.
+- Backend sinh mat khau tam bang random bytes, chi tra plaintext mot lan trong response tao hop dong;
+  database chi luu password hash.
+- Tai khoan mat khau tam co `mustChangePassword = true` va `temporaryPasswordExpiresAt` sau 3 ngay.
+- Trong 3 ngay dau, khach thue van dang nhap va dung app binh thuong, frontend hien canh bao doi mat khau.
+- Neu qua 3 ngay chua doi, backend khoa tai khoan khi login hoac goi API; chi role `landlord` co API mo
+  khoa/cap lai mat khau tam.
+- Them `PATCH /api/auth/change-password` de nguoi dung tu doi mat khau.
+- Them `PATCH /api/auth/users/:id/unlock` de chu tro mo khoa va cap lai mat khau tam.
+- Them man hinh frontend `/change-password`.
+- Cap nhat man hinh dang nhap de nhan "Email hoac ten dang nhap" va validate form ro hon.
+- Trang hop dong hien thong tin tai khoan tam ngay sau khi tao hop dong neu backend vua tao tai khoan moi.
+
 ## 2026-07-09
 
 ### Kiem tra dau phien

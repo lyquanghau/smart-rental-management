@@ -40,12 +40,14 @@ export const users = [
   {
     fullName: 'Admin Smart Rental',
     email: 'admin@smartrental.local',
+    username: 'admin',
     password: 'Admin@123456',
     role: 'landlord',
   },
   {
     fullName: 'Nguyen Van Tenant',
     email: 'tenant@smartrental.local',
+    username: 'tenant-demo',
     password: 'Tenant@123456',
     role: 'tenant',
   },

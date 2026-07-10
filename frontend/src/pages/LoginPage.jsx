@@ -28,13 +28,29 @@ export function LoginPage() {
     }));
   }
 
+  function validateForm() {
+    if (!form.email.trim()) return 'Vui lòng nhập email hoặc tên đăng nhập.';
+    if (!form.password) return 'Vui lòng nhập mật khẩu.';
+    return '';
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setError('');
     setIsSubmitting(true);
 
     try {
-      await login(form);
+      await login({
+        email: form.email.trim(),
+        password: form.password,
+      });
       navigate(redirectPath, { replace: true });
     } catch (err) {
       setError(err.message);
@@ -49,10 +65,10 @@ export function LoginPage() {
         <h1>Đăng nhập</h1>
         <form className="form-panel" onSubmit={handleSubmit}>
           <label>
-            Email
+            Email hoặc tên đăng nhập
             <input
               name="email"
-              type="email"
+              type="text"
               value={form.email}
               onChange={handleChange}
               required

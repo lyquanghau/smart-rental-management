@@ -10,3 +10,9 @@ export async function login(credentials) {
   storeSession(response.data.data);
   return response.data.data;
 }
+
+export async function changePassword(payload) {
+  const response = await api.patch('/auth/change-password', payload);
+  storeSession(response.data.data);
+  return response.data.data;
+}

@@ -142,6 +142,7 @@ export function ContractsPage() {
   const [formData, setFormData] = useState(emptyForm);
   const [editingContractId, setEditingContractId] = useState('');
   const [viewingContractId, setViewingContractId] = useState('');
+  const [temporaryAccount, setTemporaryAccount] = useState(null);
   const [error, setError] = useState('');
   const [downloadingContractId, setDownloadingContractId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -223,6 +224,7 @@ export function ContractsPage() {
   function startEdit(contract) {
     setEditingContractId(contract._id);
     setViewingContractId('');
+    setTemporaryAccount(null);
     setFormData(toFormData(contract));
     setError('');
   }
@@ -230,6 +232,7 @@ export function ContractsPage() {
   function startView(contract) {
     setEditingContractId('');
     setViewingContractId(contract._id);
+    setTemporaryAccount(null);
     setFormData(toFormData(contract));
     setError('');
   }
@@ -242,8 +245,10 @@ export function ContractsPage() {
     try {
       if (isEditing) {
         await updateContract(editingContractId, toPayload(formData));
+        setTemporaryAccount(null);
       } else {
-        await createContract(toPayload(formData));
+        const createdContract = await createContract(toPayload(formData));
+        setTemporaryAccount(createdContract.temporaryAccount || null);
       }
 
       resetForm();
@@ -328,6 +333,19 @@ export function ContractsPage() {
                 ? 'Cập nhật hợp đồng'
                 : 'Thêm hợp đồng'}
           </h2>
+
+          {temporaryAccount ? (
+            <div className="credential-panel">
+              <strong>Tài khoản khách thuê vừa tạo</strong>
+              <span>Tên đăng nhập: {temporaryAccount.user.username}</span>
+              <span>Email: {temporaryAccount.user.email}</span>
+              <span>Mật khẩu tạm: {temporaryAccount.temporaryPassword}</span>
+              <span>
+                Hạn đổi mật khẩu:{' '}
+                {formatDate(temporaryAccount.user.temporaryPasswordExpiresAt)}
+              </span>
+            </div>
+          ) : null}
 
           <label>
             Phòng

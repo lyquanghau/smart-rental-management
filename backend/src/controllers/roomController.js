@@ -87,13 +87,24 @@ export async function getRoom(req, res, next) {
   try {
     await syncRoomOccupancyStatuses();
 
-    const room = await Room.findOne({ _id: req.params.id, deletedAt: null });
+    const [room, currentTenants] = await Promise.all([
+      Room.findOne({ _id: req.params.id, deletedAt: null }),
+      Tenant.find({
+        room: req.params.id,
+        deletedAt: null,
+      }).sort({ fullName: 1 }),
+    ]);
 
     if (!room) {
       throw createHttpError(404, 'Không tìm thấy phòng');
     }
 
-    res.json({ data: room });
+    res.json({
+      data: {
+        ...room.toObject(),
+        currentTenants,
+      },
+    });
   } catch (error) {
     next(error);
   }

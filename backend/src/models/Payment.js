@@ -39,4 +39,8 @@ const paymentSchema = new mongoose.Schema(
   },
 );
 
+paymentSchema.index({ contract: 1, status: 1 });
+paymentSchema.index({ status: 1, dueDate: 1 });
+paymentSchema.index({ dueDate: 1, method: 1 });
+
 export const Payment = mongoose.model('Payment', paymentSchema);

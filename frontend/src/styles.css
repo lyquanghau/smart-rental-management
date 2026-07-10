@@ -89,6 +89,7 @@ a {
 .user-menu {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -285,6 +286,54 @@ h1 {
   margin: 0;
 }
 
+.room-management-panel {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.detail-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.detail-panel h2,
+.detail-panel h3 {
+  margin: 0;
+}
+
+.detail-panel h2 {
+  font-size: 20px;
+}
+
+.detail-panel h3 {
+  font-size: 16px;
+}
+
+.detail-content {
+  display: grid;
+  gap: 16px;
+}
+
+.detail-content span,
+.detail-list span {
+  color: #6b7280;
+  display: block;
+  margin-top: 4px;
+}
+
+.detail-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .status {
   border-radius: 999px;
   font-size: 13px;
@@ -330,6 +379,36 @@ h1 {
 
 .error-message {
   color: #b91c1c;
+}
+
+.warning-message,
+.password-warning {
+  color: #92400e;
+}
+
+.password-warning,
+.secondary-link {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.secondary-link {
+  color: #2563eb;
+}
+
+.credential-panel {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  color: #14532d;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.credential-panel span {
+  font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .page-heading {
