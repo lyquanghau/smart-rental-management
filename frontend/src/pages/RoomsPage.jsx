@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Edit3, Eye, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { RoomStatusBadge } from '../components/RoomStatusBadge.jsx';
 import {
   createRoom,
@@ -186,6 +187,7 @@ export function RoomsPage() {
             type="button"
             onClick={loadRooms}
           >
+            <RefreshCw className="button-icon" size={16} strokeWidth={2.5} />
             {isLoading ? 'Đang tải...' : 'Tải lại'}
           </button>
         </div>
@@ -261,6 +263,11 @@ export function RoomsPage() {
 
           <div className="form-actions">
             <button disabled={isSubmitting} type="submit">
+              {isEditing ? (
+                <Edit3 className="button-icon" size={16} strokeWidth={2.5} />
+              ) : (
+                <Plus className="button-icon" size={16} strokeWidth={2.5} />
+              )}
               {isSubmitting ? 'Đang lưu...' : isEditing ? 'Cập nhật' : 'Thêm'}
             </button>
             {isEditing ? (
@@ -269,6 +276,7 @@ export function RoomsPage() {
                 type="button"
                 onClick={resetForm}
               >
+                <X className="button-icon" size={16} strokeWidth={2.5} />
                 Hủy
               </button>
             ) : null}
@@ -299,9 +307,19 @@ export function RoomsPage() {
                       type="button"
                       onClick={() => loadRoomDetail(room._id)}
                     >
+                      <Eye
+                        className="button-icon"
+                        size={16}
+                        strokeWidth={2.5}
+                      />
                       Chi tiết
                     </button>
                     <button type="button" onClick={() => startEdit(room)}>
+                      <Edit3
+                        className="button-icon"
+                        size={16}
+                        strokeWidth={2.5}
+                      />
                       Sửa
                     </button>
                     <button
@@ -309,6 +327,11 @@ export function RoomsPage() {
                       type="button"
                       onClick={() => handleDelete(room)}
                     >
+                      <Trash2
+                        className="button-icon"
+                        size={16}
+                        strokeWidth={2.5}
+                      />
                       Xóa
                     </button>
                   </div>

@@ -1,118 +1,231 @@
 # Work Log
 
+## 2026-07-13
+
+### Kiểm tra đầu phiên
+
+- Đang ở nhánh `dev`, đồng bộ với `origin/dev`.
+- `dev`, `main`, `origin/dev`, `origin/main` cùng commit `30da487`.
+- Kiểm tra `git branch --no-merged main --all`: không có nhánh local/remote nào còn commit chưa merge vào `main`.
+- File tracked đang modified từ trước: `docs/WORK_LOG.md`.
+- File untracked giữ nguyên, chưa đưa vào Git: `chuyen_de_2.xlsx`, `code.txt`, `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: lỗi `spawn EPERM` trong sandbox Windows của Vite/esbuild.
+- `npm run build`: pass khi chạy ngoài sandbox. Đây là lỗi môi trường/sandbox, không phải lỗi code.
+
+### Đánh giá tiến độ
+
+- Đối chiếu kế hoạch `chuyen_de_2.xlsx`, tài liệu trong `docs` và code hiện tại.
+- Dự án đang bám đúng MVP: Auth JWT, Rooms, Tenants, Contracts, Payments và Dashboard đã có backend + frontend.
+- Tiến độ phù hợp giai đoạn Tuần 4: hoàn thiện dashboard, polish UI, kiểm thử, deploy production và chuẩn bị báo cáo.
+- Các khoảng trống chính còn lại: VNPay/MoMo sandbox thật, test case chính thức, checklist deploy production, hardening production nhẹ và tài liệu demo.
+
+### Nhánh làm việc hôm nay
+
+- Tạo nhánh `feature/week4-polish-hardening` từ `dev`.
+
+### Hardening backend
+
+- Thêm cấu hình `NODE_ENV`, `CLIENT_URLS`, `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX` trong `backend/src/config/env.js`.
+- Cập nhật CORS để cho phép một hoặc nhiều frontend origin qua `CLIENT_URL` hoặc `CLIENT_URLS`.
+- Thêm `app.set('trust proxy', 1)` để phù hợp khi backend chạy sau Render/proxy.
+- Thêm package `express-rate-limit` cho backend để rate limiting theo chuẩn middleware Express.
+- Rate limit mặc định: 300 request / 15 phút / IP, có thể chỉnh bằng biến môi trường.
+- API trả HTTP `429` và header rate limit chuẩn khi client gửi quá nhiều request.
+
+### Polish responsive
+
+- Cập nhật `frontend/src/styles.css` để form compact chuyển 2 cột trên tablet và 1 cột trên mobile.
+- Cải thiện sidebar/nav, page actions, user menu, revenue chart và row action buttons ở viewport nhỏ.
+- Giữ nguyên stack CSS thuần, không thêm UI library.
+
+### UI/UX polish bằng skill `ui-ux-pro-max`
+
+- Đọc skill local `.codex/skills/ui-ux-pro-max/SKILL.md`.
+- Chạy CLI design-system cho hướng `property management rental dashboard operational admin` với mật độ dashboard cao, motion nhẹ.
+- Chốt hướng giao diện: phần mềm vận hành nội bộ, trung tính, data-dense, màu trạng thái rõ, không làm kiểu landing/hero.
+- Cập nhật layout:
+  - Sidebar có nhận diện `Smart Rental`, nhóm menu theo nghiệp vụ.
+  - Header đổi thành ngữ cảnh bảng điều hành vận hành khu trọ.
+  - Thêm skip link tới nội dung chính để cải thiện keyboard accessibility.
+- Thay hệ CSS bằng design tokens rõ ràng: background, surface, border, primary, warning, danger, shadow, spacing.
+- Cải thiện card, bảng, form, trạng thái, focus visible, hover/active state và responsive mobile/tablet.
+- Thêm `.codex/` vào `.gitignore`, `.prettierignore` và ESLint ignore để skill local không bị commit/lint/format nhầm như source app.
+
+### Redesign bố cục admin hiện đại
+
+- Chốt brief với chủ dự án: admin hiện đại, chuyên nghiệp, giống phần mềm quản lý thật; áp dụng toàn bộ app; mật độ cân bằng; tông xanh da trời và trắng.
+- Chạy lại `ui-ux-pro-max` với query `modern admin property management dashboard sky white professional balanced density`.
+- Redesign dashboard thành màn điều hành:
+  - Hero vận hành có số việc cần xử lý.
+  - KPI bento cho doanh thu, phòng, khách thuê và khoản quá hạn.
+  - Panel so sánh doanh thu.
+  - Panel tình trạng thanh toán.
+  - Work queue cho hợp đồng sắp hết hạn và khoản thu cần xử lý.
+- Cập nhật CSS toàn app theo hệ sky/white:
+  - Sidebar, topbar, page heading, form panel, table panel, room card, alert item, status badge.
+  - Form CRUD dùng kiểu control panel bên trái; bảng/danh sách là workspace bên phải.
+  - Bỏ sticky form trên tablet/mobile để thao tác dễ hơn.
+  - Bổ sung responsive cho dashboard hero, bento grid, insight grid và work queue.
+
+### Điều chỉnh layout theo phản hồi
+
+- Chủ dự án không muốn kiểu bố cục form bên trái, thông tin bên phải.
+- Thêm `lucide-react` cho icon SVG thống nhất trong giao diện.
+- Sidebar dùng icon cho từng mục: tổng quan, phòng, khách thuê, hợp đồng, thanh toán.
+- Đổi layout CRUD toàn app:
+  - Form trở thành command panel ngang phía trên.
+  - Workspace dữ liệu nằm bên dưới, không còn bị chia đôi với form.
+  - Trang phòng dùng workspace riêng: danh sách phòng và panel chi tiết nằm trong vùng nội dung bên dưới form.
+  - Form tự chuyển 4 cột desktop, 2 cột tablet, 1 cột mobile.
+
+### Icon hành động
+
+- Thêm icon lucide nhỏ gọn, stroke dày hơn cho các hành động thường dùng.
+- Header:
+  - `Đổi mật khẩu`: icon chìa khóa.
+  - `Đăng xuất`: icon đăng xuất.
+- Sidebar:
+  - Icon cho tổng quan, phòng, khách thuê, hợp đồng, thanh toán.
+- Các trang nghiệp vụ:
+  - `Tải lại`: icon refresh.
+  - `Thêm`: icon plus/file-plus.
+  - `Cập nhật/Sửa`: icon bút.
+  - `Hủy`: icon x/trash tùy ngữ cảnh.
+  - `Xóa`: icon thùng rác.
+  - `Chi tiết/Xem`: icon mắt.
+  - `PDF`: icon download.
+  - `Đã thu`: icon check circle.
+  - `Kết thúc`: icon stop circle.
+
+### Tài liệu
+
+- Thêm `docs/TEST_CHECKLIST.md` cho checklist kiểm thử thủ công trước demo/merge/deploy.
+- Thêm `docs/DEPLOYMENT_CHECKLIST.md` cho checklist Render, Vercel, MongoDB Atlas và kiểm tra sau deploy.
+- Cập nhật `docs/SETUP.md` cho biến môi trường mới.
+- Cập nhật `docs/API.md` cho CORS/rate limit và HTTP `429`.
+
+### Kiểm tra sau khi code
+
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: vẫn lỗi `spawn EPERM` khi chạy trong sandbox Windows.
+- `npm run build`: pass khi chạy ngoài sandbox.
+
 ## 2026-07-10
 
-### Kiem tra dau phien
+### Kiểm tra đầu phiên
 
-- Dang o nhanh `dev`, dong bo voi `origin/dev`.
-- Kiem tra tat ca nhanh local/remote: `dev`, `main`, `origin/dev`, `origin/main` dang cung commit `8458510`.
-- Khong co nhanh local hoac remote nao chua merge vao `main`.
-- File untracked giu nguyen, chua dua vao Git: `chuyen_de_2.xlsx`, `code.txt`,
+- Đang ở nhánh `dev`, đồng bộ với `origin/dev`.
+- Kiểm tra tất cả nhánh local/remote: `dev`, `main`, `origin/dev`, `origin/main` đang cùng commit `8458510`.
+- Không có nhánh local hoặc remote nào chưa merge vào `main`.
+- File untracked giữ nguyên, chưa đưa vào Git: `chuyen_de_2.xlsx`, `code.txt`,
   `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
 - `npm run lint`: pass.
 - `npm run format:check`: pass.
-- `npm run build`: gap loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
-- `npm run build`: pass khi chay ngoai sandbox. Day la loi moi truong/sandbox, khong phai loi code.
+- `npm run build`: gặp lỗi `spawn EPERM` trong sandbox Windows của Vite/esbuild.
+- `npm run build`: pass khi chạy ngoài sandbox. Đây là lỗi môi trường/sandbox, không phải lỗi code.
 
-### Danh gia tien do va pham vi hom nay
+### Đánh giá tiến độ và phạm vi hôm nay
 
-- Doi chieu `chuyen_de_2.xlsx`, `docs/WORK_LOG.md`, docs va code hien tai.
-- Xac nhan du an dang bam MVP: Auth JWT, Rooms, Tenants, Contracts, Payments va Dashboard da co nen tang.
-- Cac hang muc tuan 2 con thieu trong code: CRUD phong tren frontend, chi tiet phong kem khach thue
-  hien tai, index MongoDB cho cac filter thuong dung.
-- Cac hang muc staging Render/Postman can tai khoan/cau hinh ben ngoai nen tach ra lam checklist rieng.
+- Đối chiếu `chuyen_de_2.xlsx`, `docs/WORK_LOG.md`, docs và code hiện tại.
+- Xác nhận dự án đang bám MVP: Auth JWT, Rooms, Tenants, Contracts, Payments và Dashboard đã có nền tảng.
+- Các hạng mục tuần 2 còn thiếu trong code: CRUD phòng trên frontend, chi tiết phòng kèm khách thuê
+  hiện tại, index MongoDB cho các filter thường dùng.
+- Các hạng mục staging Render/Postman cần tài khoản/cấu hình bên ngoài nên tách ra làm checklist riêng.
 
-### Hoan thien module phong
+### Hoàn thiện module phòng
 
-- Mo rong `GET /api/rooms/:id` de tra them `currentTenants`, gom cac khach thue chua bi xoa mem
-  dang gan voi phong.
-- Bo sung index MongoDB:
+- Mở rộng `GET /api/rooms/:id` để trả thêm `currentTenants`, gồm các khách thuê chưa bị xóa mềm
+  đang gán với phòng.
+- Bổ sung index MongoDB:
   - `Room`: `deletedAt + status`, `deletedAt + floor`.
   - `Tenant`: `deletedAt + room`, `deletedAt + fullName`.
   - `Contract`: `room + status`, `tenant + status`, `status + endDate`.
   - `Payment`: `contract + status`, `status + dueDate`, `dueDate + method`.
-- Cap nhat trang `Phong` tren frontend:
-  - Them form tao phong moi.
-  - Them sua phong.
-  - Them xoa mem phong.
-  - Them nut tai lai danh sach.
-  - Them panel chi tiet phong, hien thi thong tin phong va khach thue hien tai.
-  - Giu logic trang thai `occupied` duoc dong bo tu khach thue dang gan phong.
+- Cập nhật trang `Phòng` trên frontend:
+  - Thêm form tạo phòng mới.
+  - Thêm sửa phòng.
+  - Thêm xóa mềm phòng.
+  - Thêm nút tải lại danh sách.
+  - Thêm panel chi tiết phòng, hiển thị thông tin phòng và khách thuê hiện tại.
+  - Giữ logic trạng thái `occupied` được đồng bộ từ khách thuê đang gán phòng.
 
-### Tai lieu
+### Tài liệu
 
-- Cap nhat `docs/API.md` cho response `GET /rooms/:id` co `currentTenants`.
-- Cap nhat `docs/MODULES.md` de ghi ro module phong da co CRUD frontend va chi tiet phong.
+- Cập nhật `docs/API.md` cho response `GET /rooms/:id` có `currentTenants`.
+- Cập nhật `docs/MODULES.md` để ghi rõ module phòng đã có CRUD frontend và chi tiết phòng.
 
-### Tai khoan khach thue va mat khau tam
+### Tài khoản khách thuê và mật khẩu tạm
 
-- Chot huong nghiep vu: khong tao form dang ky public cho khach thue.
-- Khi chu tro tao hop dong `active` cho khach thue chua co tai khoan, backend tu tao user role
+- Chốt hướng nghiệp vụ: không tạo form đăng ký public cho khách thuê.
+- Khi chủ trọ tạo hợp đồng `active` cho khách thuê chưa có tài khoản, backend tự tạo user role
   `tenant`.
-- Ten dang nhap mac dinh cua khach thue la so dien thoai; neu khach khong co email thi backend tao
-  email noi bo dang `<so-dien-thoai>@tenant.smartrental.local`.
-- Backend sinh mat khau tam bang random bytes, chi tra plaintext mot lan trong response tao hop dong;
-  database chi luu password hash.
-- Tai khoan mat khau tam co `mustChangePassword = true` va `temporaryPasswordExpiresAt` sau 3 ngay.
-- Trong 3 ngay dau, khach thue van dang nhap va dung app binh thuong, frontend hien canh bao doi mat khau.
-- Neu qua 3 ngay chua doi, backend khoa tai khoan khi login hoac goi API; chi role `landlord` co API mo
-  khoa/cap lai mat khau tam.
-- Them `PATCH /api/auth/change-password` de nguoi dung tu doi mat khau.
-- Them `PATCH /api/auth/users/:id/unlock` de chu tro mo khoa va cap lai mat khau tam.
-- Them man hinh frontend `/change-password`.
-- Cap nhat man hinh dang nhap de nhan "Email hoac ten dang nhap" va validate form ro hon.
-- Trang hop dong hien thong tin tai khoan tam ngay sau khi tao hop dong neu backend vua tao tai khoan moi.
+- Tên đăng nhập mặc định của khách thuê là số điện thoại; nếu khách không có email thì backend tạo
+  email nội bộ dạng `<so-dien-thoai>@tenant.smartrental.local`.
+- Backend sinh mật khẩu tạm bằng random bytes, chỉ trả plaintext một lần trong response tạo hợp đồng;
+  database chỉ lưu password hash.
+- Tài khoản mật khẩu tạm có `mustChangePassword = true` và `temporaryPasswordExpiresAt` sau 3 ngày.
+- Trong 3 ngày đầu, khách thuê vẫn đăng nhập và dùng app bình thường, frontend hiện cảnh báo đổi mật khẩu.
+- Nếu quá 3 ngày chưa đổi, backend khóa tài khoản khi login hoặc gọi API; chỉ role `landlord` có API mở
+  khóa/cấp lại mật khẩu tạm.
+- Thêm `PATCH /api/auth/change-password` để người dùng tự đổi mật khẩu.
+- Thêm `PATCH /api/auth/users/:id/unlock` để chủ trọ mở khóa và cấp lại mật khẩu tạm.
+- Thêm màn hình frontend `/change-password`.
+- Cập nhật màn hình đăng nhập để nhận "Email hoặc tên đăng nhập" và validate form rõ hơn.
+- Trang hợp đồng hiện thông tin tài khoản tạm ngay sau khi tạo hợp đồng nếu backend vừa tạo tài khoản mới.
 
 ## 2026-07-09
 
-### Kiem tra dau phien
+### Kiểm tra đầu phiên
 
-- Dang o nhanh `dev`, dong bo voi `origin/dev`.
-- Kiem tra tat ca nhanh local/remote: khong co nhanh local nao co commit chua merge vao `main`.
-- File untracked giu nguyen, chua dua vao Git: `chuyen_de_2.xlsx`, `code.txt`,
+- Đang ở nhánh `dev`, đồng bộ với `origin/dev`.
+- Kiểm tra tất cả nhánh local/remote: không có nhánh local nào có commit chưa merge vào `main`.
+- File untracked giữ nguyên, chưa đưa vào Git: `chuyen_de_2.xlsx`, `code.txt`,
   `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
 - `npm run lint`: pass.
 - `npm run format:check`: pass.
-- `npm run build`: gap loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild,
-  chay lai ngoai sandbox thi pass. Day la loi moi truong/sandbox, khong phai loi code.
-- Tao nhanh `feature/auth-validation-dashboard-polish` de lam viec hom nay.
+- `npm run build`: gặp lỗi `spawn EPERM` trong sandbox Windows của Vite/esbuild,
+  chạy lại ngoài sandbox thì pass. Đây là lỗi môi trường/sandbox, không phải lỗi code.
+- Tạo nhánh `feature/auth-validation-dashboard-polish` để làm việc hôm nay.
 
 ### Auth frontend
 
-- Tach `/login` ra khoi layout quan tri de trang dang nhap khong hien sidebar/header.
-- Them `ProtectedRoute` de bao ve cac trang chinh bang JWT trong local storage.
-- Neu chua dang nhap va truy cap trang chinh, frontend redirect ve `/login`.
-- Sau khi dang nhap thanh cong, frontend dua nguoi dung ve trang dang muon mo truoc do.
-- Bo menu `Dang nhap` khoi sidebar trong khu vuc quan tri.
+- Tách `/login` ra khỏi layout quản trị để trang đăng nhập không hiện sidebar/header.
+- Thêm `ProtectedRoute` để bảo vệ các trang chính bằng JWT trong local storage.
+- Nếu chưa đăng nhập và truy cập trang chính, frontend redirect về `/login`.
+- Sau khi đăng nhập thành công, frontend đưa người dùng về trang đang muốn mở trước đó.
+- Bỏ menu `Đăng nhập` khỏi sidebar trong khu vực quản trị.
 
-### Validation nghiep vu backend
+### Validation nghiệp vụ backend
 
-- Bo sung chan tao/cap nhat hop dong `active` khi phong da co hop dong `active` khac.
-- Bo sung kiem tra khoan thu chi gan voi hop dong dang `active`.
-- Bo sung kiem tra `amount` phai la so khong am trong controller payment.
-- Bo sung validate `paidAt` cho thao tac danh dau da thu de khong am tham doi ngay sai thanh ngay hien tai.
+- Bổ sung chặn tạo/cập nhật hợp đồng `active` khi phòng đã có hợp đồng `active` khác.
+- Bổ sung kiểm tra khoản thu chỉ gắn với hợp đồng đang `active`.
+- Bổ sung kiểm tra `amount` phải là số không âm trong controller payment.
+- Bổ sung validate `paidAt` cho thao tác đánh dấu đã thu để không âm thầm đổi ngày sai thành ngày hiện tại.
 
 ### Dashboard
 
-- Chuan hoa text tieng Viet co dau trong khu vuc canh bao dashboard.
-- Them bieu do cot don gian so sanh doanh thu thang nay va thang truoc bang HTML/CSS,
-  khong them chart library de giu MVP gon nhe.
+- Chuẩn hóa text tiếng Việt có dấu trong khu vực cảnh báo dashboard.
+- Thêm biểu đồ cột đơn giản so sánh doanh thu tháng này và tháng trước bằng HTML/CSS,
+  không thêm chart library để giữ MVP gọn nhẹ.
 
-### Viet hoa giao dien va thong bao
+### Việt hóa giao diện và thông báo
 
-- Viet hoa thong bao loi/thanh cong tu backend de frontend khong hien chu tieng Anh nhu
+- Việt hóa thông báo lỗi/thành công từ backend để frontend không hiện chữ tiếng Anh như
   `Room already has an active contract`.
-- Viet hoa validation middleware, auth middleware, not found handler va error handler chung.
-- Viet hoa noi dung PDF hop dong: tieu de, thong tin phong, khach thue, dieu khoan va chu ky.
-- Them co che dang ky font Arial/DejaVu/Liberation neu co tren may chu de PDF hien thi duoc tieng Viet co dau.
-- Chuan hoa text dashboard con thieu dau va map trang thai thanh toan sang tieng Viet.
+- Việt hóa validation middleware, auth middleware, not found handler và error handler chung.
+- Việt hóa nội dung PDF hợp đồng: tiêu đề, thông tin phòng, khách thuê, điều khoản và chữ ký.
+- Thêm cơ chế đăng ký font Arial/DejaVu/Liberation nếu có trên máy chủ để PDF hiển thị được tiếng Việt có dấu.
+- Chuẩn hóa text dashboard còn thiếu dấu và map trạng thái thanh toán sang tiếng Việt.
 
-### Kiem tra sau khi code
+### Kiểm tra sau khi code
 
 - `npm run lint`: pass.
 - `npm run format:check`: pass.
-- `npm run build`: van gap `spawn EPERM` khi chay trong sandbox Windows.
-- `npm run build`: pass khi chay ngoai sandbox.
+- `npm run build`: vẫn gặp `spawn EPERM` khi chạy trong sandbox Windows.
+- `npm run build`: pass khi chạy ngoài sandbox.
 
 ## 2026-06-22
 
@@ -460,53 +573,53 @@ PATCH /api/payments/:id/cancel
 
 ## 2026-07-08
 
-### Kiem tra Git truoc khi code
+### Kiểm tra Git trước khi code
 
-- Kiem tra nhanh tat ca nhanh local/remote: chi co `feature/dashboard-stats` chua nhap vao
+- Kiểm tra nhanh tất cả nhánh local/remote: chỉ có `feature/dashboard-stats` chưa nhập vào
   `main`.
-- Chay `npm run lint`: pass.
-- Chay `npm run format:check`: pass.
-- Chay `npm run build`: pass khi chay ngoai sandbox Windows.
-- Fast-forward `feature/dashboard-stats` vao `main`.
+- Chạy `npm run lint`: pass.
+- Chạy `npm run format:check`: pass.
+- Chạy `npm run build`: pass khi chạy ngoài sandbox Windows.
+- Fast-forward `feature/dashboard-stats` vào `main`.
 - Fast-forward `dev` theo `main`.
-- Tao nhanh `feature/contract-pdf-dashboard-details` de lam cong viec hom nay.
-- Cac file phu tro chua dua vao Git van giu nguyen: `chuyen_de_2.xlsx`, `code.txt`,
+- Tạo nhánh `feature/contract-pdf-dashboard-details` để làm công việc hôm nay.
+- Các file phụ trợ chưa đưa vào Git vẫn giữ nguyên: `chuyen_de_2.xlsx`, `code.txt`,
   `docs/image/`.
 
-### PDF hop dong
+### PDF hợp đồng
 
-- Them package `pdfkit` cho backend.
-- Them API `GET /api/contracts/:id/pdf`, yeu cau JWT.
-- API lay hop dong kem phong va khach thue, sau do sinh file PDF hop dong tu du lieu that.
-- Frontend trang `Hop dong` co nut `PDF` tren tung dong de tai file hop dong.
-- PDF hien tai dung font mac dinh cua PDFKit va noi dung ASCII de tranh loi font Unicode khi deploy.
+- Thêm package `pdfkit` cho backend.
+- Thêm API `GET /api/contracts/:id/pdf`, yêu cầu JWT.
+- API lấy hợp đồng kèm phòng và khách thuê, sau đó sinh file PDF hợp đồng từ dữ liệu thật.
+- Frontend trang `Hợp đồng` có nút `PDF` trên từng dòng để tải file hợp đồng.
+- PDF hiện tại dùng font mặc định của PDFKit và nội dung ASCII để tránh lỗi font Unicode khi deploy.
 
-### Dashboard mo rong
+### Dashboard mở rộng
 
-- Mo rong `GET /api/dashboard/summary` nhung khong pha response cu.
-- Bo sung `revenue.currentMonth`, `revenue.previousMonth`, `revenue.previousMonthPaidCount`.
-- Bo sung `alerts.expiringContracts` cho hop dong active sap het han trong 30 ngay.
-- Bo sung `alerts.unpaidPayments` cho khoan thu `pending` hoac `overdue` can xu ly.
-- Frontend dashboard hien thi doanh thu thang nay/thang truoc, hop dong sap het han va khoan thu can xu ly.
+- Mở rộng `GET /api/dashboard/summary` nhưng không phá response cũ.
+- Bổ sung `revenue.currentMonth`, `revenue.previousMonth`, `revenue.previousMonthPaidCount`.
+- Bổ sung `alerts.expiringContracts` cho hợp đồng active sắp hết hạn trong 30 ngày.
+- Bổ sung `alerts.unpaidPayments` cho khoản thu `pending` hoặc `overdue` cần xử lý.
+- Frontend dashboard hiển thị doanh thu tháng này/tháng trước, hợp đồng sắp hết hạn và khoản thu cần xử lý.
 
-### Tai lieu
+### Tài liệu
 
-- Cap nhat `docs/API.md` cho endpoint PDF va response dashboard moi.
-- Cap nhat `docs/MODULES.md` de phan anh PDF hop dong va dashboard canh bao hanh dong.
+- Cập nhật `docs/API.md` cho endpoint PDF và response dashboard mới.
+- Cập nhật `docs/MODULES.md` để phản ánh PDF hợp đồng và dashboard cảnh báo hành động.
 
-### Kiem tra cuoi ngay
+### Kiểm tra cuối ngày
 
 - `npm run lint`: pass.
 - `npm run format:check`: pass.
-- `npm run build`: pass khi chay ngoai sandbox Windows.
+- `npm run build`: pass khi chạy ngoài sandbox Windows.
 - Smoke test API local:
-  - `POST /api/auth/login`: pass voi tai khoan admin mau.
+  - `POST /api/auth/login`: pass với tài khoản admin mẫu.
   - `GET /api/health`: pass.
-  - `GET /api/dashboard/summary`: pass, tra du lieu phong va alert dashboard.
+  - `GET /api/dashboard/summary`: pass, trả dữ liệu phòng và alert dashboard.
   - `GET /api/contracts`: pass.
-  - `GET /api/contracts/:id/pdf`: pass, tra `200 OK` va sinh file PDF hop dong.
-- Dev server local da chay duoc:
+  - `GET /api/contracts/:id/pdf`: pass, trả `200 OK` và sinh file PDF hợp đồng.
+- Dev server local đã chạy được:
   - Frontend: `http://localhost:5173`
   - Backend: `http://localhost:5000`
-- Ghi chu: build trong sandbox Windows van co the gap loi `spawn EPERM` cua Vite/esbuild;
-  chay ngoai sandbox thi build thanh cong.
+- Ghi chú: build trong sandbox Windows vẫn có thể gặp lỗi `spawn EPERM` của Vite/esbuild;
+  chạy ngoài sandbox thì build thành công.

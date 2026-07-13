@@ -44,6 +44,23 @@ cp frontend/.env.example frontend/.env
 
 Điền `MONGODB_URI` trong `backend/.env` bằng connection string từ MongoDB Atlas.
 
+Biến môi trường backend quan trọng:
+
+```txt
+PORT=5000
+MONGODB_URI=<mongodb-atlas-uri>
+JWT_SECRET=<secret>
+CLIENT_URL=http://localhost:5173
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=300
+```
+
+Khi deploy cần cho phép nhiều frontend origin, dùng `CLIENT_URLS` thay cho `CLIENT_URL`:
+
+```txt
+CLIENT_URLS=http://localhost:5173,https://<frontend-domain>
+```
+
 ## 4. MongoDB Atlas
 
 Database dev thống nhất:

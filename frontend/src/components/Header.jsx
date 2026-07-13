@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { KeyRound, LogOut } from 'lucide-react';
 import { logout } from '../services/authService.js';
 import { getStoredUser } from '../services/sessionStorage.js';
 
@@ -29,8 +30,8 @@ export function Header() {
   return (
     <header className="topbar">
       <div>
-        <span className="eyebrow">Quản lý phòng trọ thông minh</span>
-        <strong>Quản lý phòng trọ</strong>
+        <span className="eyebrow">Bảng điều hành</span>
+        <strong>Vận hành khu trọ hôm nay</strong>
       </div>
       {user ? (
         <div className="user-menu">
@@ -39,11 +40,13 @@ export function Header() {
               {passwordWarning}
             </Link>
           ) : null}
-          <span>{user.fullName}</span>
+          <span className="user-chip">{user.fullName}</span>
           <Link className="secondary-link" to="/change-password">
+            <KeyRound className="link-icon" size={16} strokeWidth={2.5} />
             Đổi mật khẩu
           </Link>
           <button type="button" onClick={handleLogout}>
+            <LogOut className="button-icon" size={16} strokeWidth={2.5} />
             Đăng xuất
           </button>
         </div>

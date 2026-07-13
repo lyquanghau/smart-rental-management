@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { getRooms } from '../services/roomService.js';
 import {
   createTenant,
@@ -151,6 +152,7 @@ export function TenantsPage() {
             type="button"
             onClick={loadData}
           >
+            <RefreshCw className="button-icon" size={16} strokeWidth={2.5} />
             {isLoading ? 'Đang tải...' : 'Tải lại'}
           </button>
         </div>
@@ -216,6 +218,11 @@ export function TenantsPage() {
 
           <div className="form-actions">
             <button disabled={isSubmitting} type="submit">
+              {isEditing ? (
+                <Edit3 className="button-icon" size={16} strokeWidth={2.5} />
+              ) : (
+                <Plus className="button-icon" size={16} strokeWidth={2.5} />
+              )}
               {isSubmitting ? 'Đang lưu...' : isEditing ? 'Cập nhật' : 'Thêm'}
             </button>
             {isEditing ? (
@@ -224,6 +231,7 @@ export function TenantsPage() {
                 type="button"
                 onClick={resetForm}
               >
+                <X className="button-icon" size={16} strokeWidth={2.5} />
                 Hủy
               </button>
             ) : null}
@@ -273,6 +281,11 @@ export function TenantsPage() {
                     <td>
                       <div className="row-actions">
                         <button type="button" onClick={() => startEdit(tenant)}>
+                          <Edit3
+                            className="button-icon"
+                            size={16}
+                            strokeWidth={2.5}
+                          />
                           Sửa
                         </button>
                         <button
@@ -280,6 +293,11 @@ export function TenantsPage() {
                           type="button"
                           onClick={() => handleDelete(tenant)}
                         >
+                          <Trash2
+                            className="button-icon"
+                            size={16}
+                            strokeWidth={2.5}
+                          />
                           Xóa
                         </button>
                       </div>

@@ -6,6 +6,19 @@ Base URL:
 http://localhost:5000/api
 ```
 
+## Bảo vệ API
+
+- Backend dùng JWT Bearer Token cho các route nghiệp vụ.
+- CORS chỉ cho phép frontend origin khai báo trong `CLIENT_URL` hoặc `CLIENT_URLS`.
+- Backend dùng `express-rate-limit` với giới hạn mặc định `300` request trong `15` phút cho mỗi IP. Có thể chỉnh bằng:
+
+```txt
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=300
+```
+
+Khi vượt giới hạn, API trả HTTP `429`.
+
 ## Định dạng phản hồi
 
 Thành công:

@@ -11,6 +11,7 @@ export default [
       'coverage/**',
       'frontend/dist/**',
       '.tmp-*/**',
+      '.codex/**',
     ],
   },
   js.configs.recommended,

@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Download,
+  Edit3,
+  Eye,
+  FilePlus2,
+  RefreshCw,
+  StopCircle,
+  X,
+} from 'lucide-react';
+import {
   createContract,
   deleteContract,
   downloadContractPdf,
@@ -317,6 +326,7 @@ export function ContractsPage() {
             type="button"
             onClick={loadData}
           >
+            <RefreshCw className="button-icon" size={16} strokeWidth={2.5} />
             {isLoading ? 'Đang tải...' : 'Tải lại'}
           </button>
         </div>
@@ -479,6 +489,15 @@ export function ContractsPage() {
           <div className="form-actions">
             {!isViewing ? (
               <button disabled={isSubmitting} type="submit">
+                {isEditing ? (
+                  <Edit3 className="button-icon" size={16} strokeWidth={2.5} />
+                ) : (
+                  <FilePlus2
+                    className="button-icon"
+                    size={16}
+                    strokeWidth={2.5}
+                  />
+                )}
                 {isSubmitting ? 'Đang lưu...' : isEditing ? 'Cập nhật' : 'Thêm'}
               </button>
             ) : null}
@@ -488,6 +507,7 @@ export function ContractsPage() {
                 type="button"
                 onClick={resetForm}
               >
+                <X className="button-icon" size={16} strokeWidth={2.5} />
                 Hủy
               </button>
             ) : null}
@@ -552,6 +572,11 @@ export function ContractsPage() {
                                 type="button"
                                 onClick={() => startEdit(contract)}
                               >
+                                <Edit3
+                                  className="button-icon"
+                                  size={16}
+                                  strokeWidth={2.5}
+                                />
                                 Sửa
                               </button>
                               <button
@@ -559,6 +584,11 @@ export function ContractsPage() {
                                 type="button"
                                 onClick={() => handleDelete(contract)}
                               >
+                                <StopCircle
+                                  className="button-icon"
+                                  size={16}
+                                  strokeWidth={2.5}
+                                />
                                 Kết thúc
                               </button>
                             </>
@@ -568,6 +598,11 @@ export function ContractsPage() {
                               type="button"
                               onClick={() => startView(contract)}
                             >
+                              <Eye
+                                className="button-icon"
+                                size={16}
+                                strokeWidth={2.5}
+                              />
                               Xem
                             </button>
                           )}
@@ -577,6 +612,11 @@ export function ContractsPage() {
                             type="button"
                             onClick={() => handleDownloadPdf(contract)}
                           >
+                            <Download
+                              className="button-icon"
+                              size={16}
+                              strokeWidth={2.5}
+                            />
                             {downloadingContractId === contract._id
                               ? 'Đang tải'
                               : 'PDF'}

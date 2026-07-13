@@ -47,7 +47,9 @@ function formatDate(value) {
 
 function getRevenueDelta(currentMonth, previousMonth) {
   if (!previousMonth) {
-    return currentMonth ? 'Tháng trước chưa có doanh thu' : 'Chưa có doanh thu';
+    return currentMonth
+      ? 'Tháng trước chưa ghi nhận doanh thu'
+      : 'Chưa có dữ liệu doanh thu';
   }
 
   const delta = currentMonth - previousMonth;
@@ -58,8 +60,8 @@ function getRevenueDelta(currentMonth, previousMonth) {
 }
 
 function getRevenueBarHeight(value, maxValue) {
-  if (!maxValue) return 8;
-  return Math.max(Math.round((value / maxValue) * 120), 8);
+  if (!maxValue) return 12;
+  return Math.max(Math.round((value / maxValue) * 132), 12);
 }
 
 function getPaymentStatusLabel(status) {
@@ -111,126 +113,150 @@ export function DashboardPage() {
     summary.revenue.currentMonth,
     summary.revenue.previousMonth,
   );
+  const actionCount =
+    summary.alerts.expiringContracts.length +
+    summary.alerts.unpaidPayments.length;
 
   return (
-    <section>
-      <div className="page-heading">
-        <div>
-          <h1>Tổng quan</h1>
-          <span className="page-summary">
-            Tháng {summary.payments.month}/{summary.payments.year}
-          </span>
+    <section className="dashboard-page">
+      <div className="dashboard-hero">
+        <div className="hero-copy">
+          <span className="eyebrow">Tổng quan vận hành</span>
+          <h1>Quản lý khu trọ</h1>
+          <p>
+            Theo dõi phòng, hợp đồng và khoản thu theo tháng{' '}
+            {summary.payments.month}/{summary.payments.year}.
+          </p>
         </div>
-        <button
-          className="secondary-button"
-          disabled={isLoading}
-          type="button"
-          onClick={loadSummary}
-        >
-          {isLoading ? 'Đang tải...' : 'Tải lại'}
-        </button>
+        <div className="hero-actions">
+          <div className="hero-status">
+            <span>Cần xử lý</span>
+            <strong>{actionCount}</strong>
+            <small>hợp đồng/khoản thu</small>
+          </div>
+          <button
+            className="secondary-button"
+            disabled={isLoading}
+            type="button"
+            onClick={loadSummary}
+          >
+            {isLoading ? 'Đang tải...' : 'Tải lại dữ liệu'}
+          </button>
+        </div>
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}
-      {isLoading ? <p className="page-summary">Đang tải dữ liệu...</p> : null}
+      {isLoading ? (
+        <p className="loading-note">Đang tải số liệu mới nhất...</p>
+      ) : null}
 
-      <div className="metric-grid">
+      <div className="dashboard-grid">
+        <article className="metric-card metric-card-primary">
+          <span>Doanh thu tháng này</span>
+          <strong>{formatMoney(summary.revenue.currentMonth)}đ</strong>
+          <small>
+            {getRevenueDelta(
+              summary.revenue.currentMonth,
+              summary.revenue.previousMonth,
+            )}
+          </small>
+        </article>
         <article className="metric-card">
           <span>Tổng phòng</span>
           <strong>{summary.rooms.total}</strong>
+          <small>
+            {summary.rooms.available} trống, {summary.rooms.occupied} đã thuê
+          </small>
         </article>
         <article className="metric-card">
-          <span>Phòng trống</span>
-          <strong>{summary.rooms.available}</strong>
-        </article>
-        <article className="metric-card">
-          <span>Đã thuê</span>
-          <strong>{summary.rooms.occupied}</strong>
-        </article>
-        <article className="metric-card">
-          <span>Bảo trì</span>
-          <strong>{summary.rooms.maintenance}</strong>
-        </article>
-        <article className="metric-card">
-          <span>Khách thuê đang ở</span>
+          <span>Khách đang ở</span>
           <strong>{summary.tenants.active}</strong>
+          <small>khách thuê còn hoạt động</small>
         </article>
-        <article className="metric-card">
-          <span>Hợp đồng hiệu lực</span>
-          <strong>{summary.contracts.active}</strong>
+        <article className="metric-card metric-card-warning">
+          <span>Quá hạn</span>
+          <strong>{summary.payments.overdueCount}</strong>
+          <small>khoản cần kiểm tra</small>
         </article>
       </div>
 
-      <div className="dashboard-section">
-        <h2>Thanh toán trong tháng</h2>
-        <div className="metric-grid">
-          <article className="metric-card">
-            <span>Đã thu</span>
-            <strong>{formatMoney(summary.revenue.currentMonth)}đ</strong>
-            <small>
-              {summary.payments.paidCount} khoản.{' '}
-              {getRevenueDelta(
-                summary.revenue.currentMonth,
-                summary.revenue.previousMonth,
-              )}
-            </small>
-          </article>
-          <article className="metric-card">
-            <span>Tháng trước</span>
-            <strong>{formatMoney(summary.revenue.previousMonth)}đ</strong>
-            <small>{summary.revenue.previousMonthPaidCount} khoản</small>
-          </article>
-          <article className="metric-card">
-            <span>Chưa thu</span>
-            <strong>{formatMoney(summary.payments.pendingAmount)}đ</strong>
-            <small>{summary.payments.pendingCount} khoản</small>
-          </article>
-          <article className="metric-card">
-            <span>Quá hạn</span>
-            <strong>{summary.payments.overdueCount}</strong>
-            <small>khoản cần kiểm tra</small>
-          </article>
-        </div>
+      <div className="insight-grid">
+        <section className="dashboard-panel revenue-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">Dòng tiền</span>
+              <h2>So sánh doanh thu</h2>
+            </div>
+            <span className="panel-meta">
+              {summary.payments.paidCount} khoản đã thu
+            </span>
+          </div>
+          <div className="revenue-chart" aria-label="So sánh doanh thu tháng">
+            <div className="revenue-bar-group">
+              <div
+                className="revenue-bar revenue-bar-muted"
+                style={{
+                  height: `${getRevenueBarHeight(
+                    summary.revenue.previousMonth,
+                    maxRevenue,
+                  )}px`,
+                }}
+              />
+              <strong>{formatMoney(summary.revenue.previousMonth)}đ</strong>
+              <span>Tháng trước</span>
+            </div>
+            <div className="revenue-bar-group">
+              <div
+                className="revenue-bar"
+                style={{
+                  height: `${getRevenueBarHeight(
+                    summary.revenue.currentMonth,
+                    maxRevenue,
+                  )}px`,
+                }}
+              />
+              <strong>{formatMoney(summary.revenue.currentMonth)}đ</strong>
+              <span>Tháng này</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="dashboard-panel payment-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">Thu tiền</span>
+              <h2>Tình trạng thanh toán</h2>
+            </div>
+          </div>
+          <div className="payment-summary-grid">
+            <div>
+              <span>Đã thu</span>
+              <strong>{formatMoney(summary.payments.paidAmount)}đ</strong>
+              <small>{summary.payments.paidCount} khoản</small>
+            </div>
+            <div>
+              <span>Chờ thu</span>
+              <strong>{formatMoney(summary.payments.pendingAmount)}đ</strong>
+              <small>{summary.payments.pendingCount} khoản</small>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <section className="dashboard-section dashboard-list-panel">
-        <h2>So sánh doanh thu</h2>
-        <div className="revenue-chart" aria-label="So sánh doanh thu tháng">
-          <div className="revenue-bar-group">
-            <div
-              className="revenue-bar revenue-bar-muted"
-              style={{
-                height: `${getRevenueBarHeight(
-                  summary.revenue.previousMonth,
-                  maxRevenue,
-                )}px`,
-              }}
-            />
-            <strong>{formatMoney(summary.revenue.previousMonth)}đ</strong>
-            <span>Tháng trước</span>
+      <div className="work-queue-grid">
+        <section className="dashboard-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">Hợp đồng</span>
+              <h2>Sắp hết hạn trong 30 ngày</h2>
+            </div>
+            <span className="panel-meta">
+              {summary.alerts.expiringContracts.length} mục
+            </span>
           </div>
-          <div className="revenue-bar-group">
-            <div
-              className="revenue-bar"
-              style={{
-                height: `${getRevenueBarHeight(
-                  summary.revenue.currentMonth,
-                  maxRevenue,
-                )}px`,
-              }}
-            />
-            <strong>{formatMoney(summary.revenue.currentMonth)}đ</strong>
-            <span>Tháng này</span>
-          </div>
-        </div>
-      </section>
-
-      <div className="dashboard-details">
-        <section className="dashboard-section dashboard-list-panel">
-          <h2>Hợp đồng sắp hết hạn</h2>
           {summary.alerts.expiringContracts.length === 0 ? (
             <p className="empty-note">
-              Không có hợp đồng hết hạn trong 30 ngày.
+              Không có hợp đồng cần gia hạn trong 30 ngày.
             </p>
           ) : (
             <div className="alert-list">
@@ -245,8 +271,16 @@ export function DashboardPage() {
           )}
         </section>
 
-        <section className="dashboard-section dashboard-list-panel">
-          <h2>Khoản thu cần xử lý</h2>
+        <section className="dashboard-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">Khoản thu</span>
+              <h2>Cần xử lý</h2>
+            </div>
+            <span className="panel-meta">
+              {summary.alerts.unpaidPayments.length} mục
+            </span>
+          </div>
           {summary.alerts.unpaidPayments.length === 0 ? (
             <p className="empty-note">
               Không có khoản thu đang chờ hoặc quá hạn.
@@ -255,7 +289,7 @@ export function DashboardPage() {
             <div className="alert-list">
               {summary.alerts.unpaidPayments.map((payment) => (
                 <article className="alert-item" key={payment._id}>
-                  <strong>{formatMoney(payment.amount)}d</strong>
+                  <strong>{formatMoney(payment.amount)}đ</strong>
                   <span>
                     {payment.contract?.room?.name || 'Chưa có phòng'} -{' '}
                     {payment.contract?.tenant?.fullName || 'Chưa có khách'}
