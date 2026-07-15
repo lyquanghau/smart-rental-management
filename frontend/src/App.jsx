@@ -1,16 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { MainLayout } from './layouts/MainLayout.jsx';
 import { ContractsPage } from './pages/ContractsPage.jsx';
 import { ChangePasswordPage } from './pages/ChangePasswordPage.jsx';
 import { DashboardPage } from './pages/DashboardPage.jsx';
+import { HelpSupportPage } from './pages/HelpSupportPage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { PaymentsPage } from './pages/PaymentsPage.jsx';
 import { RoomsPage } from './pages/RoomsPage.jsx';
+import { SettingsPage } from './pages/SettingsPage.jsx';
 import { TenantsPage } from './pages/TenantsPage.jsx';
+import { applyPreferences, loadPreferences } from './services/preferences.js';
 
 export default function App() {
+  useEffect(() => {
+    applyPreferences(loadPreferences());
+  }, []);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
@@ -22,6 +29,8 @@ export default function App() {
           <Route path="/tenants" element={<TenantsPage />} />
           <Route path="/contracts" element={<ContractsPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
+          <Route path="/help" element={<HelpSupportPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
     </Routes>

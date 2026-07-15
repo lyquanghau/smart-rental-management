@@ -1,56 +1,139 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  Building2,
+  CircleHelp,
   CreditCard,
+  DoorOpen,
   FileText,
   LayoutDashboard,
+  LogOut,
+  Settings,
   Users,
-  DoorOpen,
 } from 'lucide-react';
+import { logout } from '../services/authService.js';
+import { getStoredUser } from '../services/sessionStorage.js';
+import { usePreferences } from '../hooks/usePreferences.js';
+import smartRentalMark from '../assets/brand/smart-rental-mark.svg';
 
 const mainLinks = [
-  { to: '/', label: 'Tổng quan', icon: LayoutDashboard },
-  { to: '/rooms', label: 'Phòng', icon: DoorOpen },
-  { to: '/tenants', label: 'Khách thuê', icon: Users },
+  { to: '/', labelKey: 'overview', icon: LayoutDashboard },
+  { to: '/rooms', labelKey: 'rooms', icon: DoorOpen },
+  { to: '/tenants', labelKey: 'tenants', icon: Users },
 ];
 
 const financeLinks = [
-  { to: '/contracts', label: 'Hợp đồng', icon: FileText },
-  { to: '/payments', label: 'Thanh toán', icon: CreditCard },
+  { to: '/contracts', labelKey: 'contracts', icon: FileText },
+  { to: '/payments', labelKey: 'payments', icon: CreditCard },
 ];
+
+const utilityLinks = [
+  { to: '/help', labelKey: 'help', icon: CircleHelp },
+  { to: '/settings', labelKey: 'settings', icon: Settings },
+];
+
+const labels = {
+  en: {
+    account: 'Account',
+    brandSubtitle: 'Rental management',
+    finance: 'Records & Billing',
+    help: 'Help & Support',
+    mainNav: 'Main navigation',
+    operations: 'Operations',
+    overview: 'Overview',
+    rooms: 'Rooms',
+    tenants: 'Tenants',
+    contracts: 'Contracts',
+    payments: 'Payments',
+    settings: 'Settings',
+    signOut: 'Sign out',
+    utilityNav: 'Help and settings',
+  },
+  vi: {
+    account: 'Tài khoản',
+    brandSubtitle: 'Quản lý nhà trọ',
+    finance: 'Hồ sơ & thu tiền',
+    help: 'Trợ giúp & Hỗ trợ',
+    mainNav: 'Điều hướng chính',
+    operations: 'Vận hành',
+    overview: 'Tổng quan',
+    rooms: 'Phòng',
+    tenants: 'Khách thuê',
+    contracts: 'Hợp đồng',
+    payments: 'Thanh toán',
+    settings: 'Cài đặt',
+    signOut: 'Đăng xuất',
+    utilityNav: 'Hỗ trợ và cài đặt',
+  },
+};
 
 function NavItem({ to, label, icon: Icon }) {
   return (
     <NavLink to={to}>
-      <Icon aria-hidden="true" size={18} strokeWidth={2.2} />
+      <Icon aria-hidden="true" size={18} strokeWidth={2.4} />
       <span>{label}</span>
     </NavLink>
   );
 }
 
 export function Sidebar() {
+  const user = getStoredUser();
+  const { language } = usePreferences();
+  const text = labels[language] || labels.vi;
+
+  function handleLogout() {
+    logout();
+    window.location.href = '/login';
+  }
+
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <span className="brand-mark" aria-hidden="true">
-          <Building2 size={22} strokeWidth={2.3} />
-        </span>
-        <div>
-          <strong>Smart Rental</strong>
-          <span>Quản lý nhà trọ</span>
+      <div className="sidebar-main">
+        <div className="brand">
+          <img
+            className="brand-mark brand-logo-mark"
+            src={smartRentalMark}
+            alt=""
+            aria-hidden="true"
+          />
+          <div>
+            <strong>Smart Rental</strong>
+            <span>{text.brandSubtitle}</span>
+          </div>
+        </div>
+        <nav className="nav" aria-label={text.mainNav}>
+          <span className="nav-section">{text.operations}</span>
+          {mainLinks.map((item) => (
+            <NavItem key={item.to} {...item} label={text[item.labelKey]} />
+          ))}
+          <span className="nav-section">{text.finance}</span>
+          {financeLinks.map((item) => (
+            <NavItem key={item.to} {...item} label={text[item.labelKey]} />
+          ))}
+        </nav>
+      </div>
+
+      <div className="sidebar-bottom">
+        <nav className="nav sidebar-utility-nav" aria-label={text.utilityNav}>
+          {utilityLinks.map((item) => (
+            <NavItem key={item.to} {...item} label={text[item.labelKey]} />
+          ))}
+        </nav>
+        <button
+          className="sidebar-account-button"
+          type="button"
+          onClick={handleLogout}
+        >
+          <span>
+            <strong>{user?.fullName || text.account}</strong>
+            <small>{text.signOut}</small>
+          </span>
+          <LogOut aria-hidden="true" size={17} strokeWidth={2.5} />
+        </button>
+        <div className="sidebar-footer">
+          <span>© 2026 Smart Rental</span>
+          <strong>Design by Quang Hau</strong>
         </div>
       </div>
-      <nav className="nav" aria-label="Điều hướng chính">
-        <span className="nav-section">Vận hành</span>
-        {mainLinks.map((item) => (
-          <NavItem key={item.to} {...item} />
-        ))}
-        <span className="nav-section">Hồ sơ & thu tiền</span>
-        {financeLinks.map((item) => (
-          <NavItem key={item.to} {...item} />
-        ))}
-      </nav>
     </aside>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { usePreferences } from '../hooks/usePreferences.js';
 import { changePassword } from '../services/authService.js';
 import { getStoredUser, getToken } from '../services/sessionStorage.js';
 
@@ -9,16 +10,49 @@ const emptyForm = {
   confirmPassword: '',
 };
 
-function validateForm(form) {
-  if (!form.currentPassword) return 'Vui lòng nhập mật khẩu hiện tại.';
+const copy = {
+  en: {
+    back: 'Back',
+    changePassword: 'Change password',
+    confirm: 'Confirm new password',
+    current: 'Current password',
+    currentRequired: 'Please enter your current password.',
+    mismatch: 'The password confirmation does not match.',
+    minHelp: 'At least 8 characters.',
+    minLength: 'The new password must be at least 8 characters.',
+    mustDiffer: 'The new password must be different from the current password.',
+    newPassword: 'New password',
+    saving: 'Saving...',
+    temporaryWarning: (date) =>
+      `Temporary password must be changed before ${date} to avoid account lockout.`,
+  },
+  vi: {
+    back: 'Quay lại',
+    changePassword: 'Đổi mật khẩu',
+    confirm: 'Xác nhận mật khẩu mới',
+    current: 'Mật khẩu hiện tại',
+    currentRequired: 'Vui lòng nhập mật khẩu hiện tại.',
+    mismatch: 'Xác nhận mật khẩu mới không khớp.',
+    minHelp: 'Tối thiểu 8 ký tự.',
+    minLength: 'Mật khẩu mới phải có ít nhất 8 ký tự.',
+    mustDiffer: 'Mật khẩu mới phải khác mật khẩu hiện tại.',
+    newPassword: 'Mật khẩu mới',
+    saving: 'Đang lưu...',
+    temporaryWarning: (date) =>
+      `Mật khẩu tạm cần đổi trước ngày ${date} để tránh bị khóa tài khoản.`,
+  },
+};
+
+function validateForm(form, text) {
+  if (!form.currentPassword) return text.currentRequired;
   if (form.newPassword.length < 8) {
-    return 'Mật khẩu mới phải có ít nhất 8 ký tự.';
+    return text.minLength;
   }
   if (form.newPassword !== form.confirmPassword) {
-    return 'Xác nhận mật khẩu mới không khớp.';
+    return text.mismatch;
   }
   if (form.currentPassword === form.newPassword) {
-    return 'Mật khẩu mới phải khác mật khẩu hiện tại.';
+    return text.mustDiffer;
   }
 
   return '';
@@ -30,6 +64,8 @@ function formatDate(value) {
 }
 
 export function ChangePasswordPage() {
+  const { language } = usePreferences();
+  const text = copy[language] || copy.vi;
   const navigate = useNavigate();
   const user = getStoredUser();
   const [form, setForm] = useState(emptyForm);
@@ -49,7 +85,7 @@ export function ChangePasswordPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    const validationError = validateForm(form);
+    const validationError = validateForm(form, text);
 
     if (validationError) {
       setError(validationError);
@@ -75,17 +111,15 @@ export function ChangePasswordPage() {
   return (
     <main className="login-shell">
       <section className="form-page">
-        <h1>Đổi mật khẩu</h1>
+        <h1>{text.changePassword}</h1>
         {user?.mustChangePassword ? (
           <p className="warning-message">
-            Mật khẩu tạm cần đổi trước ngày{' '}
-            {formatDate(user.temporaryPasswordExpiresAt)} để tránh bị khóa tài
-            khoản.
+            {text.temporaryWarning(formatDate(user.temporaryPasswordExpiresAt))}
           </p>
         ) : null}
         <form className="form-panel" onSubmit={handleSubmit}>
           <label>
-            Mật khẩu hiện tại
+            {text.current}
             <input
               required
               type="password"
@@ -97,7 +131,7 @@ export function ChangePasswordPage() {
           </label>
 
           <label>
-            Mật khẩu mới
+            {text.newPassword}
             <input
               minLength="8"
               required
@@ -107,11 +141,11 @@ export function ChangePasswordPage() {
                 updateField('newPassword', event.target.value)
               }
             />
-            <span className="field-help">Tối thiểu 8 ký tự.</span>
+            <span className="field-help">{text.minHelp}</span>
           </label>
 
           <label>
-            Xác nhận mật khẩu mới
+            {text.confirm}
             <input
               minLength="8"
               required
@@ -127,10 +161,10 @@ export function ChangePasswordPage() {
 
           <div className="form-actions">
             <button disabled={isSubmitting} type="submit">
-              {isSubmitting ? 'Đang lưu...' : 'Đổi mật khẩu'}
+              {isSubmitting ? text.saving : text.changePassword}
             </button>
             <Link className="secondary-link" to="/">
-              Quay lại
+              {text.back}
             </Link>
           </div>
         </form>

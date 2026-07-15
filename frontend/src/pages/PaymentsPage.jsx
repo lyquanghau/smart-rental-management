@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { Modal } from '../components/Modal.jsx';
+import { usePreferences } from '../hooks/usePreferences.js';
 import { getContracts } from '../services/contractService.js';
+import { formatCurrency } from '../services/preferences.js';
 import {
   cancelPayment,
   createPayment,
@@ -18,30 +21,110 @@ const emptyForm = {
   note: '',
 };
 
-const statusOptions = [
-  { value: '', label: 'Tất cả trạng thái' },
-  { value: 'pending', label: 'Chờ thu' },
-  { value: 'paid', label: 'Đã thanh toán' },
-  { value: 'overdue', label: 'Quá hạn' },
-  { value: 'cancelled', label: 'Đã hủy' },
-];
-
-const paymentStatusLabels = {
-  pending: 'Chờ thu',
-  paid: 'Đã thanh toán',
-  overdue: 'Quá hạn',
-  cancelled: 'Đã hủy',
+const copy = {
+  en: {
+    actions: 'Actions',
+    add: 'Add',
+    addPayment: 'Add payment',
+    amount: 'Amount',
+    cancel: 'Cancel',
+    collected: 'Collected',
+    confirmCancel: (label) => `Cancel the payment for ${label}?`,
+    confirmPaid: (amount, label) =>
+      `Confirm ${amount} has been collected for ${label}?`,
+    contract: 'Contract',
+    contractRent: (amount) => `Contract rent: ${amount}/month.`,
+    dueDate: 'Due date',
+    duePaid: 'Due / paid date',
+    edit: 'Edit',
+    filterLabel: 'Filter payment status',
+    loading: 'Loading...',
+    loadingData: 'Loading data...',
+    method: 'Method',
+    noNote: 'No note',
+    noRoom: 'No room',
+    noTenant: 'No tenant',
+    notAvailable: 'Not available',
+    note: 'Note',
+    paid: 'Paid',
+    payment: 'Payment',
+    payments: 'Payments',
+    reload: 'Reload',
+    saving: 'Saving...',
+    selectContract: 'Select contract',
+    selectContractHelp: 'Select an active contract to create a payment.',
+    status: 'Status',
+    update: 'Update',
+    updatePayment: 'Update payment',
+    visible: 'visible payments',
+    empty: 'No payments yet.',
+    statusOptions: [
+      { value: '', label: 'All statuses' },
+      { value: 'pending', label: 'Pending' },
+      { value: 'paid', label: 'Paid' },
+      { value: 'overdue', label: 'Overdue' },
+      { value: 'cancelled', label: 'Cancelled' },
+    ],
+    methods: [
+      { value: 'cash', label: 'Cash' },
+      { value: 'bank_transfer', label: 'Bank transfer' },
+      { value: 'momo', label: 'MoMo' },
+      { value: 'vnpay', label: 'VNPay' },
+    ],
+  },
+  vi: {
+    actions: 'Thao tác',
+    add: 'Thêm',
+    addPayment: 'Thêm khoản thu',
+    amount: 'Số tiền',
+    cancel: 'Hủy',
+    collected: 'Đã thu',
+    confirmCancel: (label) => `Hủy khoản thu của ${label}?`,
+    confirmPaid: (amount, label) => `Xác nhận đã thu ${amount} cho ${label}?`,
+    contract: 'Hợp đồng',
+    contractRent: (amount) => `Giá thuê theo hợp đồng: ${amount}/tháng.`,
+    dueDate: 'Hạn thanh toán',
+    duePaid: 'Hạn / ngày thu',
+    edit: 'Sửa',
+    filterLabel: 'Lọc trạng thái thanh toán',
+    loading: 'Đang tải...',
+    loadingData: 'Đang tải dữ liệu...',
+    method: 'Phương thức',
+    noNote: 'Không có ghi chú',
+    noRoom: 'Chưa có phòng',
+    noTenant: 'Chưa có khách thuê',
+    notAvailable: 'Chưa có',
+    note: 'Ghi chú',
+    paid: 'Thu',
+    payment: 'Khoản thu',
+    payments: 'Thanh toán',
+    reload: 'Tải lại',
+    saving: 'Đang lưu...',
+    selectContract: 'Chọn hợp đồng',
+    selectContractHelp: 'Chọn hợp đồng active để tạo khoản thu.',
+    status: 'Trạng thái',
+    update: 'Cập nhật',
+    updatePayment: 'Cập nhật khoản thu',
+    visible: 'khoản thu đang hiển thị',
+    empty: 'Chưa có khoản thu nào.',
+    statusOptions: [
+      { value: '', label: 'Tất cả trạng thái' },
+      { value: 'pending', label: 'Chờ thu' },
+      { value: 'paid', label: 'Đã thanh toán' },
+      { value: 'overdue', label: 'Quá hạn' },
+      { value: 'cancelled', label: 'Đã hủy' },
+    ],
+    methods: [
+      { value: 'cash', label: 'Tiền mặt' },
+      { value: 'bank_transfer', label: 'Chuyển khoản' },
+      { value: 'momo', label: 'MoMo' },
+      { value: 'vnpay', label: 'VNPay' },
+    ],
+  },
 };
 
-const methodOptions = [
-  { value: 'cash', label: 'Tiền mặt' },
-  { value: 'bank_transfer', label: 'Chuyển khoản' },
-  { value: 'momo', label: 'MoMo' },
-  { value: 'vnpay', label: 'VNPay' },
-];
-
-function formatDate(value) {
-  if (!value) return 'Chưa có';
+function formatDate(value, text) {
+  if (!value) return text.notAvailable;
   return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
 }
 
@@ -51,22 +134,25 @@ function formatDateInput(value) {
 }
 
 function formatMoney(value) {
-  return Number(value || 0).toLocaleString('vi-VN');
+  return formatCurrency(value);
 }
 
-function getMethodLabel(method) {
+function getMethodLabel(method, text) {
   return (
-    methodOptions.find((option) => option.value === method)?.label || 'Không rõ'
+    text.methods.find((option) => option.value === method)?.label || method
   );
 }
 
-function getStatusLabel(status) {
-  return paymentStatusLabels[status] || 'Không rõ';
+function getStatusLabel(status, text) {
+  return (
+    text.statusOptions.find((option) => option.value === status)?.label ||
+    status
+  );
 }
 
-function getContractLabel(contract) {
-  const roomName = contract?.room?.name || 'Chưa có phòng';
-  const tenantName = contract?.tenant?.fullName || 'Chưa có khách thuê';
+function getContractLabel(contract, text) {
+  const roomName = contract?.room?.name || text.noRoom;
+  const tenantName = contract?.tenant?.fullName || text.noTenant;
 
   return `${roomName} - ${tenantName}`;
 }
@@ -94,6 +180,8 @@ function toPayload(formData) {
 }
 
 export function PaymentsPage() {
+  const { language } = usePreferences();
+  const text = copy[language] || copy.vi;
   const [payments, setPayments] = useState([]);
   const [contracts, setContracts] = useState([]);
   const [formData, setFormData] = useState(emptyForm);
@@ -102,6 +190,7 @@ export function PaymentsPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const isEditing = Boolean(editingPaymentId);
 
@@ -156,12 +245,21 @@ export function PaymentsPage() {
   function resetForm() {
     setFormData(emptyForm);
     setEditingPaymentId('');
+    setIsFormOpen(false);
+  }
+
+  function startCreate() {
+    setFormData(emptyForm);
+    setEditingPaymentId('');
+    setError('');
+    setIsFormOpen(true);
   }
 
   function startEdit(payment) {
     setEditingPaymentId(payment._id);
     setFormData(toFormData(payment));
     setError('');
+    setIsFormOpen(true);
   }
 
   async function handleStatusFilterChange(value) {
@@ -194,9 +292,10 @@ export function PaymentsPage() {
     if (payment.status === 'paid' || payment.status === 'cancelled') return;
 
     const confirmed = window.confirm(
-      `Xác nhận đã thu ${formatMoney(payment.amount)}đ cho ${getContractLabel(
-        payment.contract,
-      )}?`,
+      text.confirmPaid(
+        formatMoney(payment.amount),
+        getContractLabel(payment.contract, text),
+      ),
     );
 
     if (!confirmed) return;
@@ -219,7 +318,7 @@ export function PaymentsPage() {
     if (payment.status === 'paid' || payment.status === 'cancelled') return;
 
     const confirmed = window.confirm(
-      `Hủy khoản thu của ${getContractLabel(payment.contract)}?`,
+      text.confirmCancel(getContractLabel(payment.contract, text)),
     );
 
     if (!confirmed) return;
@@ -238,17 +337,22 @@ export function PaymentsPage() {
   return (
     <section>
       <div className="page-heading">
-        <h1>Thanh toán</h1>
-        <div className="page-actions">
+        <h1>{text.payments}</h1>
+        <div className="page-actions room-page-actions payment-page-actions">
           <span className="page-summary">
-            {payments.length} khoản thu đang hiển thị
+            {payments.length} {text.visible}
           </span>
+          <button type="button" onClick={startCreate}>
+            <Plus className="button-icon" size={16} strokeWidth={2.5} />
+            {text.addPayment}
+          </button>
           <select
-            aria-label="Lọc trạng thái thanh toán"
+            className="compact-filter payment-status-filter"
+            aria-label={text.filterLabel}
             value={statusFilter}
             onChange={(event) => handleStatusFilterChange(event.target.value)}
           >
-            {statusOptions.map((option) => (
+            {text.statusOptions.map((option) => (
               <option key={option.value || 'all'} value={option.value}>
                 {option.label}
               </option>
@@ -261,43 +365,45 @@ export function PaymentsPage() {
             onClick={() => loadData()}
           >
             <RefreshCw className="button-icon" size={16} strokeWidth={2.5} />
-            {isLoading ? 'Đang tải...' : 'Tải lại'}
+            {isLoading ? text.loading : text.reload}
           </button>
         </div>
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}
 
-      <div className="split-layout">
+      <Modal
+        isOpen={isFormOpen}
+        title={isEditing ? text.updatePayment : text.addPayment}
+        onClose={resetForm}
+      >
         <form className="form-panel compact-form-panel" onSubmit={handleSubmit}>
-          <h2>{isEditing ? 'Cập nhật khoản thu' : 'Thêm khoản thu'}</h2>
+          <h2>{isEditing ? text.updatePayment : text.addPayment}</h2>
 
           <label>
-            Hợp đồng
+            {text.contract}
             <select
               required
               value={formData.contract}
               onChange={(event) => updateContract(event.target.value)}
             >
-              <option value="">Chọn hợp đồng</option>
+              <option value="">{text.selectContract}</option>
               {activeContracts.map((contract) => (
                 <option key={contract._id} value={contract._id}>
-                  {getContractLabel(contract)} -{' '}
-                  {formatMoney(contract.monthlyPrice)}đ
+                  {getContractLabel(contract, text)} -{' '}
+                  {formatMoney(contract.monthlyPrice)}
                 </option>
               ))}
             </select>
             <span className="field-help">
               {selectedContract
-                ? `Giá thuê theo hợp đồng: ${formatMoney(
-                    selectedContract.monthlyPrice,
-                  )}đ/tháng.`
-                : 'Chọn hợp đồng active để tạo khoản thu.'}
+                ? text.contractRent(formatMoney(selectedContract.monthlyPrice))
+                : text.selectContractHelp}
             </span>
           </label>
 
           <label>
-            Số tiền
+            {text.amount}
             <input
               min="0"
               required
@@ -308,7 +414,7 @@ export function PaymentsPage() {
           </label>
 
           <label>
-            Hạn thanh toán
+            {text.dueDate}
             <input
               required
               type="date"
@@ -318,12 +424,12 @@ export function PaymentsPage() {
           </label>
 
           <label>
-            Phương thức
+            {text.method}
             <select
               value={formData.method}
               onChange={(event) => updateField('method', event.target.value)}
             >
-              {methodOptions.map((option) => (
+              {text.methods.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -332,12 +438,12 @@ export function PaymentsPage() {
           </label>
 
           <label>
-            Trạng thái
+            {text.status}
             <select
               value={formData.status}
               onChange={(event) => updateField('status', event.target.value)}
             >
-              {statusOptions
+              {text.statusOptions
                 .filter((option) => option.value)
                 .map((option) => (
                   <option key={option.value} value={option.value}>
@@ -348,7 +454,7 @@ export function PaymentsPage() {
           </label>
 
           <label>
-            Ghi chú
+            {text.note}
             <input
               value={formData.note}
               onChange={(event) => updateField('note', event.target.value)}
@@ -362,7 +468,7 @@ export function PaymentsPage() {
               ) : (
                 <Plus className="button-icon" size={16} strokeWidth={2.5} />
               )}
-              {isSubmitting ? 'Đang lưu...' : isEditing ? 'Cập nhật' : 'Thêm'}
+              {isSubmitting ? text.saving : isEditing ? text.update : text.add}
             </button>
             {isEditing ? (
               <button
@@ -371,28 +477,28 @@ export function PaymentsPage() {
                 onClick={resetForm}
               >
                 <X className="button-icon" size={16} strokeWidth={2.5} />
-                Hủy
+                {text.cancel}
               </button>
             ) : null}
           </div>
         </form>
+      </Modal>
 
-        <div className="table-panel">
-          {isLoading ? <p>Đang tải dữ liệu...</p> : null}
+      <div className="split-layout">
+        <div className="table-panel compact-data-table">
+          {isLoading ? <p>{text.loadingData}</p> : null}
 
-          {!isLoading && payments.length === 0 ? (
-            <p>Chưa có khoản thu nào.</p>
-          ) : null}
+          {!isLoading && payments.length === 0 ? <p>{text.empty}</p> : null}
 
           {!isLoading && payments.length > 0 ? (
             <table>
               <thead>
                 <tr>
-                  <th>Khoản thu</th>
-                  <th>Hạn / ngày thu</th>
-                  <th>Thanh toán</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
+                  <th>{text.payment}</th>
+                  <th>{text.duePaid}</th>
+                  <th>{text.amount}</th>
+                  <th>{text.status}</th>
+                  <th>{text.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -406,20 +512,24 @@ export function PaymentsPage() {
                       key={payment._id}
                     >
                       <td>
-                        <strong>{getContractLabel(payment.contract)}</strong>
-                        <span>{payment.note || 'Không có ghi chú'}</span>
+                        <strong>
+                          {getContractLabel(payment.contract, text)}
+                        </strong>
+                        <span>{payment.note || text.noNote}</span>
                       </td>
                       <td>
-                        <strong>{formatDate(payment.dueDate)}</strong>
-                        <span>Thu: {formatDate(payment.paidAt)}</span>
+                        <strong>{formatDate(payment.dueDate, text)}</strong>
+                        <span>
+                          {text.paid}: {formatDate(payment.paidAt, text)}
+                        </span>
                       </td>
                       <td>
-                        <strong>{formatMoney(payment.amount)}đ</strong>
-                        <span>{getMethodLabel(payment.method)}</span>
+                        <strong>{formatMoney(payment.amount)}</strong>
+                        <span>{getMethodLabel(payment.method, text)}</span>
                       </td>
                       <td>
                         <span className={`status status-${payment.status}`}>
-                          {getStatusLabel(payment.status)}
+                          {getStatusLabel(payment.status, text)}
                         </span>
                       </td>
                       <td>
@@ -434,7 +544,7 @@ export function PaymentsPage() {
                               size={16}
                               strokeWidth={2.5}
                             />
-                            Sửa
+                            {text.edit}
                           </button>
                           {!isFinal ? (
                             <>
@@ -447,7 +557,7 @@ export function PaymentsPage() {
                                   size={16}
                                   strokeWidth={2.5}
                                 />
-                                Đã thu
+                                {text.collected}
                               </button>
                               <button
                                 className="danger-button"
@@ -459,7 +569,7 @@ export function PaymentsPage() {
                                   size={16}
                                   strokeWidth={2.5}
                                 />
-                                Hủy
+                                {text.cancel}
                               </button>
                             </>
                           ) : null}

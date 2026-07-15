@@ -28,7 +28,7 @@ api.interceptors.response.use(
 
     const message =
       error.response?.data?.message ||
-      'Không thể kết nối máy chủ. Vui lòng thử lại.';
+      'Cannot connect to the server. Please try again.';
 
     return Promise.reject(new Error(message));
   },

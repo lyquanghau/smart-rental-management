@@ -8,6 +8,7 @@ import {
   StopCircle,
   X,
 } from 'lucide-react';
+import { Modal } from '../components/Modal.jsx';
 import {
   createContract,
   deleteContract,
@@ -15,6 +16,8 @@ import {
   getContracts,
   updateContract,
 } from '../services/contractService.js';
+import { usePreferences } from '../hooks/usePreferences.js';
+import { formatCurrency } from '../services/preferences.js';
 import { getRooms } from '../services/roomService.js';
 import { getTenants } from '../services/tenantService.js';
 
@@ -29,27 +32,141 @@ const emptyForm = {
   status: 'active',
 };
 
-const durationOptions = [
-  { value: '3', label: '3 tháng' },
-  { value: '6', label: '6 tháng' },
-  { value: '12', label: '12 tháng' },
-  { value: '24', label: '24 tháng' },
-];
+const copy = {
+  en: {
+    activeHelp: 'Active: in use. Ended/cancelled: view only.',
+    add: 'Add',
+    addContract: 'Add contract',
+    actions: 'Actions',
+    cancel: 'Cancel',
+    capacityHelp: 'Select a room to view capacity.',
+    confirmEnd: (name) => `End the contract for ${name || 'this tenant'}?`,
+    contract: 'Contract',
+    contracts: 'Contracts',
+    deposit: 'Deposit',
+    depositAmount: (amount) => `Deposit amount: ${amount}.`,
+    downloadLoading: 'Loading',
+    end: 'End',
+    endDateHelp: (date) => `End date is calculated as ${date || 'not set'}.`,
+    edit: 'Edit',
+    financials: 'Financials',
+    loading: 'Loading...',
+    loadingData: 'Loading data...',
+    managed: 'managed contracts',
+    month: 'month',
+    monthlyRent: 'Monthly rent',
+    noContract: 'No contracts yet.',
+    noRoom: 'No room',
+    noTenant: 'No tenant',
+    notAvailable: 'Not available',
+    people: 'people',
+    priceHelp: (price) =>
+      `Listed price${price ? `: ${price}.` : '.'} This is the final contract price.`,
+    reload: 'Reload',
+    room: 'Room',
+    saving: 'Saving...',
+    tempAccountTitle: 'New tenant account created',
+    tempPassword: 'Temporary password',
+    passwordDeadline: 'Password change deadline',
+    username: 'Username',
+    selectRoom: 'Select room',
+    selectTenant: 'Select tenant',
+    startDate: 'Start date',
+    status: 'Status',
+    tenant: 'Tenant',
+    term: 'Term',
+    to: 'To',
+    update: 'Update',
+    updateContract: 'Update contract',
+    upTo: 'Up to',
+    view: 'View',
+    viewContract: 'View contract',
+    durationOptions: [
+      { value: '3', label: '3 months' },
+      { value: '6', label: '6 months' },
+      { value: '12', label: '12 months' },
+      { value: '24', label: '24 months' },
+    ],
+    depositOptions: [
+      { value: '1', label: '1 month' },
+      { value: '2', label: '2 months' },
+      { value: '3', label: '3 months' },
+    ],
+    statusOptions: [
+      { value: 'active', label: 'Active' },
+      { value: 'ended', label: 'Ended' },
+      { value: 'cancelled', label: 'Cancelled' },
+    ],
+  },
+  vi: {
+    activeHelp: 'Đang hiệu lực: còn dùng. Kết thúc/hủy: chỉ xem.',
+    add: 'Thêm',
+    addContract: 'Thêm hợp đồng',
+    actions: 'Thao tác',
+    cancel: 'Hủy',
+    capacityHelp: 'Chọn phòng để xem sức chứa.',
+    confirmEnd: (name) => `Kết thúc hợp đồng của ${name || 'khách thuê này'}?`,
+    contract: 'Hợp đồng',
+    contracts: 'Hợp đồng',
+    deposit: 'Tiền cọc',
+    depositAmount: (amount) => `Số tiền cọc: ${amount}.`,
+    downloadLoading: 'Đang tải',
+    end: 'Kết thúc',
+    endDateHelp: (date) => `Ngày kết thúc tự tính là ${date || 'chưa có'}.`,
+    edit: 'Sửa',
+    financials: 'Tài chính',
+    loading: 'Đang tải...',
+    loadingData: 'Đang tải dữ liệu...',
+    managed: 'hợp đồng đang quản lý',
+    month: 'tháng',
+    monthlyRent: 'Giá thuê mỗi tháng',
+    noContract: 'Chưa có hợp đồng nào.',
+    noRoom: 'Chưa có phòng',
+    noTenant: 'Chưa có khách thuê',
+    notAvailable: 'Chưa có',
+    people: 'người',
+    priceHelp: (price) =>
+      `Giá niêm yết${price ? `: ${price}.` : '.'} Đây là giá chốt trong hợp đồng.`,
+    reload: 'Tải lại',
+    room: 'Phòng',
+    saving: 'Đang lưu...',
+    tempAccountTitle: 'Tài khoản khách thuê vừa tạo',
+    tempPassword: 'Mật khẩu tạm',
+    passwordDeadline: 'Hạn đổi mật khẩu',
+    username: 'Tên đăng nhập',
+    selectRoom: 'Chọn phòng',
+    selectTenant: 'Chọn khách thuê',
+    startDate: 'Ngày bắt đầu',
+    status: 'Trạng thái',
+    tenant: 'Khách thuê',
+    term: 'Thời hạn',
+    to: 'Đến',
+    update: 'Cập nhật',
+    updateContract: 'Cập nhật hợp đồng',
+    upTo: 'Tối đa',
+    view: 'Xem',
+    viewContract: 'Xem hợp đồng',
+    durationOptions: [
+      { value: '3', label: '3 tháng' },
+      { value: '6', label: '6 tháng' },
+      { value: '12', label: '12 tháng' },
+      { value: '24', label: '24 tháng' },
+    ],
+    depositOptions: [
+      { value: '1', label: '1 tháng' },
+      { value: '2', label: '2 tháng' },
+      { value: '3', label: '3 tháng' },
+    ],
+    statusOptions: [
+      { value: 'active', label: 'Đang hiệu lực' },
+      { value: 'ended', label: 'Đã kết thúc' },
+      { value: 'cancelled', label: 'Đã hủy' },
+    ],
+  },
+};
 
-const depositMonthOptions = [
-  { value: '1', label: '1 tháng' },
-  { value: '2', label: '2 tháng' },
-  { value: '3', label: '3 tháng' },
-];
-
-const statusOptions = [
-  { value: 'active', label: 'Đang hiệu lực' },
-  { value: 'ended', label: 'Đã kết thúc' },
-  { value: 'cancelled', label: 'Đã hủy' },
-];
-
-function formatDate(value) {
-  if (!value) return 'Chưa có';
+function formatDate(value, text) {
+  if (!value) return text.notAvailable;
   return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
 }
 
@@ -77,12 +194,13 @@ function addMonthsToDateInput(dateInput, months) {
 }
 
 function formatMoney(value) {
-  return Number(value || 0).toLocaleString('vi-VN');
+  return formatCurrency(value);
 }
 
-function getStatusLabel(status) {
+function getStatusLabel(status, text) {
   return (
-    statusOptions.find((option) => option.value === status)?.label || 'Không rõ'
+    text.statusOptions.find((option) => option.value === status)?.label ||
+    status
   );
 }
 
@@ -97,9 +215,7 @@ function getDurationMonths(startDate, endDate) {
     start.getMonth();
   const value = String(months);
 
-  return durationOptions.some((option) => option.value === value)
-    ? value
-    : '12';
+  return ['3', '6', '12', '24'].includes(value) ? value : '12';
 }
 
 function getDepositMonths(deposit, monthlyPrice) {
@@ -107,9 +223,7 @@ function getDepositMonths(deposit, monthlyPrice) {
 
   const months = String(Math.round(Number(deposit) / Number(monthlyPrice)));
 
-  return depositMonthOptions.some((option) => option.value === months)
-    ? months
-    : '1';
+  return ['1', '2', '3'].includes(months) ? months : '1';
 }
 
 function toFormData(contract) {
@@ -145,6 +259,8 @@ function toPayload(formData) {
 }
 
 export function ContractsPage() {
+  const { language } = usePreferences();
+  const text = copy[language] || copy.vi;
   const [contracts, setContracts] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [tenants, setTenants] = useState([]);
@@ -156,6 +272,7 @@ export function ContractsPage() {
   const [downloadingContractId, setDownloadingContractId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const isEditing = Boolean(editingContractId);
   const isViewing = Boolean(viewingContractId);
@@ -228,6 +345,16 @@ export function ContractsPage() {
     setFormData(emptyForm);
     setEditingContractId('');
     setViewingContractId('');
+    setIsFormOpen(false);
+  }
+
+  function startCreate() {
+    setFormData(emptyForm);
+    setEditingContractId('');
+    setViewingContractId('');
+    setTemporaryAccount(null);
+    setError('');
+    setIsFormOpen(true);
   }
 
   function startEdit(contract) {
@@ -236,6 +363,7 @@ export function ContractsPage() {
     setTemporaryAccount(null);
     setFormData(toFormData(contract));
     setError('');
+    setIsFormOpen(true);
   }
 
   function startView(contract) {
@@ -244,6 +372,7 @@ export function ContractsPage() {
     setTemporaryAccount(null);
     setFormData(toFormData(contract));
     setError('');
+    setIsFormOpen(true);
   }
 
   async function handleSubmit(event) {
@@ -273,7 +402,7 @@ export function ContractsPage() {
     if (contract.status !== 'active') return;
 
     const confirmed = window.confirm(
-      `Kết thúc hợp đồng của ${contract.tenant?.fullName || 'khách thuê này'}?`,
+      text.confirmEnd(contract.tenant?.fullName),
     );
 
     if (!confirmed) return;
@@ -315,11 +444,15 @@ export function ContractsPage() {
   return (
     <section>
       <div className="page-heading">
-        <h1>Hợp đồng</h1>
+        <h1>{text.contracts}</h1>
         <div className="page-actions">
           <span className="page-summary">
-            {contracts.length} hợp đồng đang quản lý
+            {contracts.length} {text.managed}
           </span>
+          <button type="button" onClick={startCreate}>
+            <FilePlus2 className="button-icon" size={16} strokeWidth={2.5} />
+            {text.addContract}
+          </button>
           <button
             className="secondary-button"
             disabled={isLoading}
@@ -327,68 +460,86 @@ export function ContractsPage() {
             onClick={loadData}
           >
             <RefreshCw className="button-icon" size={16} strokeWidth={2.5} />
-            {isLoading ? 'Đang tải...' : 'Tải lại'}
+            {isLoading ? text.loading : text.reload}
           </button>
         </div>
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}
 
-      <div className="split-layout">
+      <Modal
+        isOpen={isFormOpen}
+        title={
+          isViewing
+            ? text.viewContract
+            : isEditing
+              ? text.updateContract
+              : text.addContract
+        }
+        onClose={resetForm}
+      >
         <form className="form-panel compact-form-panel" onSubmit={handleSubmit}>
           <h2>
             {isViewing
-              ? 'Xem hợp đồng'
+              ? text.viewContract
               : isEditing
-                ? 'Cập nhật hợp đồng'
-                : 'Thêm hợp đồng'}
+                ? text.updateContract
+                : text.addContract}
           </h2>
 
           {temporaryAccount ? (
             <div className="credential-panel">
-              <strong>Tài khoản khách thuê vừa tạo</strong>
-              <span>Tên đăng nhập: {temporaryAccount.user.username}</span>
-              <span>Email: {temporaryAccount.user.email}</span>
-              <span>Mật khẩu tạm: {temporaryAccount.temporaryPassword}</span>
+              <strong>{text.tempAccountTitle}</strong>
               <span>
-                Hạn đổi mật khẩu:{' '}
-                {formatDate(temporaryAccount.user.temporaryPasswordExpiresAt)}
+                {text.username}: {temporaryAccount.user.username}
+              </span>
+              <span>Email: {temporaryAccount.user.email}</span>
+              <span>
+                {text.tempPassword}: {temporaryAccount.temporaryPassword}
+              </span>
+              <span>
+                {text.passwordDeadline}:{' '}
+                {formatDate(
+                  temporaryAccount.user.temporaryPasswordExpiresAt,
+                  text,
+                )}
               </span>
             </div>
           ) : null}
 
           <label>
-            Phòng
+            {text.room}
             <select
               disabled={isViewing}
               required
               value={formData.room}
               onChange={(event) => updateRoom(event.target.value)}
             >
-              <option value="">Chọn phòng</option>
+              <option value="">{text.selectRoom}</option>
               {roomOptions.map((room) => (
                 <option key={room._id} value={room._id}>
-                  {room.name} - tầng {room.floor} - tối đa{' '}
-                  {room.maxOccupants || 2} người - {formatMoney(room.price)}đ
+                  {room.name} - {language === 'en' ? 'floor' : 'tầng'}{' '}
+                  {room.floor} - {text.upTo} {room.maxOccupants || 2}{' '}
+                  {text.people} - {formatMoney(room.price)}
                 </option>
               ))}
             </select>
             <span className="field-help">
               {selectedRoom
-                ? `Tối đa ${selectedRoom.maxOccupants || 2} người.`
-                : 'Chọn phòng để xem sức chứa.'}
+                ? `${text.upTo} ${selectedRoom.maxOccupants || 2} ${text.people}.`
+                : text.capacityHelp}
             </span>
           </label>
 
           <label>
-            Khách thuê
+            {text.tenant}
             <select
               disabled={isViewing}
               required
               value={formData.tenant}
               onChange={(event) => updateField('tenant', event.target.value)}
             >
-              <option value="">Chọn khách thuê</option>
+              <option value="">{text.selectTenant}</option>
               {tenants.map((tenant) => (
                 <option key={tenant._id} value={tenant._id}>
                   {tenant.fullName} - {tenant.phone}
@@ -398,7 +549,7 @@ export function ContractsPage() {
           </label>
 
           <label>
-            Ngày bắt đầu
+            {text.startDate}
             <input
               disabled={isViewing}
               required
@@ -409,7 +560,7 @@ export function ContractsPage() {
           </label>
 
           <label>
-            Thời hạn hợp đồng
+            {text.term}
             <select
               disabled={isViewing}
               value={formData.durationMonths}
@@ -417,20 +568,21 @@ export function ContractsPage() {
                 updateField('durationMonths', event.target.value)
               }
             >
-              {durationOptions.map((option) => (
+              {text.durationOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
             <span className="field-help">
-              Ngày kết thúc tự tính là{' '}
-              {calculatedEndDate ? formatDate(calculatedEndDate) : 'chưa có'}.
+              {text.endDateHelp(
+                calculatedEndDate ? formatDate(calculatedEndDate, text) : '',
+              )}
             </span>
           </label>
 
           <label>
-            Giá thuê mỗi tháng
+            {text.monthlyRent}
             <input
               disabled={isViewing}
               min="0"
@@ -442,14 +594,14 @@ export function ContractsPage() {
               }
             />
             <span className="field-help">
-              Giá niêm yết
-              {selectedRoom ? `: ${formatMoney(selectedRoom.price)}đ.` : '.'} Ô
-              này là giá chốt trong hợp đồng.
+              {text.priceHelp(
+                selectedRoom ? formatMoney(selectedRoom.price) : '',
+              )}
             </span>
           </label>
 
           <label>
-            Tiền cọc
+            {text.deposit}
             <select
               disabled={isViewing}
               value={formData.depositMonths}
@@ -457,33 +609,31 @@ export function ContractsPage() {
                 updateField('depositMonths', event.target.value)
               }
             >
-              {depositMonthOptions.map((option) => (
+              {text.depositOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
             <span className="field-help">
-              Số tiền cọc: {formatMoney(calculatedDeposit)}đ.
+              {text.depositAmount(formatMoney(calculatedDeposit))}
             </span>
           </label>
 
           <label>
-            Trạng thái
+            {text.status}
             <select
               disabled={isViewing}
               value={formData.status}
               onChange={(event) => updateField('status', event.target.value)}
             >
-              {statusOptions.map((option) => (
+              {text.statusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
-            <span className="field-help">
-              Đang hiệu lực: còn dùng. Kết thúc/hủy: chỉ xem.
-            </span>
+            <span className="field-help">{text.activeHelp}</span>
           </label>
 
           <div className="form-actions">
@@ -498,7 +648,11 @@ export function ContractsPage() {
                     strokeWidth={2.5}
                   />
                 )}
-                {isSubmitting ? 'Đang lưu...' : isEditing ? 'Cập nhật' : 'Thêm'}
+                {isSubmitting
+                  ? text.saving
+                  : isEditing
+                    ? text.update
+                    : text.add}
               </button>
             ) : null}
             {isEditing || isViewing ? (
@@ -508,28 +662,30 @@ export function ContractsPage() {
                 onClick={resetForm}
               >
                 <X className="button-icon" size={16} strokeWidth={2.5} />
-                Hủy
+                {text.cancel}
               </button>
             ) : null}
           </div>
         </form>
+      </Modal>
 
-        <div className="table-panel">
-          {isLoading ? <p>Đang tải dữ liệu...</p> : null}
+      <div className="split-layout">
+        <div className="table-panel compact-data-table">
+          {isLoading ? <p>{text.loadingData}</p> : null}
 
           {!isLoading && contracts.length === 0 ? (
-            <p>Chưa có hợp đồng nào.</p>
+            <p>{text.noContract}</p>
           ) : null}
 
           {!isLoading && contracts.length > 0 ? (
             <table>
               <thead>
                 <tr>
-                  <th>Hợp đồng</th>
-                  <th>Thời hạn</th>
-                  <th>Tài chính</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
+                  <th>{text.contract}</th>
+                  <th>{text.term}</th>
+                  <th>{text.financials}</th>
+                  <th>{text.status}</th>
+                  <th>{text.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -544,25 +700,27 @@ export function ContractsPage() {
                       key={contract._id}
                     >
                       <td>
-                        <strong>
-                          {contract.room?.name || 'Chưa có phòng'}
-                        </strong>
+                        <strong>{contract.room?.name || text.noRoom}</strong>
                         <span>
-                          {contract.tenant?.fullName || 'Chưa có khách thuê'}
+                          {contract.tenant?.fullName || text.noTenant}
                         </span>
                       </td>
                       <td>
-                        <strong>{formatDate(contract.startDate)}</strong>
-                        <span>Đến {formatDate(contract.endDate)}</span>
+                        <strong>{formatDate(contract.startDate, text)}</strong>
+                        <span>
+                          {text.to} {formatDate(contract.endDate, text)}
+                        </span>
                       </td>
                       <td>
                         <strong>
-                          {formatMoney(contract.monthlyPrice)}đ/tháng
+                          {formatMoney(contract.monthlyPrice)}/{text.month}
                         </strong>
-                        <span>Cọc {formatMoney(contract.deposit)}đ</span>
+                        <span>
+                          {text.deposit} {formatMoney(contract.deposit)}
+                        </span>
                       </td>
                       <td>
-                        <strong>{getStatusLabel(contract.status)}</strong>
+                        <strong>{getStatusLabel(contract.status, text)}</strong>
                       </td>
                       <td>
                         <div className="row-actions">
@@ -577,7 +735,7 @@ export function ContractsPage() {
                                   size={16}
                                   strokeWidth={2.5}
                                 />
-                                Sửa
+                                {text.edit}
                               </button>
                               <button
                                 className="danger-button"
@@ -589,7 +747,7 @@ export function ContractsPage() {
                                   size={16}
                                   strokeWidth={2.5}
                                 />
-                                Kết thúc
+                                {text.end}
                               </button>
                             </>
                           ) : (
@@ -603,7 +761,7 @@ export function ContractsPage() {
                                 size={16}
                                 strokeWidth={2.5}
                               />
-                              Xem
+                              {text.view}
                             </button>
                           )}
                           <button
@@ -618,7 +776,7 @@ export function ContractsPage() {
                               strokeWidth={2.5}
                             />
                             {downloadingContractId === contract._id
-                              ? 'Đang tải'
+                              ? text.downloadLoading
                               : 'PDF'}
                           </button>
                         </div>

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Edit3, Eye, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { Modal } from '../components/Modal.jsx';
 import { RoomStatusBadge } from '../components/RoomStatusBadge.jsx';
+import { usePreferences } from '../hooks/usePreferences.js';
+import { formatCurrency } from '../services/preferences.js';
 import {
   createRoom,
   deleteRoom,
@@ -17,14 +20,88 @@ const emptyForm = {
   status: 'available',
 };
 
-const statusOptions = [
-  { value: '', label: 'Tất cả' },
-  { value: 'available', label: 'Trống' },
-  { value: 'occupied', label: 'Đã thuê' },
-  { value: 'maintenance', label: 'Bảo trì' },
-];
-
-const editableStatusOptions = statusOptions.filter((option) => option.value);
+const copy = {
+  en: {
+    add: 'Add',
+    addRoom: 'Add room',
+    cancel: 'Cancel',
+    confirmDelete: (name) =>
+      `Delete room ${name}? The record will be hidden from the list.`,
+    currentTenants: 'Current tenants',
+    details: 'Details',
+    edit: 'Edit',
+    delete: 'Delete',
+    emptyAssigned: 'No active tenants assigned.',
+    emptyList: 'No matching rooms.',
+    fieldFloor: 'Floor',
+    fieldMaxOccupants: 'Max occupants',
+    fieldName: 'Room name',
+    fieldPrice: 'Monthly rent',
+    fieldStatus: 'Status',
+    helpStatus:
+      'Occupied status is synced automatically when an active tenant is assigned to the room.',
+    loading: 'Loading...',
+    loadingData: 'Loading data...',
+    loadingDetails: 'Loading details...',
+    month: 'month',
+    pageTitle: 'Room list',
+    people: 'people',
+    reload: 'Reload',
+    rent: 'Rent',
+    room: 'Room',
+    roomDetails: 'Room details',
+    rooms: 'rooms',
+    saving: 'Saving...',
+    update: 'Update',
+    updateRoom: 'Update room',
+    statusOptions: [
+      { value: '', label: 'All' },
+      { value: 'available', label: 'Available' },
+      { value: 'occupied', label: 'Occupied' },
+      { value: 'maintenance', label: 'Maintenance' },
+    ],
+  },
+  vi: {
+    add: 'Thêm',
+    addRoom: 'Thêm phòng',
+    cancel: 'Hủy',
+    confirmDelete: (name) =>
+      `Xóa phòng ${name}? Dữ liệu sẽ được ẩn khỏi danh sách.`,
+    currentTenants: 'Khách hiện tại',
+    details: 'Chi tiết',
+    edit: 'Sửa',
+    delete: 'Xóa',
+    emptyAssigned: 'Chưa có khách thuê đang gán.',
+    emptyList: 'Không có phòng phù hợp.',
+    fieldFloor: 'Tầng',
+    fieldMaxOccupants: 'Số người tối đa',
+    fieldName: 'Tên phòng',
+    fieldPrice: 'Giá thuê mỗi tháng',
+    fieldStatus: 'Trạng thái',
+    helpStatus:
+      'Trạng thái đã thuê sẽ được đồng bộ tự động khi có khách thuê đang gán phòng.',
+    loading: 'Đang tải...',
+    loadingData: 'Đang tải dữ liệu...',
+    loadingDetails: 'Đang tải chi tiết...',
+    month: 'tháng',
+    pageTitle: 'Danh sách phòng',
+    people: 'người',
+    reload: 'Tải lại',
+    rent: 'Giá thuê',
+    room: 'Phòng',
+    roomDetails: 'Chi tiết phòng',
+    rooms: 'phòng',
+    saving: 'Đang lưu...',
+    update: 'Cập nhật',
+    updateRoom: 'Cập nhật phòng',
+    statusOptions: [
+      { value: '', label: 'Tất cả' },
+      { value: 'available', label: 'Trống' },
+      { value: 'occupied', label: 'Đã thuê' },
+      { value: 'maintenance', label: 'Bảo trì' },
+    ],
+  },
+};
 
 function toFormData(room) {
   return {
@@ -47,10 +124,15 @@ function toPayload(formData) {
 }
 
 function formatMoney(value) {
-  return Number(value || 0).toLocaleString('vi-VN');
+  return formatCurrency(value);
 }
 
 export function RoomsPage() {
+  const { language } = usePreferences();
+  const text = copy[language] || copy.vi;
+  const editableStatusOptions = text.statusOptions.filter(
+    (option) => option.value,
+  );
   const [rooms, setRooms] = useState([]);
   const [formData, setFormData] = useState(emptyForm);
   const [editingRoomId, setEditingRoomId] = useState('');
@@ -59,6 +141,8 @@ export function RoomsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
 
   const isEditing = Boolean(editingRoomId);
@@ -73,7 +157,10 @@ export function RoomsPage() {
 
       if (selectedRoom) {
         const stillExists = data.some((room) => room._id === selectedRoom._id);
-        if (!stillExists) setSelectedRoom(null);
+        if (!stillExists) {
+          setSelectedRoom(null);
+          setIsDetailOpen(false);
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -100,16 +187,32 @@ export function RoomsPage() {
   function resetForm() {
     setFormData(emptyForm);
     setEditingRoomId('');
+    setIsFormOpen(false);
+  }
+
+  function startCreate() {
+    setFormData(emptyForm);
+    setEditingRoomId('');
+    setError('');
+    setIsFormOpen(true);
   }
 
   function startEdit(room) {
     setEditingRoomId(room._id);
     setFormData(toFormData(room));
     setError('');
+    setIsDetailOpen(false);
+    setIsFormOpen(true);
+  }
+
+  function closeDetail() {
+    setIsDetailOpen(false);
   }
 
   async function loadRoomDetail(roomId) {
     setIsDetailLoading(true);
+    setIsDetailOpen(true);
+    setSelectedRoom(null);
     setError('');
 
     try {
@@ -117,6 +220,7 @@ export function RoomsPage() {
       setSelectedRoom(data);
     } catch (err) {
       setError(err.message);
+      setIsDetailOpen(false);
     } finally {
       setIsDetailLoading(false);
     }
@@ -145,9 +249,7 @@ export function RoomsPage() {
   }
 
   async function handleDelete(room) {
-    const confirmed = window.confirm(
-      `Xóa phòng ${room.name}? Dữ liệu sẽ được ẩn khỏi danh sách.`,
-    );
+    const confirmed = window.confirm(text.confirmDelete(room.name));
 
     if (!confirmed) return;
 
@@ -156,7 +258,10 @@ export function RoomsPage() {
     try {
       await deleteRoom(room._id);
       if (editingRoomId === room._id) resetForm();
-      if (selectedRoom?._id === room._id) setSelectedRoom(null);
+      if (selectedRoom?._id === room._id) {
+        setSelectedRoom(null);
+        setIsDetailOpen(false);
+      }
       await loadRooms();
     } catch (err) {
       setError(err.message);
@@ -165,22 +270,27 @@ export function RoomsPage() {
 
   return (
     <section>
-      <div className="page-heading">
-        <h1>Danh sách phòng</h1>
-        <div className="page-actions">
+      <div className="page-heading compact-page-heading">
+        <h1>{text.pageTitle}</h1>
+        <div className="page-actions room-page-actions">
           <span className="page-summary">
-            {rooms.length} phòng đang quản lý
+            {rooms.length} {text.rooms}
           </span>
           <select
+            className="compact-filter"
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
           >
-            {statusOptions.map((option) => (
+            {text.statusOptions.map((option) => (
               <option key={option.value || 'all'} value={option.value}>
                 {option.label}
               </option>
             ))}
           </select>
+          <button type="button" onClick={startCreate}>
+            <Plus className="button-icon" size={16} strokeWidth={2.5} />
+            {text.addRoom}
+          </button>
           <button
             className="secondary-button"
             disabled={isLoading}
@@ -188,19 +298,23 @@ export function RoomsPage() {
             onClick={loadRooms}
           >
             <RefreshCw className="button-icon" size={16} strokeWidth={2.5} />
-            {isLoading ? 'Đang tải...' : 'Tải lại'}
+            {isLoading ? text.loading : text.reload}
           </button>
         </div>
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}
 
-      <div className="split-layout">
+      <Modal
+        isOpen={isFormOpen}
+        title={isEditing ? text.updateRoom : text.addRoom}
+        onClose={resetForm}
+      >
         <form className="form-panel" onSubmit={handleSubmit}>
-          <h2>{isEditing ? 'Cập nhật phòng' : 'Thêm phòng'}</h2>
+          <h2>{isEditing ? text.updateRoom : text.addRoom}</h2>
 
           <label>
-            Tên phòng
+            {text.fieldName}
             <input
               required
               value={formData.name}
@@ -209,7 +323,7 @@ export function RoomsPage() {
           </label>
 
           <label>
-            Tầng
+            {text.fieldFloor}
             <input
               min="1"
               required
@@ -220,7 +334,7 @@ export function RoomsPage() {
           </label>
 
           <label>
-            Giá thuê mỗi tháng
+            {text.fieldPrice}
             <input
               min="0"
               required
@@ -231,7 +345,7 @@ export function RoomsPage() {
           </label>
 
           <label>
-            Số người tối đa
+            {text.fieldMaxOccupants}
             <input
               min="1"
               required
@@ -244,7 +358,7 @@ export function RoomsPage() {
           </label>
 
           <label>
-            Trạng thái
+            {text.fieldStatus}
             <select
               value={formData.status}
               onChange={(event) => updateField('status', event.target.value)}
@@ -255,10 +369,7 @@ export function RoomsPage() {
                 </option>
               ))}
             </select>
-            <span className="field-help">
-              Trạng thái đã thuê sẽ được đồng bộ tự động khi có khách thuê đang
-              gán phòng.
-            </span>
+            <span className="field-help">{text.helpStatus}</span>
           </label>
 
           <div className="form-actions">
@@ -268,7 +379,7 @@ export function RoomsPage() {
               ) : (
                 <Plus className="button-icon" size={16} strokeWidth={2.5} />
               )}
-              {isSubmitting ? 'Đang lưu...' : isEditing ? 'Cập nhật' : 'Thêm'}
+              {isSubmitting ? text.saving : isEditing ? text.update : text.add}
             </button>
             {isEditing ? (
               <button
@@ -277,31 +388,111 @@ export function RoomsPage() {
                 onClick={resetForm}
               >
                 <X className="button-icon" size={16} strokeWidth={2.5} />
-                Hủy
+                {text.cancel}
               </button>
             ) : null}
           </div>
         </form>
+      </Modal>
 
-        <div className="room-management-panel">
-          {isLoading ? <p>Đang tải dữ liệu...</p> : null}
+      <Modal
+        isOpen={isDetailOpen}
+        title={text.roomDetails}
+        onClose={closeDetail}
+      >
+        {isDetailLoading ? (
+          <p className="empty-note">{text.loadingDetails}</p>
+        ) : null}
+
+        {!isDetailLoading && selectedRoom ? (
+          <div className="room-detail-modal">
+            <div className="room-detail-hero">
+              <div>
+                <span className="eyebrow">{text.room}</span>
+                <h2>{selectedRoom.name}</h2>
+                <p>
+                  {text.fieldFloor} {selectedRoom.floor} ·{' '}
+                  {language === 'en' ? 'Up to' : 'Tối đa'}{' '}
+                  {selectedRoom.maxOccupants || 2} {text.people}
+                </p>
+              </div>
+              <RoomStatusBadge status={selectedRoom.status} />
+            </div>
+
+            <div className="room-detail-stats">
+              <div>
+                <span>{text.rent}</span>
+                <strong>
+                  {formatMoney(selectedRoom.price)}/{text.month}
+                </strong>
+              </div>
+              <div>
+                <span>{text.currentTenants}</span>
+                <strong>{selectedRoom.currentTenants?.length || 0}</strong>
+              </div>
+            </div>
+
+            <section className="room-detail-section">
+              <h3>{text.currentTenants}</h3>
+              {selectedRoom.currentTenants?.length > 0 ? (
+                <ul className="detail-list">
+                  {selectedRoom.currentTenants.map((tenant) => (
+                    <li key={tenant._id}>
+                      <strong>{tenant.fullName}</strong>
+                      <span>
+                        {tenant.phone}
+                        {tenant.email ? ` · ${tenant.email}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="empty-note">{text.emptyAssigned}</p>
+              )}
+            </section>
+
+            <div className="modal-footer-actions">
+              <button type="button" onClick={() => startEdit(selectedRoom)}>
+                <Edit3 className="button-icon" size={16} strokeWidth={2.5} />
+                {text.edit}
+              </button>
+              <button
+                className="danger-button"
+                type="button"
+                onClick={() => handleDelete(selectedRoom)}
+              >
+                <Trash2 className="button-icon" size={16} strokeWidth={2.5} />
+                {text.delete}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <div className="split-layout">
+        <div className="room-management-panel rooms-only-panel">
+          {isLoading ? <p>{text.loadingData}</p> : null}
 
           {!isLoading && !error && visibleRooms.length === 0 ? (
-            <p>Không có phòng phù hợp.</p>
+            <p>{text.emptyList}</p>
           ) : null}
 
           {!error && visibleRooms.length > 0 ? (
             <div className="room-grid">
               {visibleRooms.map((room) => (
                 <article className="room-card" key={room._id}>
-                  <div>
-                    <h2>{room.name}</h2>
-                    <p>Tầng {room.floor}</p>
-                    <p>Tối đa {room.maxOccupants || 2} người</p>
+                  <div className="room-card-header">
+                    <div>
+                      <span className="eyebrow">{text.room}</span>
+                      <h2>{room.name}</h2>
+                    </div>
+                    <RoomStatusBadge status={room.status} />
                   </div>
-                  <RoomStatusBadge status={room.status} />
-                  <strong>{formatMoney(room.price)}đ/tháng</strong>
-                  <div className="row-actions">
+                  <div className="room-card-price">
+                    <strong>{formatMoney(room.price)}</strong>
+                    <span>/{text.month}</span>
+                  </div>
+                  <div className="room-card-actions">
                     <button
                       className="secondary-button"
                       type="button"
@@ -312,7 +503,7 @@ export function RoomsPage() {
                         size={16}
                         strokeWidth={2.5}
                       />
-                      Chi tiết
+                      {text.details}
                     </button>
                     <button type="button" onClick={() => startEdit(room)}>
                       <Edit3
@@ -320,7 +511,7 @@ export function RoomsPage() {
                         size={16}
                         strokeWidth={2.5}
                       />
-                      Sửa
+                      {text.edit}
                     </button>
                     <button
                       className="danger-button"
@@ -332,53 +523,13 @@ export function RoomsPage() {
                         size={16}
                         strokeWidth={2.5}
                       />
-                      Xóa
+                      {text.delete}
                     </button>
                   </div>
                 </article>
               ))}
             </div>
           ) : null}
-
-          <section className="detail-panel">
-            <h2>Chi tiết phòng</h2>
-            {isDetailLoading ? <p>Đang tải chi tiết...</p> : null}
-            {!isDetailLoading && !selectedRoom ? (
-              <p className="empty-note">Chọn một phòng để xem khách thuê.</p>
-            ) : null}
-            {!isDetailLoading && selectedRoom ? (
-              <div className="detail-content">
-                <div>
-                  <strong>{selectedRoom.name}</strong>
-                  <span>
-                    Tầng {selectedRoom.floor} · Tối đa{' '}
-                    {selectedRoom.maxOccupants || 2} người
-                  </span>
-                  <span>{formatMoney(selectedRoom.price)}đ/tháng</span>
-                </div>
-                <RoomStatusBadge status={selectedRoom.status} />
-
-                <div>
-                  <h3>Khách thuê hiện tại</h3>
-                  {selectedRoom.currentTenants?.length > 0 ? (
-                    <ul className="detail-list">
-                      {selectedRoom.currentTenants.map((tenant) => (
-                        <li key={tenant._id}>
-                          <strong>{tenant.fullName}</strong>
-                          <span>
-                            {tenant.phone}
-                            {tenant.email ? ` · ${tenant.email}` : ''}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="empty-note">Chưa có khách thuê đang gán.</p>
-                  )}
-                </div>
-              </div>
-            ) : null}
-          </section>
         </div>
       </div>
     </section>

@@ -1,56 +1,36 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { KeyRound, LogOut } from 'lucide-react';
-import { logout } from '../services/authService.js';
-import { getStoredUser } from '../services/sessionStorage.js';
+import { usePreferences } from '../hooks/usePreferences.js';
+import smartRentalMark from '../assets/brand/smart-rental-mark.svg';
 
-function getPasswordWarning(user) {
-  if (!user?.mustChangePassword || !user.temporaryPasswordExpiresAt) return '';
-
-  const expiresAt = new Date(user.temporaryPasswordExpiresAt);
-  const remainingMs = expiresAt.getTime() - Date.now();
-  const remainingDays = Math.max(Math.ceil(remainingMs / 86400000), 0);
-
-  if (remainingDays <= 0) {
-    return 'Mật khẩu tạm đã quá hạn, tài khoản sẽ bị khóa.';
-  }
-
-  return `Mật khẩu tạm còn ${remainingDays} ngày để đổi.`;
-}
+const labels = {
+  en: {
+    eyebrow: 'Dashboard',
+    title: 'Rental operations today',
+  },
+  vi: {
+    eyebrow: 'Bảng điều hành',
+    title: 'Vận hành khu trọ hôm nay',
+  },
+};
 
 export function Header() {
-  const user = getStoredUser();
-  const passwordWarning = getPasswordWarning(user);
-
-  function handleLogout() {
-    logout();
-    window.location.href = '/login';
-  }
+  const { language } = usePreferences();
+  const text = labels[language] || labels.vi;
 
   return (
     <header className="topbar">
-      <div>
-        <span className="eyebrow">Bảng điều hành</span>
-        <strong>Vận hành khu trọ hôm nay</strong>
-      </div>
-      {user ? (
-        <div className="user-menu">
-          {passwordWarning ? (
-            <Link className="password-warning" to="/change-password">
-              {passwordWarning}
-            </Link>
-          ) : null}
-          <span className="user-chip">{user.fullName}</span>
-          <Link className="secondary-link" to="/change-password">
-            <KeyRound className="link-icon" size={16} strokeWidth={2.5} />
-            Đổi mật khẩu
-          </Link>
-          <button type="button" onClick={handleLogout}>
-            <LogOut className="button-icon" size={16} strokeWidth={2.5} />
-            Đăng xuất
-          </button>
+      <div className="topbar-brand">
+        <img
+          className="topbar-logo-mark"
+          src={smartRentalMark}
+          alt=""
+          aria-hidden="true"
+        />
+        <div className="topbar-title">
+          <span className="eyebrow">{text.eyebrow}</span>
+          <strong>{text.title}</strong>
         </div>
-      ) : null}
+      </div>
     </header>
   );
 }

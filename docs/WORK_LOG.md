@@ -1,5 +1,111 @@
 # Work Log
 
+## 2026-07-15
+
+### Tinh chỉnh danh sách Hợp đồng và Thanh toán
+
+- Thêm lớp bảng compact riêng cho danh sách `Hợp đồng` và `Thanh toán`.
+- Giảm chiều cao dòng, padding, cỡ chữ và kích thước nút thao tác trong bảng để màn hình gọn hơn.
+- Giữ các nút thao tác trên một hàng, tránh làm bảng bị kéo cao không cần thiết.
+- Bổ sung màu chữ, nền header, hover row và trạng thái dark mode để bảng dễ đọc khi chuyển giao diện tối.
+- Thu gọn bộ lọc trang `Thanh toán`, gom cụm thêm khoản thu/lọc/tải lại trên cùng một hàng.
+- Điều chỉnh dark mode cho popup form: nền form, label, input/select, option, focus state và field help dễ đọc hơn.
+- Làm lại trang `Cài đặt`: chuyển theme/ngôn ngữ/tiền tệ từ select sang các nút chọn có trạng thái active.
+- Tách preferences sang service dùng chung, áp dụng theme/ngôn ngữ khi app khởi động và lưu vào `localStorage`.
+- Tiền tệ hiển thị có tác dụng ở dashboard, phòng, hợp đồng và thanh toán; hỗ trợ VND và USD theo tỷ giá tham khảo cố định.
+- Sửa lại đúng yêu cầu chuyển ngôn ngữ động: mặc định dùng tiếng Việt, chọn `English` trong `Cài đặt` thì sidebar, header và các trang chính chuyển sang tiếng Anh.
+- Thêm hook `usePreferences` để component tự cập nhật khi preference thay đổi, không cần reload trang.
+- Bổ sung copy song ngữ cho Dashboard, Rooms, Tenants, Contracts, Payments, Settings, Login, Change Password và Help.
+- Thiết kế logo Smart Rental theo hướng hiện đại, tối giản, biểu tượng nhà/phòng thông minh, tông sky blue/trắng.
+- Thêm asset logo SVG và PNG gồm bản đầy đủ `icon + chữ` và bản icon-only; gắn icon logo vào sidebar và header.
+
+### Kiểm tra đầu phiên
+
+- Đang ở nhánh `dev`, đồng bộ với `origin/dev`.
+- `dev`, `main`, `origin/dev`, `origin/main` cùng commit `571a821`.
+- Không có nhánh local nào có commit chưa merge vào `main`; các nhánh feature cũ đều `ahead_main=0`.
+- File untracked giữ nguyên, chưa đưa vào Git: `chuyen_de_2.xlsx`, `code.txt`, `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: lỗi `spawn EPERM` trong sandbox Windows của Vite/esbuild.
+- `npm run build`: pass khi chạy ngoài sandbox. Đây là lỗi môi trường/sandbox, không phải lỗi code.
+
+### Phân tích layout mẫu
+
+- Kiểm tra layout mẫu trong `docs/image/layout`.
+- Chốt hướng áp dụng: giao diện admin sáng, tông sky/white, sidebar sáng, topbar có search/date/user, KPI card pastel, table/panel giống SaaS dashboard.
+- Map layout mẫu sang Smart Rental:
+  - `Hotels` -> `Rooms`.
+  - `Travelers` -> `Tenants`.
+  - `Tour Packages` -> `Contracts`.
+  - `Payments` -> `Payments`.
+  - `Dashboard/Reports` -> dashboard tổng quan và thống kê.
+
+### Redesign giao diện
+
+- Thêm `frontend/src/components/Modal.jsx` làm popup dùng chung cho form tạo/sửa/xem.
+- Chuyển form nhập liệu của các trang `Rooms`, `Tenants`, `Contracts`, `Payments` sang popup modal.
+- Riêng hợp đồng hỗ trợ cả tạo, sửa và xem trong modal để màn hình danh sách gọn hơn.
+- Cập nhật `Header` theo mẫu dashboard: thêm ô tìm kiếm, chip ngày hiện tại và icon thông báo, vẫn giữ đổi mật khẩu/đăng xuất.
+- Cập nhật `frontend/src/styles.css` theo theme sáng:
+  - Sidebar nền trắng, active item dạng pill xanh nhạt.
+  - Topbar, search, user chip, notification chip theo tông sky/white.
+  - KPI/card/table/panel bo góc mềm, shadow nhẹ, màu pastel.
+  - Modal overlay và modal panel responsive, form 2 cột trên desktop.
+
+### Chỉnh header theo phản hồi
+
+- Bỏ ô tìm kiếm khỏi header để tránh chiếm chiều ngang.
+- Bỏ chip lịch/ngày và link đổi mật khẩu khỏi header.
+- Tên tài khoản chỉ hiển thị một dòng chữ gọn.
+- Icon chuông thông báo chỉ hiển thị ở trang `Tổng quan` và nằm ngang hàng với nút đăng xuất.
+- Cập nhật CSS topbar về bố cục 2 cột: tiêu đề bên trái, tài khoản/thao tác bên phải.
+
+### Bổ sung sidebar và cài đặt
+
+- Chỉnh menu trái: chữ đậm hơn, màu đen; item đang chọn chuyển nền xanh sky và chữ đen.
+- Thêm mục `Cài đặt` vào sidebar.
+- Thêm footer dưới thanh menu: copyright và `Design by Quang Hậu`.
+- Thêm trang `frontend/src/pages/SettingsPage.jsx` tại route `/settings`.
+- Trang cài đặt hiển thị thông tin tài khoản và lựa chọn:
+  - Tông giao diện sáng/tối.
+  - Ngôn ngữ.
+  - Tiền tệ.
+- Lưu lựa chọn cài đặt vào `localStorage`; theme sáng/tối áp dụng ngay qua `data-theme`.
+
+### Compact giao diện
+
+- Giảm kích thước tổng thể để hạn chế phải cuộn: sidebar, topbar, heading, card, table, button, input, modal và khoảng cách grid.
+- Thu nhỏ dashboard hero, KPI card, panel thống kê, bảng dữ liệu và room card.
+- Giảm chiều rộng sidebar từ 280px xuống 240px trên desktop, 210px trên tablet.
+- Giảm modal form xuống max-width 820px và padding nhỏ hơn.
+- Chỉnh dashboard hero để khối `Cần xử lý` và nút `Tải lại dữ liệu` nằm ngang hàng.
+- Giữ footer sidebar luôn hiện trong viewport desktop, không cần cuộn xuống mới thấy copyright/design.
+
+### Sắp xếp lại cụm cuối sidebar
+
+- Chuyển tên tài khoản xuống cuối sidebar và biến thành nút đăng xuất.
+- Dời `Cài đặt` xuống cụm dưới, nằm phía trên nút tài khoản/đăng xuất.
+- Thêm mục `Help & Support` phía trên `Cài đặt`.
+- Bỏ cụm tài khoản/đăng xuất khỏi header để tránh trùng thao tác.
+- Thêm trang `frontend/src/pages/HelpSupportPage.jsx` và route `/help`.
+
+### Tối ưu trang Phòng
+
+- Gom bộ lọc trạng thái, nút `Thêm phòng` và `Tải lại` vào cùng một hàng.
+- Thu nhỏ bộ lọc trạng thái để chỉ vừa đủ hiển thị nội dung.
+- Bỏ panel chi tiết phòng cố định bên phải để danh sách phòng dùng toàn bộ chiều ngang.
+- Chuyển chi tiết phòng sang popup modal.
+- Popup chi tiết phòng có khối thông tin chính, thống kê giá thuê/khách hiện tại, danh sách khách thuê và nút `Sửa`, `Xóa` ở cuối.
+- Redesign card phòng: header rõ hơn, giá thuê nổi bật, thông tin tầng/sức chứa thành chip nhỏ và 3 nút thao tác chia đều trên một hàng.
+
+### Kiểm tra sau khi code
+
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: vẫn lỗi `spawn EPERM` khi chạy trong sandbox Windows.
+- `npm run build`: pass khi chạy ngoài sandbox.
+
 ## 2026-07-13
 
 ### Kiểm tra đầu phiên

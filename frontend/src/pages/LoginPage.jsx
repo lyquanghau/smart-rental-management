@@ -1,9 +1,31 @@
 import React, { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { usePreferences } from '../hooks/usePreferences.js';
 import { login } from '../services/authService.js';
 import { getToken } from '../services/sessionStorage.js';
 
+const copy = {
+  en: {
+    emailRequired: 'Please enter an email or username.',
+    email: 'Email or username',
+    passwordRequired: 'Please enter a password.',
+    password: 'Password',
+    signIn: 'Sign in',
+    signingIn: 'Signing in...',
+  },
+  vi: {
+    emailRequired: 'Vui lòng nhập email hoặc tên đăng nhập.',
+    email: 'Email hoặc tên đăng nhập',
+    passwordRequired: 'Vui lòng nhập mật khẩu.',
+    password: 'Mật khẩu',
+    signIn: 'Đăng nhập',
+    signingIn: 'Đang đăng nhập...',
+  },
+};
+
 export function LoginPage() {
+  const { language } = usePreferences();
+  const text = copy[language] || copy.vi;
   const location = useLocation();
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -29,8 +51,8 @@ export function LoginPage() {
   }
 
   function validateForm() {
-    if (!form.email.trim()) return 'Vui lòng nhập email hoặc tên đăng nhập.';
-    if (!form.password) return 'Vui lòng nhập mật khẩu.';
+    if (!form.email.trim()) return text.emailRequired;
+    if (!form.password) return text.passwordRequired;
     return '';
   }
 
@@ -62,10 +84,10 @@ export function LoginPage() {
   return (
     <main className="login-shell">
       <section className="form-page">
-        <h1>Đăng nhập</h1>
+        <h1>{text.signIn}</h1>
         <form className="form-panel" onSubmit={handleSubmit}>
           <label>
-            Email hoặc tên đăng nhập
+            {text.email}
             <input
               name="email"
               type="text"
@@ -75,7 +97,7 @@ export function LoginPage() {
             />
           </label>
           <label>
-            Mật khẩu
+            {text.password}
             <input
               name="password"
               type="password"
@@ -86,7 +108,7 @@ export function LoginPage() {
           </label>
           {error ? <p className="error-message">{error}</p> : null}
           <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {isSubmitting ? text.signingIn : text.signIn}
           </button>
         </form>
       </section>

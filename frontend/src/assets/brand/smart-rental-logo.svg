@@ -1,0 +1,39 @@
+<svg width="320" height="88" viewBox="0 0 320 88" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Smart Rental logo</title>
+  <desc id="desc">A modern sky blue Smart Rental logo with a smart house icon and wordmark.</desc>
+  <defs>
+    <linearGradient id="markGradient" x1="10" y1="8" x2="78" y2="80" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7DD3FC"/>
+      <stop offset="0.48" stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="windowGradient" x1="32" y1="30" x2="57" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E0F2FE"/>
+      <stop offset="1" stop-color="#FFFFFF"/>
+    </linearGradient>
+    <filter id="softShadow" x="0" y="0" width="92" height="92" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="8"/>
+      <feGaussianBlur stdDeviation="8"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.145 0 0 0 0 0.388 0 0 0 0 0.922 0 0 0 0.18 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
+  </defs>
+  <g filter="url(#softShadow)">
+    <rect x="12" y="10" width="66" height="66" rx="20" fill="url(#markGradient)"/>
+    <path d="M26 43.4L45 27L64 43.4" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M31 42V61H59V42" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="39" y="47" width="12" height="14" rx="3" fill="url(#windowGradient)"/>
+    <path d="M62 27C67.8 28.7 72.3 33.2 74 39" stroke="#E0F2FE" stroke-width="3" stroke-linecap="round"/>
+    <path d="M59 35C61.8 35.9 64.1 38.2 65 41" stroke="#E0F2FE" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="55" cy="43" r="2.5" fill="#E0F2FE"/>
+  </g>
+  <g>
+    <text x="98" y="39" fill="#0B1B3F" font-family="Inter, Arial, Helvetica, sans-serif" font-size="26" font-weight="800" letter-spacing="0">Smart</text>
+    <text x="98" y="65" fill="#0EA5E9" font-family="Inter, Arial, Helvetica, sans-serif" font-size="26" font-weight="800" letter-spacing="0">Rental</text>
+    <path d="M198 31H250" stroke="#BAE6FD" stroke-width="4" stroke-linecap="round"/>
+    <path d="M198 57H232" stroke="#DBEAFE" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

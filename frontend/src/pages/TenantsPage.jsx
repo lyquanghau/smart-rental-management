@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { Modal } from '../components/Modal.jsx';
+import { usePreferences } from '../hooks/usePreferences.js';
 import { getRooms } from '../services/roomService.js';
 import {
   createTenant,
@@ -14,6 +16,67 @@ const emptyForm = {
   email: '',
   identityNumber: '',
   room: '',
+};
+
+const copy = {
+  en: {
+    add: 'Add',
+    addTenant: 'Add tenant',
+    actions: 'Actions',
+    cancel: 'Cancel',
+    confirmDelete: (name) =>
+      `Delete tenant ${name}? The record will be hidden from the list.`,
+    contact: 'Contact',
+    delete: 'Delete',
+    edit: 'Edit',
+    empty: 'No tenants yet.',
+    floor: 'Floor',
+    floorOption: 'floor',
+    fullName: 'Full name',
+    loading: 'Loading...',
+    loadingData: 'Loading data...',
+    managed: 'managed tenants',
+    noEmail: 'No email',
+    noId: 'No ID number',
+    phone: 'Phone number',
+    reload: 'Reload',
+    room: 'Room',
+    saving: 'Saving...',
+    tenant: 'Tenant',
+    tenants: 'Tenants',
+    unassigned: 'Unassigned',
+    update: 'Update',
+    updateTenant: 'Update tenant',
+  },
+  vi: {
+    add: 'Thêm',
+    addTenant: 'Thêm khách',
+    actions: 'Thao tác',
+    cancel: 'Hủy',
+    confirmDelete: (name) =>
+      `Xóa khách thuê ${name}? Dữ liệu sẽ được ẩn khỏi danh sách.`,
+    contact: 'Liên hệ',
+    delete: 'Xóa',
+    edit: 'Sửa',
+    empty: 'Chưa có khách thuê nào.',
+    floor: 'Tầng',
+    floorOption: 'tầng',
+    fullName: 'Họ tên',
+    loading: 'Đang tải...',
+    loadingData: 'Đang tải dữ liệu...',
+    managed: 'khách đang quản lý',
+    noEmail: 'Chưa có email',
+    noId: 'Chưa có CCCD/CMND',
+    phone: 'Số điện thoại',
+    reload: 'Tải lại',
+    room: 'Phòng',
+    saving: 'Đang lưu...',
+    tenant: 'Khách thuê',
+    tenants: 'Khách thuê',
+    unassigned: 'Chưa gán phòng',
+    update: 'Cập nhật',
+    updateTenant: 'Cập nhật khách thuê',
+  },
 };
 
 function toFormData(tenant) {
@@ -37,6 +100,8 @@ function toPayload(formData) {
 }
 
 export function TenantsPage() {
+  const { language } = usePreferences();
+  const text = copy[language] || copy.vi;
   const [tenants, setTenants] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [formData, setFormData] = useState(emptyForm);
@@ -44,6 +109,7 @@ export function TenantsPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const isEditing = Boolean(editingTenantId);
 
@@ -91,12 +157,21 @@ export function TenantsPage() {
   function resetForm() {
     setFormData(emptyForm);
     setEditingTenantId('');
+    setIsFormOpen(false);
+  }
+
+  function startCreate() {
+    setFormData(emptyForm);
+    setEditingTenantId('');
+    setError('');
+    setIsFormOpen(true);
   }
 
   function startEdit(tenant) {
     setEditingTenantId(tenant._id);
     setFormData(toFormData(tenant));
     setError('');
+    setIsFormOpen(true);
   }
 
   async function handleSubmit(event) {
@@ -121,9 +196,7 @@ export function TenantsPage() {
   }
 
   async function handleDelete(tenant) {
-    const confirmed = window.confirm(
-      `Xóa khách thuê ${tenant.fullName}? Dữ liệu sẽ được ẩn khỏi danh sách.`,
-    );
+    const confirmed = window.confirm(text.confirmDelete(tenant.fullName));
 
     if (!confirmed) return;
 
@@ -141,11 +214,15 @@ export function TenantsPage() {
   return (
     <section>
       <div className="page-heading">
-        <h1>Khách thuê</h1>
+        <h1>{text.tenants}</h1>
         <div className="page-actions">
           <span className="page-summary">
-            {tenants.length} khách đang quản lý
+            {tenants.length} {text.managed}
           </span>
+          <button type="button" onClick={startCreate}>
+            <Plus className="button-icon" size={16} strokeWidth={2.5} />
+            {text.addTenant}
+          </button>
           <button
             className="secondary-button"
             disabled={isLoading}
@@ -153,19 +230,23 @@ export function TenantsPage() {
             onClick={loadData}
           >
             <RefreshCw className="button-icon" size={16} strokeWidth={2.5} />
-            {isLoading ? 'Đang tải...' : 'Tải lại'}
+            {isLoading ? text.loading : text.reload}
           </button>
         </div>
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}
 
-      <div className="split-layout">
+      <Modal
+        isOpen={isFormOpen}
+        title={isEditing ? text.updateTenant : text.addTenant}
+        onClose={resetForm}
+      >
         <form className="form-panel" onSubmit={handleSubmit}>
-          <h2>{isEditing ? 'Cập nhật khách thuê' : 'Thêm khách thuê'}</h2>
+          <h2>{isEditing ? text.updateTenant : text.addTenant}</h2>
 
           <label>
-            Họ tên
+            {text.fullName}
             <input
               required
               value={formData.fullName}
@@ -174,7 +255,7 @@ export function TenantsPage() {
           </label>
 
           <label>
-            Số điện thoại
+            {text.phone}
             <input
               required
               value={formData.phone}
@@ -202,15 +283,15 @@ export function TenantsPage() {
           </label>
 
           <label>
-            Phòng
+            {text.room}
             <select
               value={formData.room}
               onChange={(event) => updateField('room', event.target.value)}
             >
-              <option value="">Chưa gán phòng</option>
+              <option value="">{text.unassigned}</option>
               {availableRoomOptions.map((room) => (
                 <option key={room._id} value={room._id}>
-                  {room.name} - tầng {room.floor}
+                  {room.name} - {text.floorOption} {room.floor}
                 </option>
               ))}
             </select>
@@ -223,7 +304,7 @@ export function TenantsPage() {
               ) : (
                 <Plus className="button-icon" size={16} strokeWidth={2.5} />
               )}
-              {isSubmitting ? 'Đang lưu...' : isEditing ? 'Cập nhật' : 'Thêm'}
+              {isSubmitting ? text.saving : isEditing ? text.update : text.add}
             </button>
             {isEditing ? (
               <button
@@ -232,27 +313,27 @@ export function TenantsPage() {
                 onClick={resetForm}
               >
                 <X className="button-icon" size={16} strokeWidth={2.5} />
-                Hủy
+                {text.cancel}
               </button>
             ) : null}
           </div>
         </form>
+      </Modal>
 
+      <div className="split-layout">
         <div className="table-panel">
-          {isLoading ? <p>Đang tải dữ liệu...</p> : null}
+          {isLoading ? <p>{text.loadingData}</p> : null}
 
-          {!isLoading && tenants.length === 0 ? (
-            <p>Chưa có khách thuê nào.</p>
-          ) : null}
+          {!isLoading && tenants.length === 0 ? <p>{text.empty}</p> : null}
 
           {!isLoading && tenants.length > 0 ? (
             <table>
               <thead>
                 <tr>
-                  <th>Khách thuê</th>
-                  <th>Liên hệ</th>
-                  <th>Phòng</th>
-                  <th>Thao tác</th>
+                  <th>{text.tenant}</th>
+                  <th>{text.contact}</th>
+                  <th>{text.room}</th>
+                  <th>{text.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -260,22 +341,22 @@ export function TenantsPage() {
                   <tr key={tenant._id}>
                     <td>
                       <strong>{tenant.fullName}</strong>
-                      <span>
-                        {tenant.identityNumber || 'Chưa có CCCD/CMND'}
-                      </span>
+                      <span>{tenant.identityNumber || text.noId}</span>
                     </td>
                     <td>
                       <strong>{tenant.phone}</strong>
-                      <span>{tenant.email || 'Chưa có email'}</span>
+                      <span>{tenant.email || text.noEmail}</span>
                     </td>
                     <td>
                       {tenant.room ? (
                         <>
                           <strong>{tenant.room.name}</strong>
-                          <span>Tầng {tenant.room.floor}</span>
+                          <span>
+                            {text.floor} {tenant.room.floor}
+                          </span>
                         </>
                       ) : (
-                        <span>Chưa gán phòng</span>
+                        <span>{text.unassigned}</span>
                       )}
                     </td>
                     <td>
@@ -286,7 +367,7 @@ export function TenantsPage() {
                             size={16}
                             strokeWidth={2.5}
                           />
-                          Sửa
+                          {text.edit}
                         </button>
                         <button
                           className="danger-button"
@@ -298,7 +379,7 @@ export function TenantsPage() {
                             size={16}
                             strokeWidth={2.5}
                           />
-                          Xóa
+                          {text.delete}
                         </button>
                       </div>
                     </td>
