@@ -1,5 +1,62 @@
 # Work Log
 
+## 2026-07-17
+
+### Đánh giá đầu phiên
+
+- Đang ở nhánh `dev`, đồng bộ với `origin/dev`.
+- `dev`, `main`, `origin/dev`, `origin/main` cùng commit `67229bc`.
+- Kiểm tra `git branch --no-merged main --all`: không có nhánh local/remote nào còn commit chưa merge vào `main`.
+- File untracked giữ nguyên, chưa đưa vào Git: `chuyen_de_2.xlsx`, `code.txt`, `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: lỗi `spawn EPERM` trong sandbox Windows của Vite/esbuild.
+- `npm run build`: pass khi chạy ngoài sandbox. Đây là lỗi môi trường/sandbox, không phải lỗi code.
+
+### Đối chiếu tiến độ
+
+- Đối chiếu `chuyen_de_2.xlsx`, `docs/WORK_LOG.md`, tài liệu trong `docs` và code hiện tại.
+- Dự án đang bám đúng MVP Smart Rental: Auth JWT, Rooms, Tenants, Contracts, Payments và Dashboard đã có backend + frontend.
+- Tiến độ phù hợp giai đoạn cuối Tuần 4 và chuẩn bị Tuần 5: polish UI, kiểm thử, deploy production, báo cáo, slide và demo.
+- Các khoảng trống còn lại: VNPay/MoMo sandbox thật, deploy production đã xác nhận, test case chính thức/Postman checklist, toast/alert UX và tài liệu demo/báo cáo Tuần 5.
+
+### Animation chuyển trang và dashboard
+
+- Thêm `useLocation` trong `frontend/src/layouts/MainLayout.jsx` để nội dung chính remount theo `pathname`, giúp animation chạy lại khi chuyển trang.
+- Thêm class `route-transition` cho vùng `main.content`.
+- Cập nhật `frontend/src/styles.css`:
+  - Sidebar trượt từ trái sang khi mở app.
+  - Header trượt từ trên xuống.
+  - Nội dung chính trượt từ dưới lên và fade in khi mở/chuyển trang.
+  - Card, panel, room grid, table/form area xuất hiện theo stagger nhẹ.
+  - Revenue bar trên dashboard grow từ đáy lên và transition khi chiều cao thay đổi.
+  - Bổ sung `prefers-reduced-motion: reduce` để tắt animation cho người dùng không muốn motion.
+- Giữ nguyên stack CSS thuần, không thêm thư viện animation để phù hợp MVP và kiến trúc hiện tại.
+- Điều chỉnh motion theo phản hồi: tăng thời lượng sidebar/header/content, tăng stagger delay cho card/panel và làm revenue bar grow chậm hơn để hiệu ứng nhẹ nhàng nhưng dễ thấy hơn.
+- Sửa hiện tượng reload/chuyển trang có thể giữ lại vị trí cuộn cũ bằng cách reset scroll về đầu trang trong `MainLayout` khi `pathname` thay đổi.
+- Điều chỉnh header motion: animate phần `.topbar-brand` thay vì toàn bộ `.topbar` để header vẫn giữ chỗ trong layout và không trượt đè lên hero khi reload.
+- Bỏ `position: sticky` khỏi `.topbar` theo yêu cầu để header chỉ nằm ở đầu layout, không đi theo màn hình khi cuộn trang.
+
+### Tinh chỉnh sidebar, scrollbar và nhận diện
+
+- Làm đẹp scrollbar theo tông xanh/trắng của giao diện, có cấu hình màu riêng cho dark mode.
+- Bỏ logo khỏi header để giảm trùng nhận diện với sidebar.
+- Tăng kích thước logo sidebar, sau đó tinh chỉnh lại để chữ `Smart Rental` hiển thị đầy đủ trong trạng thái mở.
+- Bỏ dòng phụ `Quản lý nhà trọ` dưới brand để header sidebar gọn hơn.
+- Làm sidebar nền xanh nhạt phẳng, bỏ gradient, shadow/glow và các lớp mờ không cần thiết quanh menu item.
+- Điều chỉnh màu sidebar và active item về sắc xanh rõ hơn, phù hợp với màu chủ đạo của web.
+- Thêm cơ chế thu gọn sidebar:
+  - Trạng thái mở có nút mũi tên riêng cạnh brand để thu gọn.
+  - Trạng thái thu gọn chỉ hiển thị icon/logo, menu chỉ còn icon.
+  - Hover logo khi sidebar thu gọn đổi sang mũi tên mở sidebar.
+  - Lưu trạng thái sidebar vào `localStorage` để reload vẫn giữ mở/thu gọn.
+- Dùng Google Material Symbols Outlined cho icon mũi tên:
+  - `arrow_back` khi sidebar đang mở.
+  - `arrow_forward` khi sidebar đang thu gọn.
+- Tooltip/ARIA của nút sidebar dùng tiếng Việt có dấu: `Thu gọn thanh bên`, `Mở thanh bên`.
+- Đồng bộ vùng hover của nút/biểu tượng sidebar thành ô vuông bo góc, nền trắng đục nhẹ và căn mũi tên ở giữa.
+- Sau khi đối chiếu ảnh trong `docs/image/buttton`, giảm kích thước icon mũi tên để không bị to so với logo và menu.
+
 ## 2026-07-15
 
 ### Tinh chỉnh danh sách Hợp đồng và Thanh toán

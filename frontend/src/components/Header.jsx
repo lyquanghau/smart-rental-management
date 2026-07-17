@@ -1,6 +1,5 @@
 import React from 'react';
 import { usePreferences } from '../hooks/usePreferences.js';
-import smartRentalMark from '../assets/brand/smart-rental-mark.svg';
 
 const labels = {
   en: {
@@ -20,12 +19,6 @@ export function Header() {
   return (
     <header className="topbar">
       <div className="topbar-brand">
-        <img
-          className="topbar-logo-mark"
-          src={smartRentalMark}
-          alt=""
-          aria-hidden="true"
-        />
         <div className="topbar-title">
           <span className="eyebrow">{text.eyebrow}</span>
           <strong>{text.title}</strong>

@@ -75,10 +75,12 @@ function NavItem({ to, label, icon: Icon }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ isCollapsed, onToggle }) {
   const user = getStoredUser();
   const { language } = usePreferences();
   const text = labels[language] || labels.vi;
+  const toggleLabel = isCollapsed ? 'Mở thanh bên' : 'Thu gọn thanh bên';
+  const toggleIcon = isCollapsed ? 'arrow_forward' : 'arrow_back';
 
   function handleLogout() {
     logout();
@@ -86,19 +88,43 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? 'is-collapsed' : ''}`}>
       <div className="sidebar-main">
         <div className="brand">
-          <img
-            className="brand-mark brand-logo-mark"
-            src={smartRentalMark}
-            alt=""
-            aria-hidden="true"
-          />
-          <div>
+          <button
+            aria-label={toggleLabel}
+            className="brand-logo-action"
+            title={isCollapsed ? toggleLabel : undefined}
+            type="button"
+            onClick={isCollapsed ? onToggle : undefined}
+          >
+            <img
+              className="brand-mark brand-logo-mark"
+              src={smartRentalMark}
+              alt=""
+              aria-hidden="true"
+            />
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined brand-dock-icon"
+            >
+              {toggleIcon}
+            </span>
+          </button>
+          <div className="brand-copy">
             <strong>Smart Rental</strong>
-            <span>{text.brandSubtitle}</span>
           </div>
+          <button
+            aria-label={toggleLabel}
+            className="sidebar-toggle-button"
+            title={toggleLabel}
+            type="button"
+            onClick={onToggle}
+          >
+            <span aria-hidden="true" className="material-symbols-outlined">
+              {toggleIcon}
+            </span>
+          </button>
         </div>
         <nav className="nav" aria-label={text.mainNav}>
           <span className="nav-section">{text.operations}</span>
