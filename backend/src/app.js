@@ -10,6 +10,12 @@ import { notFoundHandler } from './middleware/notFoundHandler.js';
 
 const app = express();
 const allowedOrigins = new Set(env.clientUrls);
+const devOrigins = new Set([
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+]);
 const apiLimiter = rateLimit({
   legacyHeaders: false,
   limit: env.rateLimitMax,
@@ -21,7 +27,12 @@ const apiLimiter = rateLimit({
 });
 
 function corsOrigin(origin, callback) {
-  if (!origin || allowedOrigins.has('*') || allowedOrigins.has(origin)) {
+  if (
+    !origin ||
+    allowedOrigins.has('*') ||
+    allowedOrigins.has(origin) ||
+    (env.nodeEnv !== 'production' && devOrigins.has(origin))
+  ) {
     callback(null, true);
     return;
   }

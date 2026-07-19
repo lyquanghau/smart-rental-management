@@ -68,6 +68,39 @@ Endpoint nền:
 - `PATCH /api/payments/:id/mark-paid`
 - `PATCH /api/payments/:id/cancel`
 
+## Services & Invoices
+
+Quản lý điện, nước và dịch vụ hằng tháng. Module này tách riêng hóa đơn phải thu
+khỏi thanh toán:
+
+- `UtilityReading`: chỉ số điện/nước và phí dịch vụ của từng phòng theo tháng.
+- `Invoice`: hóa đơn tháng gồm tiền phòng, tiền điện, nước, internet, rác, gửi xe.
+- `Payment`: bản ghi thu tiền/giao dịch, có thể liên kết với một hóa đơn.
+
+Luồng chính:
+
+```txt
+Chọn tháng/năm
+-> Cấu hình đơn giá dịch vụ
+-> Nhập chỉ số điện/nước cho hợp đồng active
+-> Tạo hóa đơn tháng
+-> Hóa đơn sinh khoản thu tương ứng ở trang Thanh toán
+```
+
+Endpoint nền:
+
+- `GET /api/service-settings`
+- `PUT /api/service-settings`
+- `GET /api/utility-readings`
+- `POST /api/utility-readings`
+- `PUT /api/utility-readings/:id`
+- `DELETE /api/utility-readings/:id`
+- `GET /api/invoices`
+- `GET /api/invoices/:id`
+- `POST /api/invoices/generate-monthly`
+- `PATCH /api/invoices/:id/mark-paid`
+- `PATCH /api/invoices/:id/cancel`
+
 ## Dashboard
 
 Hiển thị số liệu tổng quan từ dữ liệu thật trong MongoDB. Module đã có API thống

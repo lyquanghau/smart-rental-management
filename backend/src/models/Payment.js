@@ -7,6 +7,10 @@ const paymentSchema = new mongoose.Schema(
       ref: 'Contract',
       required: true,
     },
+    invoice: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Invoice',
+    },
     amount: {
       type: Number,
       required: true,
@@ -40,6 +44,7 @@ const paymentSchema = new mongoose.Schema(
 );
 
 paymentSchema.index({ contract: 1, status: 1 });
+paymentSchema.index({ invoice: 1 }, { sparse: true });
 paymentSchema.index({ status: 1, dueDate: 1 });
 paymentSchema.index({ dueDate: 1, method: 1 });
 

@@ -99,3 +99,38 @@ export const payments = [
     note: 'Tien phong thang 6/2026',
   },
 ];
+
+export const serviceSetting = {
+  electricityUnitPrice: 3500,
+  waterUnitPrice: 15000,
+  internetFee: 100000,
+  trashFee: 30000,
+  parkingFeePerVehicle: 100000,
+};
+
+export const utilityReadings = [
+  {
+    tenantEmail: 'an@example.com',
+    month: 7,
+    year: 2026,
+    electricityPrevious: 120,
+    electricityCurrent: 168,
+    waterPrevious: 45,
+    waterCurrent: 57,
+    internetAmount: 100000,
+    trashAmount: 30000,
+    parkingVehicleCount: 1,
+    note: 'Chi so dich vu thang 7/2026',
+  },
+];
+
+export const invoices = [
+  {
+    tenantEmail: 'an@example.com',
+    month: 7,
+    year: 2026,
+    dueDate: '2026-07-30',
+    status: 'issued',
+    note: 'Hoa don thang 7/2026',
+  },
+];

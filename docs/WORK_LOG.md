@@ -1,5 +1,69 @@
 # Work Log
 
+## 2026-07-19
+
+### Module điện, nước, dịch vụ và hóa đơn
+
+- Chọn hướng hoàn chỉnh hơn MVP cũ: tách `Invoice` khỏi `Payment`.
+  - `Invoice`: hóa đơn phải thu theo tháng, gồm tiền phòng và dịch vụ.
+  - `Payment`: bản ghi thu tiền/giao dịch, có thể liên kết với một hóa đơn.
+- Thêm backend model:
+  - `ServiceSetting`: đơn giá điện, nước, internet, rác, gửi xe.
+  - `UtilityReading`: chỉ số điện/nước và phí dịch vụ theo phòng/hợp đồng/tháng.
+  - `Invoice`: hóa đơn tháng có breakdown từng dòng chi phí.
+- Thêm API:
+  - `GET/PUT /api/service-settings`.
+  - `GET/POST/PUT/DELETE /api/utility-readings`.
+  - `GET /api/invoices`, `GET /api/invoices/:id`.
+  - `POST /api/invoices/generate-monthly`.
+  - `PATCH /api/invoices/:id/mark-paid`, `PATCH /api/invoices/:id/cancel`.
+- Cập nhật `Payment` để có thể tham chiếu `invoice`.
+- Khi tạo hóa đơn tháng, backend sinh khoản thu tương ứng ở `Payment` để trang
+  Thanh toán hiện tại vẫn dùng được.
+- Khi đánh dấu khoản thu đã thu hoặc hủy khoản thu có liên kết hóa đơn, backend
+  đồng bộ trạng thái hóa đơn tương ứng.
+- Cập nhật dashboard để công nợ/doanh thu tháng lấy từ hóa đơn.
+- Thêm frontend:
+  - Service gọi API mới: `invoiceService`, `serviceSettingService`,
+    `utilityReadingService`.
+  - Trang `/services` để cấu hình đơn giá, nhập chỉ số điện/nước, tạo hóa đơn
+    tháng và xem tổng hợp hóa đơn.
+  - Menu `Dịch vụ` trong sidebar.
+  - Trang `Thanh toán` hiển thị breakdown tiền phòng/dịch vụ nếu khoản thu sinh
+    từ hóa đơn.
+- Cập nhật seed script để có dữ liệu demo dịch vụ/hóa đơn khi nhóm chủ động chạy
+  seed/reset.
+- Cập nhật `docs/API.md`, `docs/MODULES.md`, `docs/COMPONENT_LIST.md`,
+  `docs/TEST_CHECKLIST.md` và `docs/USER_FLOW.md`.
+- Sửa CORS local dev để backend cho phép cả `http://localhost:5173` và
+  `http://127.0.0.1:5173`, tránh lỗi frontend báo không kết nối được server khi
+  mở app bằng địa chỉ loopback khác.
+- Redesign trang `Dịch vụ`:
+  - Thêm nhóm card tổng quan cho hợp đồng active, chỉ số đã nhập, hóa đơn và tổng
+    giá trị hóa đơn.
+  - Chia workspace thành panel đơn giá và panel nhập chỉ số rõ ràng hơn.
+  - Làm bảng chỉ số/hóa đơn đồng bộ với phong cách dashboard/admin hiện tại.
+- Sửa sidebar desktop không còn trôi theo nội dung khi cuộn trang bằng cách đưa
+  sidebar về `position: sticky`, cao bằng viewport và chỉ cuộn nội bộ khi cần.
+- Redesign file PDF hợp đồng:
+  - Thêm header thương hiệu, mã hợp đồng ngắn và ngày lập.
+  - Bố cục thành các khối giống hợp đồng thật: bên cho thuê, bên thuê, thông tin
+    phòng, thời hạn/giá trị hợp đồng, điều khoản chính và chữ ký hai bên.
+  - Dùng màu xanh nhẹ, đường kẻ, card thông tin và footer để PDF dễ đọc hơn.
+- Đổi luồng xem hợp đồng trên frontend:
+  - Nút `Xem` trong danh sách hợp đồng mở modal preview file PDF.
+  - Trong modal PDF có nút `Tải PDF`.
+  - Bỏ luồng tải PDF trực tiếp từ bảng để người dùng xem trước trước khi tải.
+- Sửa lỗi preview PDF bị che phần trên:
+  - Modal hỗ trợ class riêng cho panel PDF.
+  - Ẩn toolbar PDF mặc định của trình duyệt trong iframe bằng fragment URL.
+  - Tăng kích thước modal PDF, giữ header/nút tải riêng phía trên và tránh iframe
+    đè lên vùng điều khiển của app.
+  - Tăng vùng letterhead/safe area ở đầu trang PDF để nếu trình duyệt vẫn hiện
+    toolbar PDF nội bộ thì tiêu đề hợp đồng không bị che.
+  - Bọc iframe PDF trong viewport riêng, crop vùng toolbar/viền trên của PDF
+    viewer và kéo iframe lên để chỉ còn phần trang hợp đồng hiển thị.
+
 ## 2026-07-17
 
 ### Đánh giá đầu phiên

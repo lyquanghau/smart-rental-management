@@ -1,4 +1,5 @@
 import { Contract } from '../models/Contract.js';
+import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
 import { createHttpError } from '../utils/httpError.js';
 
@@ -10,6 +11,16 @@ const paymentPopulate = {
     { path: 'tenant', select: 'fullName phone email identityNumber room' },
   ],
 };
+
+const populateOptions = [
+  paymentPopulate,
+  {
+    path: 'invoice',
+    select:
+      'month year dueDate rentAmount serviceAmount totalAmount status items utilityReading',
+    populate: { path: 'utilityReading' },
+  },
+];
 
 function parseOptionalDate(value) {
   if (!value) return null;
@@ -77,6 +88,7 @@ async function normalizePaymentPayload(body) {
 
   return {
     contract: body.contract,
+    invoice: body.invoice || undefined,
     amount,
     dueDate,
     paidAt: paidAt || undefined,
@@ -110,7 +122,7 @@ export async function listPayments(req, res, next) {
 
     const [payments, total] = await Promise.all([
       Payment.find(filters)
-        .populate(paymentPopulate)
+        .populate(populateOptions)
         .sort({ dueDate: -1, createdAt: -1 })
         .skip((safePage - 1) * safeLimit)
         .limit(safeLimit),
@@ -133,7 +145,7 @@ export async function listPayments(req, res, next) {
 export async function getPayment(req, res, next) {
   try {
     const payment = await Payment.findById(req.params.id).populate(
-      paymentPopulate,
+      populateOptions,
     );
 
     if (!payment) {
@@ -151,7 +163,7 @@ export async function createPayment(req, res, next) {
     const payment = await Payment.create(
       await normalizePaymentPayload(req.body),
     );
-    const populatedPayment = await payment.populate(paymentPopulate);
+    const populatedPayment = await payment.populate(populateOptions);
 
     res.status(201).json({
       data: populatedPayment,
@@ -171,7 +183,7 @@ export async function updatePayment(req, res, next) {
         new: true,
         runValidators: true,
       },
-    ).populate(paymentPopulate);
+    ).populate(populateOptions);
 
     if (!payment) {
       throw createHttpError(404, 'Không tìm thấy khoản thu');
@@ -207,10 +219,17 @@ export async function markPaymentPaid(req, res, next) {
     const payment = await Payment.findByIdAndUpdate(req.params.id, update, {
       new: true,
       runValidators: true,
-    }).populate(paymentPopulate);
+    }).populate(populateOptions);
 
     if (!payment) {
       throw createHttpError(404, 'Không tìm thấy khoản thu');
+    }
+
+    if (payment.invoice) {
+      await Invoice.findByIdAndUpdate(payment.invoice, {
+        paidAt,
+        status: 'paid',
+      });
     }
 
     res.json({
@@ -231,10 +250,17 @@ export async function cancelPayment(req, res, next) {
     const payment = await Payment.findByIdAndUpdate(req.params.id, update, {
       new: true,
       runValidators: true,
-    }).populate(paymentPopulate);
+    }).populate(populateOptions);
 
     if (!payment) {
       throw createHttpError(404, 'Không tìm thấy khoản thu');
+    }
+
+    if (payment.invoice) {
+      await Invoice.findByIdAndUpdate(payment.invoice, {
+        note: update.note,
+        status: 'cancelled',
+      });
     }
 
     res.json({

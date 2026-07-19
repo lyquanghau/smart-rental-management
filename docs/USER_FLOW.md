@@ -24,6 +24,9 @@ Mở app
         -> Chọn thời hạn hợp đồng
         -> Xác nhận giá thuê và tiền cọc
         -> Tạo hợp đồng active
+      -> Quản lý dịch vụ
+        -> Nhập chỉ số điện/nước và phí dịch vụ
+        -> Tạo hóa đơn tháng gồm tiền phòng + dịch vụ
       -> Quản lý thanh toán
         -> Tạo khoản thu theo hợp đồng active
         -> Theo dõi trạng thái khoản thu
@@ -70,7 +73,8 @@ Mở app
 
 1. Chủ trọ mở `/payments`.
 2. Hệ thống tải danh sách khoản thu.
-3. Chủ trọ tạo khoản thu theo hợp đồng active.
+3. Chủ trọ tạo khoản thu thủ công theo hợp đồng active hoặc dùng khoản thu sinh
+   từ hóa đơn tháng ở trang `/services`.
 4. Khoản thu có:
    - Hợp đồng.
    - Số tiền.
@@ -81,6 +85,17 @@ Mở app
 5. Khi khách đã đóng tiền, chủ trọ bấm `Đã thu`.
 6. Hệ thống chuyển khoản thu sang `paid` và set ngày thu.
 7. Nếu tạo nhầm hoặc không cần thu nữa, chủ trọ bấm `Hủy`.
+
+## Luồng dịch vụ và hóa đơn tháng
+
+1. Chủ trọ mở `/services`.
+2. Chọn tháng/năm cần chốt dịch vụ.
+3. Cập nhật đơn giá điện, nước, internet, rác, gửi xe nếu có thay đổi.
+4. Chọn hợp đồng active và nhập chỉ số điện/nước cũ mới.
+5. Hệ thống tự tính số điện, số nước, tiền dịch vụ.
+6. Chủ trọ bấm `Tạo hóa đơn tháng`.
+7. Hệ thống tạo hóa đơn cho từng hợp đồng active và sinh khoản thu tương ứng ở
+   trang `/payments`.
 
 ## Luồng khách thuê trong giai đoạn sau
 

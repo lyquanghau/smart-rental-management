@@ -9,6 +9,7 @@ import { HelpSupportPage } from './pages/HelpSupportPage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { PaymentsPage } from './pages/PaymentsPage.jsx';
 import { RoomsPage } from './pages/RoomsPage.jsx';
+import { ServicesPage } from './pages/ServicesPage.jsx';
 import { SettingsPage } from './pages/SettingsPage.jsx';
 import { TenantsPage } from './pages/TenantsPage.jsx';
 import { applyPreferences, loadPreferences } from './services/preferences.js';
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/tenants" element={<TenantsPage />} />
           <Route path="/contracts" element={<ContractsPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
+          <Route path="/services" element={<ServicesPage />} />
           <Route path="/help" element={<HelpSupportPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

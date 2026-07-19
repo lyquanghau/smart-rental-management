@@ -455,6 +455,10 @@ Hợp đồng không bị xóa cứng. API này chuyển `status` của hợp đ
 API thanh toán yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, đánh dấu đã thu
 và hủy khoản thu yêu cầu role `landlord`.
 
+Ghi chú: từ module dịch vụ/hóa đơn, `Payment` là bản ghi thu tiền/giao dịch. Một
+payment có thể tham chiếu `invoice`. Các endpoint cũ vẫn được giữ để không phá
+luồng thanh toán MVP.
+
 Trạng thái thanh toán:
 
 - `pending`
@@ -550,6 +554,127 @@ Request optional:
 ```
 
 API chuyển `status` sang `cancelled`, không xóa cứng khoản thu khỏi database.
+Nếu khoản thu liên kết với hóa đơn, hóa đơn cũng chuyển sang `cancelled`.
+
+## Services & Invoices
+
+Các API dịch vụ và hóa đơn yêu cầu JWT. Thao tác ghi/sửa/tạo hóa đơn yêu cầu role
+`landlord`.
+
+### GET /service-settings
+
+Trả về cấu hình đơn giá dịch vụ hiện tại. Nếu chưa có cấu hình, backend tự tạo
+cấu hình mặc định.
+
+### PUT /service-settings
+
+Request:
+
+```json
+{
+  "electricityUnitPrice": 3500,
+  "waterUnitPrice": 15000,
+  "internetFee": 100000,
+  "trashFee": 30000,
+  "parkingFeePerVehicle": 100000
+}
+```
+
+### GET /utility-readings
+
+Query optional:
+
+```txt
+month=7
+year=2026
+```
+
+Response trả danh sách chỉ số điện/nước kèm phòng và hợp đồng.
+
+### POST /utility-readings
+
+Tạo hoặc cập nhật chỉ số theo `room + month + year`.
+
+Request:
+
+```json
+{
+  "contract": "contract-object-id",
+  "month": 7,
+  "year": 2026,
+  "electricityPrevious": 120,
+  "electricityCurrent": 168,
+  "waterPrevious": 45,
+  "waterCurrent": 57,
+  "internetAmount": 100000,
+  "trashAmount": 30000,
+  "parkingVehicleCount": 1,
+  "note": "Chỉ số tháng 7/2026"
+}
+```
+
+Backend tự tính:
+
+```txt
+electricityUsage = electricityCurrent - electricityPrevious
+waterUsage = waterCurrent - waterPrevious
+serviceTotal = electricityAmount + waterAmount + internet + trash + parking
+```
+
+### PUT /utility-readings/:id
+
+Cập nhật chỉ số dịch vụ.
+
+### DELETE /utility-readings/:id
+
+Xóa bản ghi chỉ số dịch vụ.
+
+### GET /invoices
+
+Query optional:
+
+```txt
+month=7
+year=2026
+status=issued
+contract=<contractId>
+```
+
+### GET /invoices/:id
+
+Trả chi tiết hóa đơn gồm tiền phòng, tiền dịch vụ và từng dòng chi phí.
+
+### POST /invoices/generate-monthly
+
+Tạo hóa đơn tháng cho tất cả hợp đồng `active`. Nếu hóa đơn của hợp đồng trong
+tháng đó đã tồn tại, backend bỏ qua để tránh tạo trùng.
+
+Request:
+
+```json
+{
+  "month": 7,
+  "year": 2026,
+  "dueDate": "2026-07-30",
+  "note": "Hóa đơn tháng 7/2026"
+}
+```
+
+Logic:
+
+- Lấy hợp đồng active.
+- Lấy chỉ số dịch vụ theo hợp đồng/tháng nếu có.
+- Tính `rentAmount`, `serviceAmount`, `totalAmount`.
+- Tạo `Invoice`.
+- Tạo khoản thu `Payment` liên kết với hóa đơn để trang Thanh toán tiếp tục xử lý.
+
+### PATCH /invoices/:id/mark-paid
+
+Chuyển hóa đơn sang `paid`, đồng thời tạo/cập nhật payment liên kết sang `paid`.
+
+### PATCH /invoices/:id/cancel
+
+Chuyển hóa đơn sang `cancelled`, đồng thời hủy payment liên kết nếu có.
 
 ## Dashboard
 

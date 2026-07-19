@@ -44,6 +44,7 @@ const copy = {
     contract: 'Contract',
     contracts: 'Contracts',
     deposit: 'Deposit',
+    download: 'Download PDF',
     depositAmount: (amount) => `Deposit amount: ${amount}.`,
     downloadLoading: 'Loading',
     end: 'End',
@@ -81,6 +82,7 @@ const copy = {
     upTo: 'Up to',
     view: 'View',
     viewContract: 'View contract',
+    viewPdf: 'Preview contract PDF',
     durationOptions: [
       { value: '3', label: '3 months' },
       { value: '6', label: '6 months' },
@@ -109,6 +111,7 @@ const copy = {
     contract: 'Hợp đồng',
     contracts: 'Hợp đồng',
     deposit: 'Tiền cọc',
+    download: 'Tải PDF',
     depositAmount: (amount) => `Số tiền cọc: ${amount}.`,
     downloadLoading: 'Đang tải',
     end: 'Kết thúc',
@@ -146,6 +149,7 @@ const copy = {
     upTo: 'Tối đa',
     view: 'Xem',
     viewContract: 'Xem hợp đồng',
+    viewPdf: 'Xem trước file PDF hợp đồng',
     durationOptions: [
       { value: '3', label: '3 tháng' },
       { value: '6', label: '6 tháng' },
@@ -202,6 +206,13 @@ function getStatusLabel(status, text) {
     text.statusOptions.find((option) => option.value === status)?.label ||
     status
   );
+}
+
+function getContractLabel(contract, text) {
+  const roomName = contract?.room?.name || text.noRoom;
+  const tenantName = contract?.tenant?.fullName || text.noTenant;
+
+  return `${roomName} - ${tenantName}`;
 }
 
 function getDurationMonths(startDate, endDate) {
@@ -270,12 +281,19 @@ export function ContractsPage() {
   const [temporaryAccount, setTemporaryAccount] = useState(null);
   const [error, setError] = useState('');
   const [downloadingContractId, setDownloadingContractId] = useState('');
+  const [pdfPreview, setPdfPreview] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const isEditing = Boolean(editingContractId);
   const isViewing = Boolean(viewingContractId);
+
+  useEffect(() => {
+    return () => {
+      if (pdfPreview?.url) window.URL.revokeObjectURL(pdfPreview.url);
+    };
+  }, [pdfPreview]);
 
   const roomOptions = useMemo(() => {
     return rooms.filter((room) => room.status !== 'maintenance');
@@ -348,6 +366,11 @@ export function ContractsPage() {
     setIsFormOpen(false);
   }
 
+  function closePdfPreview() {
+    if (pdfPreview?.url) window.URL.revokeObjectURL(pdfPreview.url);
+    setPdfPreview(null);
+  }
+
   function startCreate() {
     setFormData(emptyForm);
     setEditingContractId('');
@@ -366,13 +389,30 @@ export function ContractsPage() {
     setIsFormOpen(true);
   }
 
-  function startView(contract) {
+  async function startView(contract) {
     setEditingContractId('');
-    setViewingContractId(contract._id);
+    setViewingContractId('');
     setTemporaryAccount(null);
-    setFormData(toFormData(contract));
     setError('');
-    setIsFormOpen(true);
+
+    if (pdfPreview?.url) window.URL.revokeObjectURL(pdfPreview.url);
+
+    try {
+      setDownloadingContractId(contract._id);
+      const pdfBlob = await downloadContractPdf(contract._id);
+      const url = window.URL.createObjectURL(pdfBlob);
+      const roomName = contract.room?.name || 'hop-dong';
+
+      setPdfPreview({
+        contract,
+        filename: `hop-dong-${roomName}.pdf`,
+        url,
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingContractId('');
+    }
   }
 
   async function handleSubmit(event) {
@@ -419,6 +459,17 @@ export function ContractsPage() {
   }
 
   async function handleDownloadPdf(contract) {
+    if (pdfPreview?.url && pdfPreview.contract?._id === contract._id) {
+      const link = document.createElement('a');
+
+      link.href = pdfPreview.url;
+      link.download = pdfPreview.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      return;
+    }
+
     setDownloadingContractId(contract._id);
     setError('');
 
@@ -466,6 +517,35 @@ export function ContractsPage() {
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}
+
+      <Modal
+        isOpen={Boolean(pdfPreview)}
+        panelClassName="pdf-modal-panel"
+        title={text.viewPdf}
+        onClose={closePdfPreview}
+      >
+        {pdfPreview ? (
+          <div className="pdf-preview-panel">
+            <div className="pdf-preview-toolbar">
+              <strong>{getContractLabel(pdfPreview.contract, text)}</strong>
+              <button
+                type="button"
+                onClick={() => handleDownloadPdf(pdfPreview.contract)}
+              >
+                <Download className="button-icon" size={16} strokeWidth={2.5} />
+                {text.download}
+              </button>
+            </div>
+            <div className="pdf-preview-viewport">
+              <iframe
+                className="pdf-preview-frame"
+                src={`${pdfPreview.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                title={text.viewPdf}
+              />
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       <Modal
         isOpen={isFormOpen}
@@ -750,34 +830,21 @@ export function ContractsPage() {
                                 {text.end}
                               </button>
                             </>
-                          ) : (
-                            <button
-                              className="secondary-button"
-                              type="button"
-                              onClick={() => startView(contract)}
-                            >
-                              <Eye
-                                className="button-icon"
-                                size={16}
-                                strokeWidth={2.5}
-                              />
-                              {text.view}
-                            </button>
-                          )}
+                          ) : null}
                           <button
                             className="secondary-button"
                             disabled={downloadingContractId === contract._id}
                             type="button"
-                            onClick={() => handleDownloadPdf(contract)}
+                            onClick={() => startView(contract)}
                           >
-                            <Download
+                            <Eye
                               className="button-icon"
                               size={16}
                               strokeWidth={2.5}
                             />
                             {downloadingContractId === contract._id
                               ? text.downloadLoading
-                              : 'PDF'}
+                              : text.view}
                           </button>
                         </div>
                       </td>

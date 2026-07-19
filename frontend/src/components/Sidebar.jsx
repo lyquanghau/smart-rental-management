@@ -5,6 +5,7 @@ import {
   CreditCard,
   DoorOpen,
   FileText,
+  Gauge,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -24,6 +25,7 @@ const mainLinks = [
 const financeLinks = [
   { to: '/contracts', labelKey: 'contracts', icon: FileText },
   { to: '/payments', labelKey: 'payments', icon: CreditCard },
+  { to: '/services', labelKey: 'services', icon: Gauge },
 ];
 
 const utilityLinks = [
@@ -44,6 +46,7 @@ const labels = {
     tenants: 'Tenants',
     contracts: 'Contracts',
     payments: 'Payments',
+    services: 'Services',
     settings: 'Settings',
     signOut: 'Sign out',
     utilityNav: 'Help and settings',
@@ -60,6 +63,7 @@ const labels = {
     tenants: 'Khách thuê',
     contracts: 'Hợp đồng',
     payments: 'Thanh toán',
+    services: 'Dịch vụ',
     settings: 'Cài đặt',
     signOut: 'Đăng xuất',
     utilityNav: 'Hỗ trợ và cài đặt',

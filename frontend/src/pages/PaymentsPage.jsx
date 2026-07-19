@@ -49,6 +49,7 @@ const copy = {
     paid: 'Paid',
     payment: 'Payment',
     payments: 'Payments',
+    rentService: (rent, service) => `Rent ${rent} · Services ${service}`,
     reload: 'Reload',
     saving: 'Saving...',
     selectContract: 'Select contract',
@@ -98,6 +99,7 @@ const copy = {
     paid: 'Thu',
     payment: 'Khoản thu',
     payments: 'Thanh toán',
+    rentService: (rent, service) => `Phòng ${rent} · Dịch vụ ${service}`,
     reload: 'Tải lại',
     saving: 'Đang lưu...',
     selectContract: 'Chọn hợp đồng',
@@ -525,7 +527,14 @@ export function PaymentsPage() {
                       </td>
                       <td>
                         <strong>{formatMoney(payment.amount)}</strong>
-                        <span>{getMethodLabel(payment.method, text)}</span>
+                        <span>
+                          {payment.invoice
+                            ? text.rentService(
+                                formatMoney(payment.invoice.rentAmount),
+                                formatMoney(payment.invoice.serviceAmount),
+                              )
+                            : getMethodLabel(payment.method, text)}
+                        </span>
                       </td>
                       <td>
                         <span className={`status status-${payment.status}`}>
