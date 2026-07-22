@@ -16,3 +16,8 @@ export async function changePassword(payload) {
   storeSession(response.data.data);
   return response.data.data;
 }
+
+export async function unlockUser(userId) {
+  const response = await api.patch(`/auth/users/${userId}/unlock`);
+  return response.data.data;
+}

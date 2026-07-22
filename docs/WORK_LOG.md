@@ -1,5 +1,76 @@
 # Work Log
 
+## 2026-07-22
+
+### Product hardening: tenant login support
+
+- Kiem tra dau phien:
+  - Dang o nhanh `dev`, dong bo voi `origin/dev`.
+  - `dev`, `main`, `origin/dev`, `origin/main` cung commit `14779a7`.
+  - Khong co nhanh local/remote nao con commit chua merge vao `main`.
+  - File phu tro/untracked tiep tuc giu ngoai commit: `chuyen_de_2.xlsx`, `code.txt`,
+    `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1665 modules.
+- Chuyen trong tam ngay lam viec tu chuan bi tuan 5 sang huong san pham dung thuc te cho chu tro.
+- Bo sung luong van hanh tai khoan khach thue:
+  - Backend `GET /api/tenants` va `GET /api/tenants/:id` populate them `user` de frontend biet trang thai tai khoan dang nhap.
+  - Frontend them `unlockUser` trong `authService`.
+  - Trang `Khach thue` hien thi cot `Tai khoan`: chua co tai khoan, dang hoat dong, dang bi khoa, hoac dang dung mat khau tam.
+  - Chu tro co the cap lai/mo khoa tai khoan khach thue bang nut `Cap lai mat khau`.
+  - Sau khi cap lai, giao dien hien username/email/mat khau tam/han doi mat khau trong panel rieng. Mat khau tam chi hien thi mot lan theo response API.
+- Cap nhat `docs/API.md` de response Tenants the hien them truong `user`.
+- Tiep tuc phat trien theo huong san pham dung thuc te:
+  - Them backend `GET /api/tenant-portal/summary` cho role `tenant`.
+  - Endpoint portal chi tra ho so tenant dang dang nhap, phong dang o, hop dong, hoa don, lich su thanh toan va tong cong no lien quan.
+  - Them frontend service `tenantPortalService` va trang `TenantPortalPage`.
+  - Route `/` tu dong dua tenant ve `/tenant-portal`, chu tro van vao dashboard quan tri.
+  - Sidebar theo role: tenant chi thay cong khach thue, tro giup va cai dat; landlord van thay menu quan tri.
+  - Siết quyen doc API: `contracts`, `payments`, `invoices`, `tenants` loc theo tenant khi role la `tenant`; `rooms`, `dashboard`, `service-settings`, `utility-readings` yeu cau role `landlord`.
+- Ghi chu tiep tuc cho ngay mai:
+  - Voi tenant moi duoc tao khi lap hop dong, username thuong la so dien thoai khach thue.
+  - Mat khau tam chi hien thi mot lan sau khi tao hop dong hoac khi chu tro bam `Cap lai mat khau` o trang `Khach thue`.
+  - Khi test demo that, can ghi lai username/mat khau tam ngay luc he thong hien panel credential.
+
+## 2026-07-20
+
+### Chuẩn hóa UX thông báo và responsive
+
+- Kiểm tra đầu phiên:
+  - Đang ở nhánh `dev`, đồng bộ với `origin/dev`.
+  - `dev`, `main`, `origin/dev`, `origin/main` cùng commit `14779a7`.
+  - Không có nhánh local/remote nào còn commit chưa merge vào `main`.
+  - File untracked giữ nguyên, chưa đưa vào Git: `chuyen_de_2.xlsx`, `code.txt`,
+    `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: lỗi `spawn EPERM` trong sandbox Windows của Vite/esbuild.
+  - `npm run build`: pass khi chạy ngoài sandbox. Đây là lỗi môi trường/sandbox,
+    không phải lỗi code.
+- Thêm `ToastProvider` dùng chung ở frontend:
+  - Bọc app bằng provider trong `frontend/src/App.jsx`.
+  - Thêm hook `useToast` để gọi `showSuccess` và `showError`.
+  - Toast có trạng thái `success`, `error`, `info`, tự đóng sau vài giây và có nút đóng thủ công.
+  - Style toast hỗ trợ light/dark mode và responsive mobile.
+- Gắn toast vào các luồng chính:
+  - `RoomsPage`: lưu/xóa phòng và lỗi API.
+  - `TenantsPage`: lưu/xóa khách thuê và lỗi API.
+  - `ContractsPage`: lưu/kết thúc hợp đồng, xem/tải PDF và lỗi API.
+  - `PaymentsPage`: lưu khoản thu, đánh dấu đã thu, hủy khoản thu và lỗi API.
+  - `ServicesPage`: lưu đơn giá, lưu chỉ số điện/nước, tạo hóa đơn tháng và lỗi API.
+- Sửa responsive nhỏ trong `frontend/src/styles.css`:
+  - Page heading/action tự xếp dọc dưới `860px`.
+  - Nút, select và filter trong cụm action chiếm full width khi màn hình hẹp.
+  - Action trong bảng/modal/card tự wrap dưới `560px`, tránh tràn ngang nút thao tác.
+  - PDF preview toolbar và viewport co lại trên mobile.
+  - Toast chuyển sang full-width ở đáy màn hình trên mobile.
+- Ghi chú QA:
+  - Browser tool nội bộ bị lỗi kết nối sandbox nên chưa chụp được screenshot kiểm chứng trực quan.
+  - Dev server Vite là process chạy liên tục; lệnh foreground đã được dừng theo yêu cầu người dùng.
+  - Phần responsive đã được kiểm tra bằng build và rà CSS breakpoint, cần mở app thủ công để xác nhận trực quan cuối cùng.
+
 ## 2026-07-19
 
 ### Module điện, nước, dịch vụ và hóa đơn

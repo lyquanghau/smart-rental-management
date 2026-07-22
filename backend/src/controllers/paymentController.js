@@ -1,6 +1,7 @@
 import { Contract } from '../models/Contract.js';
 import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
+import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
 
 const paymentPopulate = {
@@ -51,6 +52,22 @@ function assertValidAmount(amount) {
       amount: 'Số tiền phải là số lớn hơn hoặc bằng 0',
     });
   }
+}
+
+async function getTenantContractIdsForUser(userId) {
+  const tenant = await Tenant.findOne({ user: userId, deletedAt: null }).select(
+    '_id',
+  );
+
+  if (!tenant) {
+    throw createHttpError(
+      404,
+      'Khong tim thay ho so khach thue lien ket voi tai khoan nay',
+    );
+  }
+
+  const contracts = await Contract.find({ tenant: tenant._id }).select('_id');
+  return contracts.map((item) => item._id);
 }
 
 async function normalizePaymentPayload(body) {
@@ -117,6 +134,12 @@ export async function listPayments(req, res, next) {
     if (method) filters.method = method;
     if (status) filters.status = status;
 
+    if (req.user.role === 'tenant') {
+      filters.contract = {
+        $in: await getTenantContractIdsForUser(req.user._id),
+      };
+    }
+
     const dueDateRange = monthDateRange(month, year);
     if (dueDateRange) filters.dueDate = dueDateRange;
 
@@ -144,9 +167,15 @@ export async function listPayments(req, res, next) {
 
 export async function getPayment(req, res, next) {
   try {
-    const payment = await Payment.findById(req.params.id).populate(
-      populateOptions,
-    );
+    const filters = { _id: req.params.id };
+
+    if (req.user.role === 'tenant') {
+      filters.contract = {
+        $in: await getTenantContractIdsForUser(req.user._id),
+      };
+    }
+
+    const payment = await Payment.findOne(filters).populate(populateOptions);
 
     if (!payment) {
       throw createHttpError(404, 'Không tìm thấy khoản thu');

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDashboardSummary } from '../controllers/dashboardController.js';
+import { getTenantPortalSummary } from '../controllers/tenantPortalController.js';
 import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
 
 const router = Router();
@@ -7,8 +7,8 @@ const router = Router();
 router.get(
   '/summary',
   requireAuth,
-  requireRole('landlord'),
-  getDashboardSummary,
+  requireRole('tenant'),
+  getTenantPortalSummary,
 );
 
 export default router;

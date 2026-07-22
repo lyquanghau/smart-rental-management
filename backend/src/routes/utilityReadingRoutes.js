@@ -28,8 +28,8 @@ const readingRules = {
   parkingVehicleCount: [minNumber('Số xe', 0)],
 };
 
-router.get('/', requireAuth, listUtilityReadings);
-router.get('/:id', requireAuth, getUtilityReading);
+router.get('/', requireAuth, requireRole('landlord'), listUtilityReadings);
+router.get('/:id', requireAuth, requireRole('landlord'), getUtilityReading);
 router.post(
   '/',
   requireAuth,

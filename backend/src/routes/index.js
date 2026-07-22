@@ -7,6 +7,7 @@ import invoiceRoutes from './invoiceRoutes.js';
 import paymentRoutes from './paymentRoutes.js';
 import roomRoutes from './roomRoutes.js';
 import serviceSettingRoutes from './serviceSettingRoutes.js';
+import tenantPortalRoutes from './tenantPortalRoutes.js';
 import tenantRoutes from './tenantRoutes.js';
 import utilityReadingRoutes from './utilityReadingRoutes.js';
 
@@ -21,6 +22,7 @@ router.use('/contracts', contractRoutes);
 router.use('/invoices', invoiceRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/service-settings', serviceSettingRoutes);
+router.use('/tenant-portal', tenantPortalRoutes);
 router.use('/utility-readings', utilityReadingRoutes);
 
 export default router;

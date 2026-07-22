@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
+import { ToastProvider } from './components/ToastProvider.jsx';
 import { MainLayout } from './layouts/MainLayout.jsx';
 import { ContractsPage } from './pages/ContractsPage.jsx';
 import { ChangePasswordPage } from './pages/ChangePasswordPage.jsx';
@@ -12,7 +13,19 @@ import { RoomsPage } from './pages/RoomsPage.jsx';
 import { ServicesPage } from './pages/ServicesPage.jsx';
 import { SettingsPage } from './pages/SettingsPage.jsx';
 import { TenantsPage } from './pages/TenantsPage.jsx';
+import { TenantPortalPage } from './pages/TenantPortalPage.jsx';
 import { applyPreferences, loadPreferences } from './services/preferences.js';
+import { getStoredUser } from './services/sessionStorage.js';
+
+function RoleHome() {
+  const user = getStoredUser();
+
+  if (user?.role === 'tenant') {
+    return <Navigate to="/tenant-portal" replace />;
+  }
+
+  return <DashboardPage />;
+}
 
 export default function App() {
   useEffect(() => {
@@ -20,21 +33,24 @@ export default function App() {
   }, []);
 
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route element={<ProtectedRoute />}>
-        <Route path="/change-password" element={<ChangePasswordPage />} />
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/rooms" element={<RoomsPage />} />
-          <Route path="/tenants" element={<TenantsPage />} />
-          <Route path="/contracts" element={<ContractsPage />} />
-          <Route path="/payments" element={<PaymentsPage />} />
-          <Route path="/services" element={<ServicesPage />} />
-          <Route path="/help" element={<HelpSupportPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+    <ToastProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<RoleHome />} />
+            <Route path="/tenant-portal" element={<TenantPortalPage />} />
+            <Route path="/rooms" element={<RoomsPage />} />
+            <Route path="/tenants" element={<TenantsPage />} />
+            <Route path="/contracts" element={<ContractsPage />} />
+            <Route path="/payments" element={<PaymentsPage />} />
+            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/help" element={<HelpSupportPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
         </Route>
-      </Route>
-    </Routes>
+      </Routes>
+    </ToastProvider>
   );
 }

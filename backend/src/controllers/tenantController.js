@@ -47,6 +47,15 @@ async function syncRelatedRoomStatuses(...roomIds) {
   await Promise.all(uniqueRoomIds.map((roomId) => syncRoomStatus(roomId)));
 }
 
+const tenantPopulate = [
+  { path: 'room', select: 'name floor price maxOccupants status' },
+  {
+    path: 'user',
+    select:
+      'fullName email username role isActive mustChangePassword temporaryPasswordExpiresAt',
+  },
+];
+
 export async function listTenants(req, res, next) {
   try {
     const { room, page = 1, limit = 20 } = req.query;
@@ -55,10 +64,11 @@ export async function listTenants(req, res, next) {
     const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
     if (room) filters.room = room;
+    if (req.user.role === 'tenant') filters.user = req.user._id;
 
     const [tenants, total] = await Promise.all([
       Tenant.find(filters)
-        .populate('room', 'name floor price maxOccupants status')
+        .populate(tenantPopulate)
         .sort({ fullName: 1 })
         .skip((safePage - 1) * safeLimit)
         .limit(safeLimit),
@@ -80,10 +90,14 @@ export async function listTenants(req, res, next) {
 
 export async function getTenant(req, res, next) {
   try {
-    const tenant = await Tenant.findOne({
+    const filters = {
       _id: req.params.id,
       deletedAt: null,
-    }).populate('room', 'name floor price maxOccupants status');
+    };
+
+    if (req.user.role === 'tenant') filters.user = req.user._id;
+
+    const tenant = await Tenant.findOne(filters).populate(tenantPopulate);
 
     if (!tenant) {
       throw createHttpError(404, 'Không tìm thấy khách thuê');
@@ -99,10 +113,7 @@ export async function createTenant(req, res, next) {
   try {
     const tenant = await Tenant.create(await normalizeTenantPayload(req.body));
     await syncRelatedRoomStatuses(tenant.room);
-    const populatedTenant = await tenant.populate(
-      'room',
-      'name floor price maxOccupants status',
-    );
+    const populatedTenant = await tenant.populate(tenantPopulate);
 
     res.status(201).json({
       data: populatedTenant,
@@ -131,7 +142,7 @@ export async function updateTenant(req, res, next) {
         new: true,
         runValidators: true,
       },
-    ).populate('room', 'name floor price maxOccupants status');
+    ).populate(tenantPopulate);
 
     await syncRelatedRoomStatuses(currentTenant.room, tenant.room);
 
@@ -159,7 +170,7 @@ export async function deleteTenant(req, res, next) {
       { _id: req.params.id, deletedAt: null },
       { deletedAt: new Date() },
       { new: true },
-    ).populate('room', 'name floor price maxOccupants status');
+    ).populate(tenantPopulate);
 
     await syncRelatedRoomStatuses(currentTenant.room);
 

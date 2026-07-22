@@ -1,6 +1,7 @@
 import { Contract } from '../models/Contract.js';
 import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
+import { Tenant } from '../models/Tenant.js';
 import { UtilityReading } from '../models/UtilityReading.js';
 import { createHttpError } from '../utils/httpError.js';
 
@@ -38,6 +39,21 @@ function parseDueDate(value) {
   }
 
   return dueDate;
+}
+
+async function getTenantIdForUser(userId) {
+  const tenant = await Tenant.findOne({ user: userId, deletedAt: null }).select(
+    '_id',
+  );
+
+  if (!tenant) {
+    throw createHttpError(
+      404,
+      'Khong tim thay ho so khach thue lien ket voi tai khoan nay',
+    );
+  }
+
+  return tenant._id;
 }
 
 function buildInvoiceItems(contract, reading) {
@@ -126,6 +142,10 @@ export async function listInvoices(req, res, next) {
     if (contract) filters.contract = contract;
     if (status) filters.status = status;
 
+    if (req.user.role === 'tenant') {
+      filters.tenant = await getTenantIdForUser(req.user._id);
+    }
+
     if (month || year) {
       const normalized = normalizeMonthYear(month, year);
       filters.month = normalized.month;
@@ -144,9 +164,13 @@ export async function listInvoices(req, res, next) {
 
 export async function getInvoice(req, res, next) {
   try {
-    const invoice = await Invoice.findById(req.params.id).populate(
-      invoicePopulate,
-    );
+    const filters = { _id: req.params.id };
+
+    if (req.user.role === 'tenant') {
+      filters.tenant = await getTenantIdForUser(req.user._id);
+    }
+
+    const invoice = await Invoice.findOne(filters).populate(invoicePopulate);
 
     if (!invoice) {
       throw createHttpError(404, 'Không tìm thấy hóa đơn');

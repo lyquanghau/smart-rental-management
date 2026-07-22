@@ -24,8 +24,8 @@ const roomRules = {
   status: [oneOf('Trạng thái', ['available', 'occupied', 'maintenance'])],
 };
 
-router.get('/', listRooms);
-router.get('/:id', getRoom);
+router.get('/', requireAuth, requireRole('landlord'), listRooms);
+router.get('/:id', requireAuth, requireRole('landlord'), getRoom);
 router.post(
   '/',
   requireAuth,

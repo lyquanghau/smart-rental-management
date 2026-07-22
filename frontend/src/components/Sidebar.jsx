@@ -6,6 +6,7 @@ import {
   DoorOpen,
   FileText,
   Gauge,
+  Home,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -33,6 +34,10 @@ const utilityLinks = [
   { to: '/settings', labelKey: 'settings', icon: Settings },
 ];
 
+const tenantLinks = [
+  { to: '/tenant-portal', labelKey: 'tenantPortal', icon: Home },
+];
+
 const labels = {
   en: {
     account: 'Account',
@@ -49,6 +54,7 @@ const labels = {
     services: 'Services',
     settings: 'Settings',
     signOut: 'Sign out',
+    tenantPortal: 'Tenant portal',
     utilityNav: 'Help and settings',
   },
   vi: {
@@ -83,6 +89,9 @@ export function Sidebar({ isCollapsed, onToggle }) {
   const user = getStoredUser();
   const { language } = usePreferences();
   const text = labels[language] || labels.vi;
+  const isTenant = user?.role === 'tenant';
+  const tenantPortalLabel =
+    language === 'en' ? text.tenantPortal : 'Cong khach thue';
   const toggleLabel = isCollapsed ? 'Mở thanh bên' : 'Thu gọn thanh bên';
   const toggleIcon = isCollapsed ? 'arrow_forward' : 'arrow_back';
 
@@ -132,13 +141,25 @@ export function Sidebar({ isCollapsed, onToggle }) {
         </div>
         <nav className="nav" aria-label={text.mainNav}>
           <span className="nav-section">{text.operations}</span>
-          {mainLinks.map((item) => (
-            <NavItem key={item.to} {...item} label={text[item.labelKey]} />
+          {(isTenant ? tenantLinks : mainLinks).map((item) => (
+            <NavItem
+              key={item.to}
+              {...item}
+              label={
+                item.labelKey === 'tenantPortal'
+                  ? tenantPortalLabel
+                  : text[item.labelKey]
+              }
+            />
           ))}
-          <span className="nav-section">{text.finance}</span>
-          {financeLinks.map((item) => (
-            <NavItem key={item.to} {...item} label={text[item.labelKey]} />
-          ))}
+          {!isTenant ? (
+            <>
+              <span className="nav-section">{text.finance}</span>
+              {financeLinks.map((item) => (
+                <NavItem key={item.to} {...item} label={text[item.labelKey]} />
+              ))}
+            </>
+          ) : null}
         </nav>
       </div>
 

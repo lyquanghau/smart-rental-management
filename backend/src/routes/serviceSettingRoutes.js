@@ -16,7 +16,7 @@ const settingRules = {
   parkingFeePerVehicle: [minNumber('Phí gửi xe', 0)],
 };
 
-router.get('/', requireAuth, getServiceSetting);
+router.get('/', requireAuth, requireRole('landlord'), getServiceSetting);
 router.put(
   '/',
   requireAuth,

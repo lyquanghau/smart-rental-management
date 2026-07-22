@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { Edit3, KeyRound, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { Modal } from '../components/Modal.jsx';
+import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
+import { unlockUser } from '../services/authService.js';
 import { getRooms } from '../services/roomService.js';
 import {
   createTenant,
@@ -42,6 +44,8 @@ const copy = {
     reload: 'Reload',
     room: 'Room',
     saving: 'Saving...',
+    saved: 'Tenant saved.',
+    deleted: 'Tenant deleted.',
     tenant: 'Tenant',
     tenants: 'Tenants',
     unassigned: 'Unassigned',
@@ -71,11 +75,50 @@ const copy = {
     reload: 'Tải lại',
     room: 'Phòng',
     saving: 'Đang lưu...',
+    saved: 'Đã lưu thông tin khách thuê.',
+    deleted: 'Đã xóa khách thuê.',
     tenant: 'Khách thuê',
     tenants: 'Khách thuê',
     unassigned: 'Chưa gán phòng',
     update: 'Cập nhật',
     updateTenant: 'Cập nhật khách thuê',
+  },
+};
+
+const accountCopy = {
+  en: {
+    account: 'Account',
+    accountActive: 'Active account',
+    accountLocked: 'Locked account',
+    accountNoLogin: 'No login account',
+    accountTemporary: 'Temporary password',
+    confirmResetPassword: (name) =>
+      `Reset login password for ${name}? A new temporary password will be generated.`,
+    credentialNote:
+      'The temporary password is shown once. Ask the tenant to change it after login.',
+    newCredentialTitle: 'Give this login to the tenant',
+    passwordDeadline: 'Password change deadline',
+    resetPassword: 'Reset password',
+    resetPasswordSuccess: 'Temporary password generated.',
+    tempPassword: 'Temporary password',
+    username: 'Username',
+  },
+  vi: {
+    account: 'Tai khoan',
+    accountActive: 'Dang hoat dong',
+    accountLocked: 'Dang bi khoa',
+    accountNoLogin: 'Chua co tai khoan',
+    accountTemporary: 'Mat khau tam',
+    confirmResetPassword: (name) =>
+      `Cap lai mat khau dang nhap cho ${name}? He thong se tao mat khau tam moi.`,
+    credentialNote:
+      'Mat khau tam chi hien thi mot lan. Nhac khach thue doi sau khi dang nhap.',
+    newCredentialTitle: 'Gui thong tin nay cho khach thue',
+    passwordDeadline: 'Han doi mat khau',
+    resetPassword: 'Cap lai mat khau',
+    resetPasswordSuccess: 'Da tao mat khau tam.',
+    tempPassword: 'Mat khau tam',
+    username: 'Ten dang nhap',
   },
 };
 
@@ -99,13 +142,31 @@ function toPayload(formData) {
   };
 }
 
+function formatDate(value, text) {
+  if (!value) return text.accountNoLogin;
+  return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
+}
+
+function getAccountStatus(tenant, text) {
+  if (!tenant.user) return text.accountNoLogin;
+  if (!tenant.user.isActive) return text.accountLocked;
+  if (tenant.user.mustChangePassword) return text.accountTemporary;
+  return text.accountActive;
+}
+
 export function TenantsPage() {
   const { language } = usePreferences();
-  const text = copy[language] || copy.vi;
+  const { showError, showSuccess } = useToast();
+  const text = {
+    ...(copy[language] || copy.vi),
+    ...(accountCopy[language] || accountCopy.vi),
+  };
   const [tenants, setTenants] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [formData, setFormData] = useState(emptyForm);
   const [editingTenantId, setEditingTenantId] = useState('');
+  const [credential, setCredential] = useState(null);
+  const [resettingUserId, setResettingUserId] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -138,6 +199,7 @@ export function TenantsPage() {
       setRooms(roomData);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -163,12 +225,14 @@ export function TenantsPage() {
   function startCreate() {
     setFormData(emptyForm);
     setEditingTenantId('');
+    setCredential(null);
     setError('');
     setIsFormOpen(true);
   }
 
   function startEdit(tenant) {
     setEditingTenantId(tenant._id);
+    setCredential(null);
     setFormData(toFormData(tenant));
     setError('');
     setIsFormOpen(true);
@@ -188,8 +252,10 @@ export function TenantsPage() {
 
       resetForm();
       await loadData();
+      showSuccess(text.saved);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -206,8 +272,38 @@ export function TenantsPage() {
       await deleteTenant(tenant._id);
       if (editingTenantId === tenant._id) resetForm();
       await loadData();
+      showSuccess(text.deleted);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
+    }
+  }
+
+  async function handleResetPassword(tenant) {
+    if (!tenant.user?._id) return;
+
+    const confirmed = window.confirm(
+      text.confirmResetPassword(tenant.fullName),
+    );
+
+    if (!confirmed) return;
+
+    setError('');
+    setResettingUserId(tenant.user._id);
+
+    try {
+      const data = await unlockUser(tenant.user._id);
+      setCredential({
+        tenantName: tenant.fullName,
+        ...data,
+      });
+      await loadData();
+      showSuccess(text.resetPasswordSuccess);
+    } catch (err) {
+      setError(err.message);
+      showError(err.message);
+    } finally {
+      setResettingUserId('');
     }
   }
 
@@ -236,6 +332,25 @@ export function TenantsPage() {
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}
+
+      {credential ? (
+        <div className="credential-panel account-credential-panel">
+          <strong>{text.newCredentialTitle}</strong>
+          <span>{credential.tenantName}</span>
+          <span>
+            {text.username}: {credential.user.username}
+          </span>
+          <span>Email: {credential.user.email}</span>
+          <span>
+            {text.tempPassword}: {credential.temporaryPassword}
+          </span>
+          <span>
+            {text.passwordDeadline}:{' '}
+            {formatDate(credential.user.temporaryPasswordExpiresAt, text)}
+          </span>
+          <small>{text.credentialNote}</small>
+        </div>
+      ) : null}
 
       <Modal
         isOpen={isFormOpen}
@@ -333,6 +448,7 @@ export function TenantsPage() {
                   <th>{text.tenant}</th>
                   <th>{text.contact}</th>
                   <th>{text.room}</th>
+                  <th>{text.account}</th>
                   <th>{text.actions}</th>
                 </tr>
               </thead>
@@ -360,7 +476,30 @@ export function TenantsPage() {
                       )}
                     </td>
                     <td>
+                      <strong>{getAccountStatus(tenant, text)}</strong>
+                      {tenant.user ? (
+                        <span>{tenant.user.username || tenant.user.email}</span>
+                      ) : null}
+                    </td>
+                    <td>
                       <div className="row-actions">
+                        {tenant.user ? (
+                          <button
+                            className="secondary-button"
+                            disabled={resettingUserId === tenant.user._id}
+                            type="button"
+                            onClick={() => handleResetPassword(tenant)}
+                          >
+                            <KeyRound
+                              className="button-icon"
+                              size={16}
+                              strokeWidth={2.5}
+                            />
+                            {resettingUserId === tenant.user._id
+                              ? text.saving
+                              : text.resetPassword}
+                          </button>
+                        ) : null}
                         <button type="button" onClick={() => startEdit(tenant)}>
                           <Edit3
                             className="button-icon"

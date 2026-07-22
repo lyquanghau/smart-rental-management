@@ -7,6 +7,7 @@ import {
   Settings2,
   Zap,
 } from 'lucide-react';
+import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { getContracts } from '../services/contractService.js';
 import {
@@ -74,6 +75,9 @@ const copy = {
     saveReading: 'Save reading',
     saveSetting: 'Save service prices',
     saving: 'Saving...',
+    settingsSaved: 'Service prices saved.',
+    readingSaved: 'Utility reading saved.',
+    invoicesGenerated: 'Monthly invoices generated.',
     selectContract: 'Select active contract',
     serviceAmount: 'Services',
     serviceSettings: 'Service prices',
@@ -115,6 +119,9 @@ const copy = {
     saveReading: 'Lưu chỉ số',
     saveSetting: 'Lưu đơn giá',
     saving: 'Đang lưu...',
+    settingsSaved: 'Đã lưu đơn giá dịch vụ.',
+    readingSaved: 'Đã lưu chỉ số điện nước.',
+    invoicesGenerated: 'Đã tạo hóa đơn tháng.',
     selectContract: 'Chọn hợp đồng active',
     serviceAmount: 'Dịch vụ',
     serviceSettings: 'Đơn giá dịch vụ',
@@ -188,6 +195,7 @@ function formatDateInput(value) {
 
 export function ServicesPage() {
   const { language } = usePreferences();
+  const { showError, showSuccess } = useToast();
   const text = copy[language] || copy.vi;
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
   const [year, setYear] = useState(currentDate.getFullYear());
@@ -276,6 +284,7 @@ export function ServicesPage() {
       setInvoices(invoiceData);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -320,8 +329,10 @@ export function ServicesPage() {
     try {
       const setting = await updateServiceSetting(toSettingPayload(settingForm));
       setSettingForm(toSettingForm(setting));
+      showSuccess(text.settingsSaved);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsSavingSetting(false);
     }
@@ -336,8 +347,10 @@ export function ServicesPage() {
       await saveUtilityReading(toReadingPayload(readingForm, month, year));
       setReadingForm(emptyReadingForm);
       await loadData();
+      showSuccess(text.readingSaved);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsSavingReading(false);
     }
@@ -350,8 +363,10 @@ export function ServicesPage() {
     try {
       await generateMonthlyInvoices({ month, year, dueDate });
       await loadData();
+      showSuccess(text.invoicesGenerated);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsGenerating(false);
     }

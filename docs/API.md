@@ -299,6 +299,16 @@ Response:
         "price": 2700000,
         "status": "occupied"
       },
+      "user": {
+        "_id": "...",
+        "fullName": "Nguyen Van An",
+        "email": "an@example.com",
+        "username": "0901000001",
+        "role": "tenant",
+        "isActive": true,
+        "mustChangePassword": false,
+        "temporaryPasswordExpiresAt": null
+      },
       "deletedAt": null
     }
   ],
@@ -328,6 +338,16 @@ Response:
       "floor": 1,
       "price": 2700000,
       "status": "occupied"
+    },
+    "user": {
+      "_id": "...",
+      "fullName": "Nguyen Van An",
+      "email": "an@example.com",
+      "username": "0901000001",
+      "role": "tenant",
+      "isActive": true,
+      "mustChangePassword": false,
+      "temporaryPasswordExpiresAt": null
     },
     "deletedAt": null
   }

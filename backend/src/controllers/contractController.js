@@ -180,6 +180,21 @@ async function ensureTenantAccount(tenantId) {
   };
 }
 
+async function getTenantIdForUser(userId) {
+  const tenant = await Tenant.findOne({ user: userId, deletedAt: null }).select(
+    '_id',
+  );
+
+  if (!tenant) {
+    throw createHttpError(
+      404,
+      'Khong tim thay ho so khach thue lien ket voi tai khoan nay',
+    );
+  }
+
+  return tenant._id;
+}
+
 function buildContractPdf(contract, res) {
   const room = contract.room || {};
   const tenant = contract.tenant || {};
@@ -488,6 +503,10 @@ export async function listContracts(req, res, next) {
     if (tenant) filters.tenant = tenant;
     if (status) filters.status = status;
 
+    if (req.user.role === 'tenant') {
+      filters.tenant = await getTenantIdForUser(req.user._id);
+    }
+
     const [contracts, total] = await Promise.all([
       Contract.find(filters)
         .populate(contractPopulate)
@@ -512,9 +531,13 @@ export async function listContracts(req, res, next) {
 
 export async function getContract(req, res, next) {
   try {
-    const contract = await Contract.findById(req.params.id).populate(
-      contractPopulate,
-    );
+    const filters = { _id: req.params.id };
+
+    if (req.user.role === 'tenant') {
+      filters.tenant = await getTenantIdForUser(req.user._id);
+    }
+
+    const contract = await Contract.findOne(filters).populate(contractPopulate);
 
     if (!contract) {
       throw createHttpError(404, 'Không tìm thấy hợp đồng');
@@ -528,9 +551,13 @@ export async function getContract(req, res, next) {
 
 export async function downloadContractPdf(req, res, next) {
   try {
-    const contract = await Contract.findById(req.params.id).populate(
-      contractPopulate,
-    );
+    const filters = { _id: req.params.id };
+
+    if (req.user.role === 'tenant') {
+      filters.tenant = await getTenantIdForUser(req.user._id);
+    }
+
+    const contract = await Contract.findOne(filters).populate(contractPopulate);
 
     if (!contract) {
       throw createHttpError(404, 'Không tìm thấy hợp đồng');

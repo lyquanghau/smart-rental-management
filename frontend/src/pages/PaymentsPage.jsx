@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { Modal } from '../components/Modal.jsx';
+import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { getContracts } from '../services/contractService.js';
 import { formatCurrency } from '../services/preferences.js';
@@ -52,6 +53,9 @@ const copy = {
     rentService: (rent, service) => `Rent ${rent} · Services ${service}`,
     reload: 'Reload',
     saving: 'Saving...',
+    saved: 'Payment saved.',
+    markedPaid: 'Payment marked as collected.',
+    cancelled: 'Payment cancelled.',
     selectContract: 'Select contract',
     selectContractHelp: 'Select an active contract to create a payment.',
     status: 'Status',
@@ -102,6 +106,9 @@ const copy = {
     rentService: (rent, service) => `Phòng ${rent} · Dịch vụ ${service}`,
     reload: 'Tải lại',
     saving: 'Đang lưu...',
+    saved: 'Đã lưu khoản thu.',
+    markedPaid: 'Đã ghi nhận khoản thu.',
+    cancelled: 'Đã hủy khoản thu.',
     selectContract: 'Chọn hợp đồng',
     selectContractHelp: 'Chọn hợp đồng active để tạo khoản thu.',
     status: 'Trạng thái',
@@ -183,6 +190,7 @@ function toPayload(formData) {
 
 export function PaymentsPage() {
   const { language } = usePreferences();
+  const { showError, showSuccess } = useToast();
   const text = copy[language] || copy.vi;
   const [payments, setPayments] = useState([]);
   const [contracts, setContracts] = useState([]);
@@ -218,6 +226,7 @@ export function PaymentsPage() {
       setContracts(contractData);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -283,8 +292,10 @@ export function PaymentsPage() {
 
       resetForm();
       await loadData();
+      showSuccess(text.saved);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -311,8 +322,10 @@ export function PaymentsPage() {
       });
       if (editingPaymentId === payment._id) resetForm();
       await loadData();
+      showSuccess(text.markedPaid);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     }
   }
 
@@ -331,8 +344,10 @@ export function PaymentsPage() {
       await cancelPayment(payment._id, { note: payment.note });
       if (editingPaymentId === payment._id) resetForm();
       await loadData();
+      showSuccess(text.cancelled);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     }
   }
 

@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import { Modal } from '../components/Modal.jsx';
+import { useToast } from '../components/ToastProvider.jsx';
 import {
   createContract,
   deleteContract,
@@ -66,6 +67,10 @@ const copy = {
     reload: 'Reload',
     room: 'Room',
     saving: 'Saving...',
+    saved: 'Contract saved.',
+    ended: 'Contract ended.',
+    pdfReady: 'Contract PDF preview is ready.',
+    pdfDownloaded: 'PDF download started.',
     tempAccountTitle: 'New tenant account created',
     tempPassword: 'Temporary password',
     passwordDeadline: 'Password change deadline',
@@ -133,6 +138,10 @@ const copy = {
     reload: 'Tải lại',
     room: 'Phòng',
     saving: 'Đang lưu...',
+    saved: 'Đã lưu hợp đồng.',
+    ended: 'Đã kết thúc hợp đồng.',
+    pdfReady: 'Đã mở bản xem trước PDF.',
+    pdfDownloaded: 'Đang tải file PDF.',
     tempAccountTitle: 'Tài khoản khách thuê vừa tạo',
     tempPassword: 'Mật khẩu tạm',
     passwordDeadline: 'Hạn đổi mật khẩu',
@@ -271,6 +280,7 @@ function toPayload(formData) {
 
 export function ContractsPage() {
   const { language } = usePreferences();
+  const { showError, showSuccess } = useToast();
   const text = copy[language] || copy.vi;
   const [contracts, setContracts] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -326,6 +336,7 @@ export function ContractsPage() {
       setTenants(tenantData);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -408,8 +419,10 @@ export function ContractsPage() {
         filename: `hop-dong-${roomName}.pdf`,
         url,
       });
+      showSuccess(text.pdfReady);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setDownloadingContractId('');
     }
@@ -431,8 +444,10 @@ export function ContractsPage() {
 
       resetForm();
       await loadData();
+      showSuccess(text.saved);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -453,8 +468,10 @@ export function ContractsPage() {
       await deleteContract(contract._id);
       if (editingContractId === contract._id) resetForm();
       await loadData();
+      showSuccess(text.ended);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     }
   }
 
@@ -467,6 +484,7 @@ export function ContractsPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      showSuccess(text.pdfDownloaded);
       return;
     }
 
@@ -485,8 +503,10 @@ export function ContractsPage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      showSuccess(text.pdfDownloaded);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setDownloadingContractId('');
     }

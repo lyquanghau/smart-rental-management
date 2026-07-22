@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Edit3, Eye, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { Modal } from '../components/Modal.jsx';
 import { RoomStatusBadge } from '../components/RoomStatusBadge.jsx';
+import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { formatCurrency } from '../services/preferences.js';
 import {
@@ -52,6 +53,8 @@ const copy = {
     roomDetails: 'Room details',
     rooms: 'rooms',
     saving: 'Saving...',
+    saved: 'Room saved.',
+    deleted: 'Room deleted.',
     update: 'Update',
     updateRoom: 'Update room',
     statusOptions: [
@@ -92,6 +95,8 @@ const copy = {
     roomDetails: 'Chi tiết phòng',
     rooms: 'phòng',
     saving: 'Đang lưu...',
+    saved: 'Đã lưu thông tin phòng.',
+    deleted: 'Đã xóa phòng.',
     update: 'Cập nhật',
     updateRoom: 'Cập nhật phòng',
     statusOptions: [
@@ -129,6 +134,7 @@ function formatMoney(value) {
 
 export function RoomsPage() {
   const { language } = usePreferences();
+  const { showError, showSuccess } = useToast();
   const text = copy[language] || copy.vi;
   const editableStatusOptions = text.statusOptions.filter(
     (option) => option.value,
@@ -164,6 +170,7 @@ export function RoomsPage() {
       }
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -220,6 +227,7 @@ export function RoomsPage() {
       setSelectedRoom(data);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
       setIsDetailOpen(false);
     } finally {
       setIsDetailLoading(false);
@@ -241,8 +249,10 @@ export function RoomsPage() {
       resetForm();
       await loadRooms();
       if (selectedRoom) await loadRoomDetail(selectedRoom._id);
+      showSuccess(text.saved);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -263,8 +273,10 @@ export function RoomsPage() {
         setIsDetailOpen(false);
       }
       await loadRooms();
+      showSuccess(text.deleted);
     } catch (err) {
       setError(err.message);
+      showError(err.message);
     }
   }
 
