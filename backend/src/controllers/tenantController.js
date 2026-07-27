@@ -1,10 +1,12 @@
 import { Room } from '../models/Room.js';
 import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
+import { ownerFilter } from '../utils/ownership.js';
 
-async function normalizeTenantPayload(body) {
+async function normalizeTenantPayload(body, ownerId) {
   const room = body.room || null;
   const payload = {
+    owner: ownerId,
     fullName: body.fullName?.trim(),
     phone: body.phone?.trim(),
     email: body.email?.trim() || null,
@@ -13,7 +15,11 @@ async function normalizeTenantPayload(body) {
   };
 
   if (room) {
-    const existingRoom = await Room.findOne({ _id: room, deletedAt: null });
+    const existingRoom = await Room.findOne({
+      _id: room,
+      owner: ownerId,
+      deletedAt: null,
+    });
 
     if (!existingRoom) {
       throw createHttpError(400, 'Phòng không tồn tại');
@@ -23,14 +29,19 @@ async function normalizeTenantPayload(body) {
   return payload;
 }
 
-async function syncRoomStatus(roomId) {
+async function syncRoomStatus(ownerId, roomId) {
   if (!roomId) return;
 
-  const room = await Room.findOne({ _id: roomId, deletedAt: null });
+  const room = await Room.findOne({
+    _id: roomId,
+    owner: ownerId,
+    deletedAt: null,
+  });
 
   if (!room || room.status === 'maintenance') return;
 
   const activeTenantCount = await Tenant.countDocuments({
+    owner: ownerId,
     room: roomId,
     deletedAt: null,
   });
@@ -39,12 +50,14 @@ async function syncRoomStatus(roomId) {
   await room.save();
 }
 
-async function syncRelatedRoomStatuses(...roomIds) {
+async function syncRelatedRoomStatuses(ownerId, ...roomIds) {
   const uniqueRoomIds = [
     ...new Set(roomIds.filter(Boolean).map((roomId) => String(roomId))),
   ];
 
-  await Promise.all(uniqueRoomIds.map((roomId) => syncRoomStatus(roomId)));
+  await Promise.all(
+    uniqueRoomIds.map((roomId) => syncRoomStatus(ownerId, roomId)),
+  );
 }
 
 const tenantPopulate = [
@@ -59,7 +72,10 @@ const tenantPopulate = [
 export async function listTenants(req, res, next) {
   try {
     const { room, page = 1, limit = 20 } = req.query;
-    const filters = { deletedAt: null };
+    const filters =
+      req.user.role === 'landlord'
+        ? ownerFilter(req, { deletedAt: null })
+        : { deletedAt: null };
     const safePage = Math.max(Number(page) || 1, 1);
     const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
@@ -95,6 +111,7 @@ export async function getTenant(req, res, next) {
       deletedAt: null,
     };
 
+    if (req.user.role === 'landlord') filters.owner = req.user._id;
     if (req.user.role === 'tenant') filters.user = req.user._id;
 
     const tenant = await Tenant.findOne(filters).populate(tenantPopulate);
@@ -111,8 +128,10 @@ export async function getTenant(req, res, next) {
 
 export async function createTenant(req, res, next) {
   try {
-    const tenant = await Tenant.create(await normalizeTenantPayload(req.body));
-    await syncRelatedRoomStatuses(tenant.room);
+    const tenant = await Tenant.create(
+      await normalizeTenantPayload(req.body, req.user._id),
+    );
+    await syncRelatedRoomStatuses(req.user._id, tenant.room);
     const populatedTenant = await tenant.populate(tenantPopulate);
 
     res.status(201).json({
@@ -128,6 +147,7 @@ export async function updateTenant(req, res, next) {
   try {
     const currentTenant = await Tenant.findOne({
       _id: req.params.id,
+      owner: req.user._id,
       deletedAt: null,
     });
 
@@ -136,15 +156,19 @@ export async function updateTenant(req, res, next) {
     }
 
     const tenant = await Tenant.findOneAndUpdate(
-      { _id: req.params.id, deletedAt: null },
-      await normalizeTenantPayload(req.body),
+      ownerFilter(req, { _id: req.params.id, deletedAt: null }),
+      await normalizeTenantPayload(req.body, req.user._id),
       {
         new: true,
         runValidators: true,
       },
     ).populate(tenantPopulate);
 
-    await syncRelatedRoomStatuses(currentTenant.room, tenant.room);
+    await syncRelatedRoomStatuses(
+      req.user._id,
+      currentTenant.room,
+      tenant.room,
+    );
 
     res.json({
       data: tenant,
@@ -159,6 +183,7 @@ export async function deleteTenant(req, res, next) {
   try {
     const currentTenant = await Tenant.findOne({
       _id: req.params.id,
+      owner: req.user._id,
       deletedAt: null,
     });
 
@@ -167,12 +192,12 @@ export async function deleteTenant(req, res, next) {
     }
 
     const tenant = await Tenant.findOneAndUpdate(
-      { _id: req.params.id, deletedAt: null },
+      ownerFilter(req, { _id: req.params.id, deletedAt: null }),
       { deletedAt: new Date() },
       { new: true },
     ).populate(tenantPopulate);
 
-    await syncRelatedRoomStatuses(currentTenant.room);
+    await syncRelatedRoomStatuses(req.user._id, currentTenant.room);
 
     res.json({
       data: tenant,

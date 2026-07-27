@@ -2,6 +2,12 @@ import mongoose from 'mongoose';
 
 const utilityReadingSchema = new mongoose.Schema(
   {
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
     room: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Room',
@@ -98,8 +104,11 @@ const utilityReadingSchema = new mongoose.Schema(
   },
 );
 
-utilityReadingSchema.index({ room: 1, month: 1, year: 1 }, { unique: true });
-utilityReadingSchema.index({ contract: 1, month: 1, year: 1 });
+utilityReadingSchema.index(
+  { owner: 1, room: 1, month: 1, year: 1 },
+  { unique: true },
+);
+utilityReadingSchema.index({ owner: 1, contract: 1, month: 1, year: 1 });
 
 export const UtilityReading = mongoose.model(
   'UtilityReading',

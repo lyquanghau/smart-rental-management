@@ -25,6 +25,10 @@ export const env = {
   mongodbUri: process.env.MONGODB_URI,
   jwtSecret: process.env.JWT_SECRET,
   clientUrls: parseClientUrls(),
+  allowPublicRegistration:
+    process.env.ALLOW_PUBLIC_REGISTRATION === undefined
+      ? process.env.NODE_ENV !== 'production'
+      : process.env.ALLOW_PUBLIC_REGISTRATION === 'true',
   rateLimitWindowMs: parseNumber(process.env.RATE_LIMIT_WINDOW_MS, 900000),
   rateLimitMax: parseNumber(process.env.RATE_LIMIT_MAX, 300),
 };
@@ -39,5 +43,21 @@ export function validateEnv() {
     throw new Error(
       `Missing required environment variables: ${missing.join(', ')}`,
     );
+  }
+
+  if (env.nodeEnv === 'production') {
+    if (env.jwtSecret === 'change_me' || env.jwtSecret.length < 32) {
+      throw new Error(
+        'JWT_SECRET must be changed to a strong secret with at least 32 characters in production',
+      );
+    }
+
+    if (env.mongodbUri.includes('<') || env.mongodbUri.includes('>')) {
+      throw new Error('MONGODB_URI still contains placeholder values');
+    }
+
+    if (env.clientUrls.includes('*')) {
+      throw new Error('CLIENT_URLS cannot include "*" in production');
+    }
   }
 }

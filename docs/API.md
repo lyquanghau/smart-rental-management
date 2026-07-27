@@ -9,6 +9,9 @@ http://localhost:5000/api
 ## Bảo vệ API
 
 - Backend dùng JWT Bearer Token cho các route nghiệp vụ.
+- Dữ liệu nghiệp vụ dùng multi-tenant isolation theo `owner`: mỗi chủ trọ chỉ truy cập được
+  phòng, khách thuê, hợp đồng, hóa đơn, chỉ số dịch vụ, cấu hình dịch vụ và thanh toán do tài khoản
+  chủ trọ đó sở hữu. Trường `owner` là dữ liệu nội bộ backend, frontend không cần gửi.
 - CORS chỉ cho phép frontend origin khai báo trong `CLIENT_URL` hoặc `CLIENT_URLS`.
 - Backend dùng `express-rate-limit` với giới hạn mặc định `300` request trong `15` phút cho mỗi IP. Có thể chỉnh bằng:
 
@@ -59,6 +62,8 @@ Response:
 
 Ghi chú nghiệp vụ:
 
+- `POST /auth/register` là endpoint tạo tài khoản chủ trọ, không dùng để khách thuê tự đăng ký.
+- Trong production, đăng ký công khai chỉ hoạt động khi backend đặt `ALLOW_PUBLIC_REGISTRATION=true`.
 - Frontend không có form đăng ký public cho khách thuê.
 - Tài khoản khách thuê được hệ thống tạo khi chủ trọ tạo hợp đồng hiệu lực cho khách thuê chưa có tài khoản.
 - Tài khoản dùng mật khẩu tạm trong 3 ngày. Nếu khách thuê không đổi mật khẩu trong thời hạn này,
@@ -76,6 +81,11 @@ Request:
   "role": "landlord"
 }
 ```
+
+Ghi chú:
+
+- `role` optional, mặc định là `landlord`.
+- Không cho phép đăng ký công khai với `role=tenant`; tài khoản khách thuê phải được tạo qua luồng hợp đồng.
 
 ### POST /auth/login
 
@@ -441,7 +451,8 @@ Ghi chú:
 - Không cho tạo thêm hợp đồng `active` nếu phòng đã có hợp đồng `active` khác.
 - Khi tạo hợp đồng `active` cho khách thuê chưa có tài khoản, backend tạo tài khoản `tenant` và
   trả thêm `temporaryAccount` trong response để chủ trọ gửi thông tin đăng nhập cho khách.
-- `temporaryAccount.user.username` mặc định là số điện thoại khách thuê.
+- `temporaryAccount.user.username` được sinh từ số điện thoại kèm mã tenant, ví dụ
+  `0901000001-a1b2c3`, để tránh trùng giữa nhiều chủ trọ.
 - `temporaryAccount.temporaryPassword` chỉ trả về một lần trong response tạo hợp đồng; backend chỉ lưu
   password hash, không lưu plaintext.
 

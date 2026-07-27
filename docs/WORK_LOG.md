@@ -1,5 +1,62 @@
 # Work Log
 
+## 2026-07-27
+
+### Product readiness va hardening de demo/ban thu
+
+- Kiem tra dau phien:
+  - Dang o nhanh `dev`, dong bo voi `origin/dev`.
+  - `dev`, `main`, `origin/dev`, `origin/main` cung commit `58c1e97`.
+  - Khong co nhanh local/remote nao con commit chua merge vao `main`.
+  - File phu tro/untracked tiep tuc giu ngoai commit: `chuyen_de_2.xlsx`, `code.txt`,
+    `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1667 modules.
+- Tao nhanh `feature/product-readiness` tu `dev` de lam viec, khong sua truc tiep tren `main/dev`.
+- Dinh huong san pham:
+  - MVP hien tai da du luong cot loi cho chu tro nho: phong, khach thue, hop dong, PDF,
+    hoa don dich vu, thanh toan thu cong/mock, dashboard va cong khach thue.
+  - De ban thu, uu tien on dinh deploy, bao mat cau hinh, phan quyen va demo flow thay vi them
+    cong thanh toan that khi chua co credential sandbox.
+- Hardening backend:
+  - Them `ALLOW_PUBLIC_REGISTRATION`.
+  - Mac dinh moi truong production tat dang ky cong khai neu khong bat ro bang env.
+  - Khong cho dang ky cong khai voi role `tenant`; tai khoan khach thue tiep tuc duoc tao qua
+    luong tao hop dong active.
+  - `validateEnv` chan production neu `JWT_SECRET` yeu/van la mac dinh, `MONGODB_URI` con
+    placeholder, hoac `CLIENT_URLS` dung wildcard `*`.
+- Hardening frontend:
+  - Them client-side role guard: tenant chi vao `/tenant-portal`, landlord moi vao cac trang
+    quan tri nhu phong, khach thue, hop dong, thanh toan va dich vu.
+  - Frontend API ho tro ca `VITE_API_BASE_URL` va `VITE_API_URL`, uu tien `VITE_API_BASE_URL`
+    de khop checklist deploy Vercel.
+- Multi-tenant data isolation:
+  - Them truong `owner` cho cac model nghiep vu: `Room`, `Tenant`, `Contract`, `Payment`,
+    `Invoice`, `UtilityReading`, `ServiceSetting`.
+  - Cac API landlord tu dong gan `owner = req.user._id` khi tao du lieu.
+  - Cac API landlord loc `owner = req.user._id` khi xem/sua/xoa, tranh chu tro nay doan ID
+    de doc du lieu chu tro khac.
+  - Dashboard, cau hinh dich vu, tao hoa don thang va seed data deu tach theo owner.
+  - Tai khoan khach thue sinh tu hop dong dung username/email ky thuat co ma tenant de tranh
+    trung giua nhieu chu tro co khach thue cung so dien thoai/email.
+  - API cap lai mat khau tenant chi cho phep chu tro cap lai cho tenant thuoc owner cua minh.
+- Tai lieu:
+  - Cap nhat `backend/.env.example` va `frontend/.env.example`.
+  - Cap nhat `docs/API.md`, `docs/MODULES.md`, `docs/SETUP.md`,
+    `docs/DEPLOYMENT_CHECKLIST.md`.
+  - Them `docs/PRODUCT_READINESS.md` de phan biet trang thai MVP ban thu va cac viec can lam
+    truoc khi ban thuong mai day du.
+- Kiem tra cuoi phien:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `git diff --check`: pass.
+  - `npm run build`: van loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1667 modules.
+  - Smoke check `validateEnv` voi cau hinh production hop le: pass.
+  - Smoke check import backend app: pass.
+
 ## 2026-07-22
 
 ### Product hardening: tenant login support

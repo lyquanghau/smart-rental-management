@@ -35,12 +35,11 @@ async function resetSeed() {
     Room.deleteMany({}),
   ]);
 
-  await Room.insertMany(rooms.map((room) => ({ ...room, deletedAt: null })));
-
   const usersToInsert = await Promise.all(
     users.map(async (user) => ({
       fullName: user.fullName,
       email: user.email,
+      username: user.username,
       passwordHash: await bcrypt.hash(user.password, 10),
       role: user.role,
       isActive: true,
@@ -48,24 +47,41 @@ async function resetSeed() {
   );
   await User.insertMany(usersToInsert);
 
+  const owner = await User.findOne({ email: 'admin@smartrental.local' });
+  const demoTenantUser = await User.findOne({
+    email: 'tenant@smartrental.local',
+  });
+
+  await Room.insertMany(
+    rooms.map((room) => ({ ...room, owner: owner._id, deletedAt: null })),
+  );
+
   for (const tenant of tenants) {
-    const room = await Room.findOne({ name: tenant.roomName });
+    const room = await Room.findOne({
+      owner: owner._id,
+      name: tenant.roomName,
+    });
     await Tenant.create({
+      owner: owner._id,
       fullName: tenant.fullName,
       phone: tenant.phone,
       email: tenant.email,
       identityNumber: tenant.identityNumber,
       room: room?._id,
+      ...(tenant.email === 'an@example.com' && demoTenantUser
+        ? { user: demoTenantUser._id }
+        : {}),
     });
   }
 
   for (const contractData of contracts) {
     const [room, tenant] = await Promise.all([
-      Room.findOne({ name: contractData.roomName }),
-      Tenant.findOne({ email: contractData.tenantEmail }),
+      Room.findOne({ owner: owner._id, name: contractData.roomName }),
+      Tenant.findOne({ owner: owner._id, email: contractData.tenantEmail }),
     ]);
 
     await Contract.create({
+      owner: owner._id,
       room: room._id,
       tenant: tenant._id,
       startDate: contractData.startDate,
@@ -76,10 +92,17 @@ async function resetSeed() {
   }
 
   for (const paymentData of payments) {
-    const tenant = await Tenant.findOne({ email: paymentData.tenantEmail });
-    const contract = await Contract.findOne({ tenant: tenant._id });
+    const tenant = await Tenant.findOne({
+      owner: owner._id,
+      email: paymentData.tenantEmail,
+    });
+    const contract = await Contract.findOne({
+      owner: owner._id,
+      tenant: tenant._id,
+    });
 
     await Payment.create({
+      owner: owner._id,
       contract: contract._id,
       amount: paymentData.amount,
       dueDate: paymentData.dueDate,
@@ -90,11 +113,17 @@ async function resetSeed() {
     });
   }
 
-  await ServiceSetting.create(serviceSetting);
+  await ServiceSetting.create({ ...serviceSetting, owner: owner._id });
 
   for (const readingData of utilityReadings) {
-    const tenant = await Tenant.findOne({ email: readingData.tenantEmail });
-    const contract = await Contract.findOne({ tenant: tenant._id });
+    const tenant = await Tenant.findOne({
+      owner: owner._id,
+      email: readingData.tenantEmail,
+    });
+    const contract = await Contract.findOne({
+      owner: owner._id,
+      tenant: tenant._id,
+    });
     const electricityUsage =
       readingData.electricityCurrent - readingData.electricityPrevious;
     const waterUsage = readingData.waterCurrent - readingData.waterPrevious;
@@ -111,6 +140,7 @@ async function resetSeed() {
       parkingAmount;
 
     await UtilityReading.create({
+      owner: owner._id,
       room: contract.room,
       contract: contract._id,
       month: readingData.month,
@@ -133,9 +163,16 @@ async function resetSeed() {
   }
 
   for (const invoiceData of invoices) {
-    const tenant = await Tenant.findOne({ email: invoiceData.tenantEmail });
-    const contract = await Contract.findOne({ tenant: tenant._id });
+    const tenant = await Tenant.findOne({
+      owner: owner._id,
+      email: invoiceData.tenantEmail,
+    });
+    const contract = await Contract.findOne({
+      owner: owner._id,
+      tenant: tenant._id,
+    });
     const reading = await UtilityReading.findOne({
+      owner: owner._id,
       contract: contract._id,
       month: invoiceData.month,
       year: invoiceData.year,
@@ -143,6 +180,7 @@ async function resetSeed() {
     const serviceAmount = reading?.serviceTotal || 0;
     const totalAmount = contract.monthlyPrice + serviceAmount;
     const invoice = await Invoice.create({
+      owner: owner._id,
       contract: contract._id,
       room: contract.room,
       tenant: contract.tenant,
@@ -172,6 +210,7 @@ async function resetSeed() {
     });
 
     await Payment.create({
+      owner: owner._id,
       invoice: invoice._id,
       contract: contract._id,
       amount: totalAmount,

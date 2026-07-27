@@ -24,14 +24,6 @@ async function seed() {
   validateEnv();
   await connectDatabase();
 
-  for (const room of rooms) {
-    await Room.updateOne(
-      { name: room.name },
-      { $set: { ...room, deletedAt: null } },
-      { upsert: true },
-    );
-  }
-
   for (const user of users) {
     const passwordHash = await bcrypt.hash(user.password, 10);
     await User.updateOne(
@@ -52,17 +44,37 @@ async function seed() {
     );
   }
 
+  const owner = await User.findOne({ email: 'admin@smartrental.local' });
+  const demoTenantUser = await User.findOne({
+    email: 'tenant@smartrental.local',
+  });
+
+  for (const room of rooms) {
+    await Room.updateOne(
+      { owner: owner._id, name: room.name },
+      { $set: { ...room, owner: owner._id, deletedAt: null } },
+      { upsert: true },
+    );
+  }
+
   for (const tenant of tenants) {
-    const room = await Room.findOne({ name: tenant.roomName });
+    const room = await Room.findOne({
+      owner: owner._id,
+      name: tenant.roomName,
+    });
     await Tenant.updateOne(
-      { email: tenant.email },
+      { owner: owner._id, email: tenant.email },
       {
         $set: {
+          owner: owner._id,
           fullName: tenant.fullName,
           phone: tenant.phone,
           email: tenant.email,
           identityNumber: tenant.identityNumber,
           room: room?._id,
+          ...(tenant.email === 'an@example.com' && demoTenantUser
+            ? { user: demoTenantUser._id }
+            : {}),
         },
       },
       { upsert: true },
@@ -71,14 +83,20 @@ async function seed() {
 
   for (const contractData of contracts) {
     const [room, tenant] = await Promise.all([
-      Room.findOne({ name: contractData.roomName }),
-      Tenant.findOne({ email: contractData.tenantEmail }),
+      Room.findOne({ owner: owner._id, name: contractData.roomName }),
+      Tenant.findOne({ owner: owner._id, email: contractData.tenantEmail }),
     ]);
 
     await Contract.updateOne(
-      { room: room._id, tenant: tenant._id, startDate: contractData.startDate },
+      {
+        owner: owner._id,
+        room: room._id,
+        tenant: tenant._id,
+        startDate: contractData.startDate,
+      },
       {
         $set: {
+          owner: owner._id,
           room: room._id,
           tenant: tenant._id,
           startDate: contractData.startDate,
@@ -92,13 +110,24 @@ async function seed() {
   }
 
   for (const paymentData of payments) {
-    const tenant = await Tenant.findOne({ email: paymentData.tenantEmail });
-    const contract = await Contract.findOne({ tenant: tenant._id });
+    const tenant = await Tenant.findOne({
+      owner: owner._id,
+      email: paymentData.tenantEmail,
+    });
+    const contract = await Contract.findOne({
+      owner: owner._id,
+      tenant: tenant._id,
+    });
 
     await Payment.updateOne(
-      { contract: contract._id, dueDate: paymentData.dueDate },
+      {
+        owner: owner._id,
+        contract: contract._id,
+        dueDate: paymentData.dueDate,
+      },
       {
         $set: {
+          owner: owner._id,
           contract: contract._id,
           amount: paymentData.amount,
           dueDate: paymentData.dueDate,
@@ -113,14 +142,20 @@ async function seed() {
   }
 
   await ServiceSetting.updateOne(
-    {},
-    { $set: serviceSetting },
+    { owner: owner._id },
+    { $set: { ...serviceSetting, owner: owner._id } },
     { upsert: true },
   );
 
   for (const readingData of utilityReadings) {
-    const tenant = await Tenant.findOne({ email: readingData.tenantEmail });
-    const contract = await Contract.findOne({ tenant: tenant._id });
+    const tenant = await Tenant.findOne({
+      owner: owner._id,
+      email: readingData.tenantEmail,
+    });
+    const contract = await Contract.findOne({
+      owner: owner._id,
+      tenant: tenant._id,
+    });
     const electricityUsage =
       readingData.electricityCurrent - readingData.electricityPrevious;
     const waterUsage = readingData.waterCurrent - readingData.waterPrevious;
@@ -144,6 +179,7 @@ async function seed() {
       },
       {
         $set: {
+          owner: owner._id,
           room: contract.room,
           contract: contract._id,
           month: readingData.month,
@@ -169,9 +205,16 @@ async function seed() {
   }
 
   for (const invoiceData of invoices) {
-    const tenant = await Tenant.findOne({ email: invoiceData.tenantEmail });
-    const contract = await Contract.findOne({ tenant: tenant._id });
+    const tenant = await Tenant.findOne({
+      owner: owner._id,
+      email: invoiceData.tenantEmail,
+    });
+    const contract = await Contract.findOne({
+      owner: owner._id,
+      tenant: tenant._id,
+    });
     const reading = await UtilityReading.findOne({
+      owner: owner._id,
       contract: contract._id,
       month: invoiceData.month,
       year: invoiceData.year,
@@ -180,12 +223,14 @@ async function seed() {
     const totalAmount = contract.monthlyPrice + serviceAmount;
     const invoice = await Invoice.findOneAndUpdate(
       {
+        owner: owner._id,
         contract: contract._id,
         month: invoiceData.month,
         year: invoiceData.year,
       },
       {
         $set: {
+          owner: owner._id,
           contract: contract._id,
           room: contract.room,
           tenant: contract.tenant,
@@ -218,9 +263,10 @@ async function seed() {
     );
 
     await Payment.updateOne(
-      { invoice: invoice._id },
+      { owner: owner._id, invoice: invoice._id },
       {
         $set: {
+          owner: owner._id,
           invoice: invoice._id,
           contract: contract._id,
           amount: totalAmount,

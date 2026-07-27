@@ -2,6 +2,7 @@ import { Contract } from '../models/Contract.js';
 import { ServiceSetting } from '../models/ServiceSetting.js';
 import { UtilityReading } from '../models/UtilityReading.js';
 import { createHttpError } from '../utils/httpError.js';
+import { ownerFilter } from '../utils/ownership.js';
 
 const readingPopulate = [
   { path: 'room', select: 'name floor price maxOccupants status' },
@@ -29,16 +30,19 @@ function normalizeMonthYear(month, year) {
   return { month: safeMonth, year: safeYear };
 }
 
-async function getServiceSettingSnapshot() {
+async function getServiceSettingSnapshot(ownerId) {
   return (
-    (await ServiceSetting.findOne().sort({ createdAt: 1 })) ||
-    (await ServiceSetting.create({}))
+    (await ServiceSetting.findOne({ owner: ownerId }).sort({ createdAt: 1 })) ||
+    (await ServiceSetting.create({ owner: ownerId }))
   );
 }
 
-async function normalizeReadingPayload(body) {
+async function normalizeReadingPayload(body, ownerId) {
   const { month, year } = normalizeMonthYear(body.month, body.year);
-  const contract = await Contract.findById(body.contract);
+  const contract = await Contract.findOne({
+    _id: body.contract,
+    owner: ownerId,
+  });
 
   if (!contract || contract.status !== 'active') {
     throw createHttpError(400, 'Hợp đồng không hợp lệ', {
@@ -46,7 +50,7 @@ async function normalizeReadingPayload(body) {
     });
   }
 
-  const setting = await getServiceSettingSnapshot();
+  const setting = await getServiceSettingSnapshot(ownerId);
   const electricityPrevious = Number(body.electricityPrevious || 0);
   const electricityCurrent = Number(body.electricityCurrent || 0);
   const waterPrevious = Number(body.waterPrevious || 0);
@@ -74,6 +78,7 @@ async function normalizeReadingPayload(body) {
   const parkingAmount = parkingVehicleCount * setting.parkingFeePerVehicle;
 
   return {
+    owner: ownerId,
     room: contract.room,
     contract: contract._id,
     month,
@@ -102,7 +107,7 @@ async function normalizeReadingPayload(body) {
 
 export async function listUtilityReadings(req, res, next) {
   try {
-    const filters = {};
+    const filters = ownerFilter(req);
 
     if (req.query.month || req.query.year) {
       const { month, year } = normalizeMonthYear(
@@ -125,9 +130,9 @@ export async function listUtilityReadings(req, res, next) {
 
 export async function getUtilityReading(req, res, next) {
   try {
-    const reading = await UtilityReading.findById(req.params.id).populate(
-      readingPopulate,
-    );
+    const reading = await UtilityReading.findOne(
+      ownerFilter(req, { _id: req.params.id }),
+    ).populate(readingPopulate);
 
     if (!reading) {
       throw createHttpError(404, 'Không tìm thấy chỉ số dịch vụ');
@@ -141,9 +146,13 @@ export async function getUtilityReading(req, res, next) {
 
 export async function upsertUtilityReading(req, res, next) {
   try {
-    const payload = await normalizeReadingPayload(req.body);
+    const payload = await normalizeReadingPayload(req.body, req.user._id);
     const reading = await UtilityReading.findOneAndUpdate(
-      { room: payload.room, month: payload.month, year: payload.year },
+      ownerFilter(req, {
+        room: payload.room,
+        month: payload.month,
+        year: payload.year,
+      }),
       { $set: payload },
       { new: true, runValidators: true, upsert: true },
     ).populate(readingPopulate);
@@ -159,9 +168,9 @@ export async function upsertUtilityReading(req, res, next) {
 
 export async function updateUtilityReading(req, res, next) {
   try {
-    const payload = await normalizeReadingPayload(req.body);
-    const reading = await UtilityReading.findByIdAndUpdate(
-      req.params.id,
+    const payload = await normalizeReadingPayload(req.body, req.user._id);
+    const reading = await UtilityReading.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id }),
       payload,
       { new: true, runValidators: true },
     ).populate(readingPopulate);
@@ -181,7 +190,9 @@ export async function updateUtilityReading(req, res, next) {
 
 export async function deleteUtilityReading(req, res, next) {
   try {
-    const reading = await UtilityReading.findByIdAndDelete(req.params.id);
+    const reading = await UtilityReading.findOneAndDelete(
+      ownerFilter(req, { _id: req.params.id }),
+    );
 
     if (!reading) {
       throw createHttpError(404, 'Không tìm thấy chỉ số dịch vụ');

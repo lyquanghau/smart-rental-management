@@ -18,12 +18,14 @@
   - `NODE_ENV=production`
   - `PORT=5000` hoặc để Render tự cấp.
   - `MONGODB_URI=<connection-string-production-or-demo>`
-  - `JWT_SECRET=<secret-manh>`
+  - `JWT_SECRET=<secret-manh-toi-thieu-32-ky-tu>`
   - `CLIENT_URL=https://<frontend-domain>`
   - Hoặc `CLIENT_URLS=https://<frontend-domain>,http://localhost:5173` nếu cần nhiều origin.
+  - `ALLOW_PUBLIC_REGISTRATION=false`
   - `RATE_LIMIT_WINDOW_MS=900000`
   - `RATE_LIMIT_MAX=300`
 - Test `GET /api/health` sau deploy.
+- Không dùng `JWT_SECRET=change_me`, không để `CLIENT_URLS=*` trong production.
 
 ## 3. Frontend Vercel
 
@@ -46,6 +48,8 @@
 - Mở frontend production.
 - Đăng nhập bằng tài khoản demo.
 - Test nhanh luồng: phòng -> khách thuê -> hợp đồng -> PDF -> thanh toán -> dashboard.
+- Test thêm luồng khách thuê: đăng nhập bằng tài khoản tạm -> đổi mật khẩu -> xem cổng khách thuê.
+- Mở thử URL quản trị bằng tài khoản khách thuê, ví dụ `/rooms`, phải tự chuyển về trang phù hợp.
 - Kiểm tra CORS không chặn frontend production.
 - Kiểm tra API trả `429` khi gửi quá nhiều request trong một khoảng ngắn. Backend đang dùng `express-rate-limit`.
 - Kiểm tra link demo không bị lỗi sau khi Render service sleep/wake.

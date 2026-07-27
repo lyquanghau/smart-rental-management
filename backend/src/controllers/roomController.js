@@ -1,6 +1,7 @@
 import { Room } from '../models/Room.js';
 import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
+import { ownerFilter } from '../utils/ownership.js';
 
 function normalizeRoomPayload(body) {
   return {
@@ -12,10 +13,11 @@ function normalizeRoomPayload(body) {
   };
 }
 
-async function syncRoomOccupancyStatuses() {
+async function syncRoomOccupancyStatuses(ownerId) {
   const activeTenantsByRoom = await Tenant.aggregate([
     {
       $match: {
+        owner: ownerId,
         deletedAt: null,
         room: { $ne: null },
       },
@@ -32,6 +34,7 @@ async function syncRoomOccupancyStatuses() {
     activeTenantsByRoom.map((item) => String(item._id)),
   );
   const rooms = await Room.find({
+    owner: ownerId,
     deletedAt: null,
     status: { $ne: 'maintenance' },
   });
@@ -52,10 +55,10 @@ async function syncRoomOccupancyStatuses() {
 
 export async function listRooms(req, res, next) {
   try {
-    await syncRoomOccupancyStatuses();
+    await syncRoomOccupancyStatuses(req.user._id);
 
     const { status, floor, page = 1, limit = 20 } = req.query;
-    const filters = { deletedAt: null };
+    const filters = ownerFilter(req, { deletedAt: null });
     const safePage = Math.max(Number(page) || 1, 1);
     const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
@@ -85,11 +88,12 @@ export async function listRooms(req, res, next) {
 
 export async function getRoom(req, res, next) {
   try {
-    await syncRoomOccupancyStatuses();
+    await syncRoomOccupancyStatuses(req.user._id);
 
     const [room, currentTenants] = await Promise.all([
-      Room.findOne({ _id: req.params.id, deletedAt: null }),
+      Room.findOne(ownerFilter(req, { _id: req.params.id, deletedAt: null })),
       Tenant.find({
+        owner: req.user._id,
         room: req.params.id,
         deletedAt: null,
       }).sort({ fullName: 1 }),
@@ -112,7 +116,10 @@ export async function getRoom(req, res, next) {
 
 export async function createRoom(req, res, next) {
   try {
-    const room = await Room.create(normalizeRoomPayload(req.body));
+    const room = await Room.create({
+      ...normalizeRoomPayload(req.body),
+      owner: req.user._id,
+    });
 
     res.status(201).json({
       data: room,
@@ -126,7 +133,7 @@ export async function createRoom(req, res, next) {
 export async function updateRoom(req, res, next) {
   try {
     const room = await Room.findOneAndUpdate(
-      { _id: req.params.id, deletedAt: null },
+      ownerFilter(req, { _id: req.params.id, deletedAt: null }),
       normalizeRoomPayload(req.body),
       {
         new: true,
@@ -150,7 +157,7 @@ export async function updateRoom(req, res, next) {
 export async function deleteRoom(req, res, next) {
   try {
     const room = await Room.findOneAndUpdate(
-      { _id: req.params.id, deletedAt: null },
+      ownerFilter(req, { _id: req.params.id, deletedAt: null }),
       { deletedAt: new Date() },
       { new: true },
     );

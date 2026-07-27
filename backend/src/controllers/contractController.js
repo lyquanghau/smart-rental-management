@@ -10,6 +10,7 @@ import { Room } from '../models/Room.js';
 import { Tenant } from '../models/Tenant.js';
 import { User } from '../models/User.js';
 import { createHttpError } from '../utils/httpError.js';
+import { getTenantIdForUser, ownerFilter } from '../utils/ownership.js';
 
 const contractPopulate = [
   { path: 'room', select: 'name floor price maxOccupants status' },
@@ -116,18 +117,20 @@ function addClause(document, index, text) {
 }
 
 function buildTenantUsername(tenant) {
-  return tenant.phone.trim().toLowerCase();
+  const phone = tenant.phone.replace(/\D/g, '') || 'tenant';
+  return `${phone}-${String(tenant._id).slice(-6)}`.toLowerCase();
 }
 
 function buildTenantEmail(tenant) {
-  if (tenant.email) return tenant.email.trim().toLowerCase();
-
-  const safePhone = tenant.phone.replace(/\D/g, '') || String(tenant._id);
-  return `${safePhone}@tenant.smartrental.local`;
+  return `${String(tenant._id)}@tenant.smartrental.local`;
 }
 
-async function ensureTenantAccount(tenantId) {
-  const tenant = await Tenant.findOne({ _id: tenantId, deletedAt: null });
+async function ensureTenantAccount(tenantId, ownerId) {
+  const tenant = await Tenant.findOne({
+    _id: tenantId,
+    owner: ownerId,
+    deletedAt: null,
+  });
 
   if (!tenant) {
     throw createHttpError(400, 'Khách thuê không tồn tại', {
@@ -178,21 +181,6 @@ async function ensureTenantAccount(tenantId) {
     },
     temporaryPassword,
   };
-}
-
-async function getTenantIdForUser(userId) {
-  const tenant = await Tenant.findOne({ user: userId, deletedAt: null }).select(
-    '_id',
-  );
-
-  if (!tenant) {
-    throw createHttpError(
-      404,
-      'Khong tim thay ho so khach thue lien ket voi tai khoan nay',
-    );
-  }
-
-  return tenant._id;
 }
 
 function buildContractPdf(contract, res) {
@@ -419,7 +407,11 @@ function buildContractPdf(contract, res) {
   document.end();
 }
 
-async function normalizeContractPayload(body, currentContractId = null) {
+async function normalizeContractPayload(
+  body,
+  ownerId,
+  currentContractId = null,
+) {
   const room = body.room;
   const tenant = body.tenant;
   const startDate = parseOptionalDate(body.startDate);
@@ -446,8 +438,8 @@ async function normalizeContractPayload(body, currentContractId = null) {
   }
 
   const [existingRoom, existingTenant] = await Promise.all([
-    Room.findOne({ _id: room, deletedAt: null }),
-    Tenant.findOne({ _id: tenant, deletedAt: null }),
+    Room.findOne({ _id: room, owner: ownerId, deletedAt: null }),
+    Tenant.findOne({ _id: tenant, owner: ownerId, deletedAt: null }),
   ]);
 
   if (!existingRoom) {
@@ -464,6 +456,7 @@ async function normalizeContractPayload(body, currentContractId = null) {
 
   if ((body.status || 'active') === 'active') {
     const activeContractFilters = {
+      owner: ownerId,
       room,
       status: 'active',
     };
@@ -484,6 +477,7 @@ async function normalizeContractPayload(body, currentContractId = null) {
   return {
     room,
     tenant,
+    owner: ownerId,
     startDate,
     endDate,
     monthlyPrice,
@@ -495,7 +489,7 @@ async function normalizeContractPayload(body, currentContractId = null) {
 export async function listContracts(req, res, next) {
   try {
     const { room, tenant, status, page = 1, limit = 20 } = req.query;
-    const filters = {};
+    const filters = req.user.role === 'landlord' ? ownerFilter(req) : {};
     const safePage = Math.max(Number(page) || 1, 1);
     const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
@@ -531,7 +525,10 @@ export async function listContracts(req, res, next) {
 
 export async function getContract(req, res, next) {
   try {
-    const filters = { _id: req.params.id };
+    const filters =
+      req.user.role === 'landlord'
+        ? ownerFilter(req, { _id: req.params.id })
+        : { _id: req.params.id };
 
     if (req.user.role === 'tenant') {
       filters.tenant = await getTenantIdForUser(req.user._id);
@@ -551,7 +548,10 @@ export async function getContract(req, res, next) {
 
 export async function downloadContractPdf(req, res, next) {
   try {
-    const filters = { _id: req.params.id };
+    const filters =
+      req.user.role === 'landlord'
+        ? ownerFilter(req, { _id: req.params.id })
+        : { _id: req.params.id };
 
     if (req.user.role === 'tenant') {
       filters.tenant = await getTenantIdForUser(req.user._id);
@@ -577,11 +577,11 @@ export async function downloadContractPdf(req, res, next) {
 
 export async function createContract(req, res, next) {
   try {
-    const payload = await normalizeContractPayload(req.body);
+    const payload = await normalizeContractPayload(req.body, req.user._id);
     const contract = await Contract.create(payload);
     const temporaryAccount =
       payload.status === 'active'
-        ? await ensureTenantAccount(payload.tenant)
+        ? await ensureTenantAccount(payload.tenant, req.user._id)
         : null;
     const populatedContract = await contract.populate(contractPopulate);
 
@@ -599,9 +599,9 @@ export async function createContract(req, res, next) {
 
 export async function updateContract(req, res, next) {
   try {
-    const contract = await Contract.findByIdAndUpdate(
-      req.params.id,
-      await normalizeContractPayload(req.body, req.params.id),
+    const contract = await Contract.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id }),
+      await normalizeContractPayload(req.body, req.user._id, req.params.id),
       {
         new: true,
         runValidators: true,
@@ -623,8 +623,8 @@ export async function updateContract(req, res, next) {
 
 export async function deleteContract(req, res, next) {
   try {
-    const contract = await Contract.findByIdAndUpdate(
-      req.params.id,
+    const contract = await Contract.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id }),
       { status: 'ended' },
       {
         new: true,

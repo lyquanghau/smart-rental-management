@@ -2,6 +2,12 @@ import mongoose from 'mongoose';
 
 const contractSchema = new mongoose.Schema(
   {
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
     room: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Room',
@@ -40,8 +46,8 @@ const contractSchema = new mongoose.Schema(
   },
 );
 
-contractSchema.index({ room: 1, status: 1 });
-contractSchema.index({ tenant: 1, status: 1 });
-contractSchema.index({ status: 1, endDate: 1 });
+contractSchema.index({ owner: 1, room: 1, status: 1 });
+contractSchema.index({ owner: 1, tenant: 1, status: 1 });
+contractSchema.index({ owner: 1, status: 1, endDate: 1 });
 
 export const Contract = mongoose.model('Contract', contractSchema);

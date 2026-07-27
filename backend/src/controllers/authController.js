@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { randomBytes } from 'node:crypto';
 import { env } from '../config/env.js';
+import { Tenant } from '../models/Tenant.js';
 import { User } from '../models/User.js';
 import { createHttpError } from '../utils/httpError.js';
 
@@ -59,7 +60,26 @@ async function lockExpiredTemporaryPasswordUser(user) {
 
 export async function register(req, res, next) {
   try {
-    const { fullName, email, password, role = 'landlord' } = req.body;
+    if (!env.allowPublicRegistration) {
+      throw createHttpError(
+        403,
+        'Dang ky cong khai dang tat. Vui long lien he quan tri vien de tao tai khoan.',
+      );
+    }
+
+    const { fullName, email, password } = req.body;
+    const role = req.body.role || 'landlord';
+
+    if (role !== 'landlord') {
+      throw createHttpError(
+        400,
+        'Tai khoan khach thue phai duoc tao tu hop dong thue',
+        {
+          role: 'Khong cho phep dang ky cong khai voi vai tro khach thue',
+        },
+      );
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
     const existingUser = await User.findOne({ email: normalizedEmail });
 
@@ -179,6 +199,26 @@ export async function unlockUser(req, res, next) {
 
     if (!user) {
       throw createHttpError(404, 'Không tìm thấy tài khoản');
+    }
+
+    if (user.role !== 'tenant') {
+      throw createHttpError(
+        403,
+        'Chi duoc cap lai mat khau cho tai khoan khach thue',
+      );
+    }
+
+    const tenant = await Tenant.findOne({
+      user: user._id,
+      owner: req.user._id,
+      deletedAt: null,
+    }).select('_id');
+
+    if (!tenant) {
+      throw createHttpError(
+        404,
+        'Khong tim thay khach thue thuoc quyen quan ly',
+      );
     }
 
     const temporaryPassword = generateTemporaryPassword();

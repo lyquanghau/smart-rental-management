@@ -77,8 +77,9 @@ function mapPaymentPreview(payment) {
   };
 }
 
-export async function getDashboardSummary(_req, res, next) {
+export async function getDashboardSummary(req, res, next) {
   try {
+    const owner = req.user._id;
     const monthRange = currentMonthRange();
     const lastMonthRange = previousMonthRange();
     const contractRange = expiringContractRange();
@@ -97,15 +98,19 @@ export async function getDashboardSummary(_req, res, next) {
       unpaidStandalonePayments,
     ] = await Promise.all([
       Room.aggregate([
-        { $match: { deletedAt: null } },
+        { $match: { owner, deletedAt: null } },
         { $group: { _id: '$status', count: { $sum: 1 } } },
       ]),
-      Room.countDocuments({ deletedAt: null }),
-      Tenant.countDocuments({ deletedAt: null }),
-      Contract.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      Room.countDocuments({ owner, deletedAt: null }),
+      Tenant.countDocuments({ owner, deletedAt: null }),
+      Contract.aggregate([
+        { $match: { owner } },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]),
       Invoice.aggregate([
         {
           $match: {
+            owner,
             dueDate: { $gte: monthRange.start, $lt: monthRange.end },
             status: { $ne: 'cancelled' },
           },
@@ -160,6 +165,7 @@ export async function getDashboardSummary(_req, res, next) {
       Invoice.aggregate([
         {
           $match: {
+            owner,
             dueDate: { $gte: lastMonthRange.start, $lt: lastMonthRange.end },
             status: 'paid',
           },
@@ -175,6 +181,7 @@ export async function getDashboardSummary(_req, res, next) {
       Payment.aggregate([
         {
           $match: {
+            owner,
             dueDate: { $gte: monthRange.start, $lt: monthRange.end },
             invoice: { $exists: false },
             status: { $ne: 'cancelled' },
@@ -230,6 +237,7 @@ export async function getDashboardSummary(_req, res, next) {
       Payment.aggregate([
         {
           $match: {
+            owner,
             dueDate: { $gte: lastMonthRange.start, $lt: lastMonthRange.end },
             invoice: { $exists: false },
             status: 'paid',
@@ -244,6 +252,7 @@ export async function getDashboardSummary(_req, res, next) {
         },
       ]),
       Contract.find({
+        owner,
         status: 'active',
         endDate: { $gte: contractRange.today, $lte: contractRange.end },
       })
@@ -254,6 +263,7 @@ export async function getDashboardSummary(_req, res, next) {
         .sort({ endDate: 1 })
         .limit(5),
       Invoice.find({
+        owner,
         status: { $in: ['issued', 'overdue'] },
       })
         .populate({
@@ -267,6 +277,7 @@ export async function getDashboardSummary(_req, res, next) {
         .sort({ dueDate: 1 })
         .limit(5),
       Payment.find({
+        owner,
         invoice: { $exists: false },
         status: { $in: ['pending', 'overdue'] },
       })

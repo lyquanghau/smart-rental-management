@@ -1,5 +1,18 @@
 # Modules
 
+## Multi-tenant data isolation
+
+Các module nghiệp vụ dùng trường nội bộ `owner` trỏ tới tài khoản chủ trọ (`User`) để tách dữ liệu
+khi nhiều chủ trọ cùng dùng một hệ thống.
+
+- Khi chủ trọ tạo phòng, khách thuê, hợp đồng, hóa đơn, thanh toán, chỉ số dịch vụ hoặc cấu hình
+  dịch vụ, backend tự gán `owner = req.user._id`.
+- Khi chủ trọ xem/sửa/xóa dữ liệu, backend luôn lọc thêm `owner = req.user._id`.
+- Khách thuê không truy cập theo `owner` trực tiếp; tài khoản khách thuê được nối với hồ sơ
+  `Tenant.user`, sau đó chỉ xem dữ liệu liên quan đến hồ sơ tenant đó.
+- Tài khoản tenant sinh tự động dùng username/email kỹ thuật có mã tenant để tránh trùng giữa nhiều
+  chủ trọ có khách thuê cùng số điện thoại hoặc email.
+
 ## Auth
 
 Quản lý đăng nhập, JWT, thông tin người dùng hiện tại và đổi mật khẩu. Frontend không mở form đăng ký

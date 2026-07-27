@@ -73,6 +73,7 @@ npm run build
 - `docs/USER_FLOW.md`: luồng đăng nhập, quản lý phòng, hợp đồng và thanh toán.
 - `docs/COMPONENT_LIST.md`: danh sách page, component, service frontend.
 - `docs/DATABASE_DECISIONS.md`: quyết định dùng MongoDB Atlas + Mongoose thay cho Mongo local/migration SQL.
+- `docs/PRODUCT_READINESS.md`: checklist để demo/bán thử và các phần cần hoàn thiện trước khi bán thật.
 - `design/wireframe/README.md`: wireframe text cho các màn hình chính.
 
 ## Nhánh Git của team

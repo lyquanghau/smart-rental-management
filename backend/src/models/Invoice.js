@@ -28,6 +28,12 @@ const invoiceItemSchema = new mongoose.Schema(
 
 const invoiceSchema = new mongoose.Schema(
   {
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
     contract: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Contract',
@@ -96,8 +102,11 @@ const invoiceSchema = new mongoose.Schema(
   },
 );
 
-invoiceSchema.index({ contract: 1, month: 1, year: 1 }, { unique: true });
-invoiceSchema.index({ status: 1, dueDate: 1 });
-invoiceSchema.index({ room: 1, month: 1, year: 1 });
+invoiceSchema.index(
+  { owner: 1, contract: 1, month: 1, year: 1 },
+  { unique: true },
+);
+invoiceSchema.index({ owner: 1, status: 1, dueDate: 1 });
+invoiceSchema.index({ owner: 1, room: 1, month: 1, year: 1 });
 
 export const Invoice = mongoose.model('Invoice', invoiceSchema);

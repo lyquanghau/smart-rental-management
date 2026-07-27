@@ -2,6 +2,13 @@ import mongoose from 'mongoose';
 
 const serviceSettingSchema = new mongoose.Schema(
   {
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      unique: true,
+      index: true,
+    },
     electricityUnitPrice: {
       type: Number,
       default: 3500,

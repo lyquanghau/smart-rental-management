@@ -2,6 +2,12 @@ import mongoose from 'mongoose';
 
 const paymentSchema = new mongoose.Schema(
   {
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
     contract: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Contract',
@@ -43,9 +49,9 @@ const paymentSchema = new mongoose.Schema(
   },
 );
 
-paymentSchema.index({ contract: 1, status: 1 });
-paymentSchema.index({ invoice: 1 }, { sparse: true });
-paymentSchema.index({ status: 1, dueDate: 1 });
-paymentSchema.index({ dueDate: 1, method: 1 });
+paymentSchema.index({ owner: 1, contract: 1, status: 1 });
+paymentSchema.index({ owner: 1, invoice: 1 }, { sparse: true });
+paymentSchema.index({ owner: 1, status: 1, dueDate: 1 });
+paymentSchema.index({ owner: 1, dueDate: 1, method: 1 });
 
 export const Payment = mongoose.model('Payment', paymentSchema);

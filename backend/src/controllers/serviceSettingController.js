@@ -1,4 +1,5 @@
 import { ServiceSetting } from '../models/ServiceSetting.js';
+import { ownerFilter } from '../utils/ownership.js';
 
 function normalizeSettingPayload(body) {
   return {
@@ -10,11 +11,11 @@ function normalizeSettingPayload(body) {
   };
 }
 
-export async function getServiceSetting(_req, res, next) {
+export async function getServiceSetting(req, res, next) {
   try {
     const setting =
-      (await ServiceSetting.findOne().sort({ createdAt: 1 })) ||
-      (await ServiceSetting.create({}));
+      (await ServiceSetting.findOne(ownerFilter(req)).sort({ createdAt: 1 })) ||
+      (await ServiceSetting.create({ owner: req.user._id }));
 
     res.json({ data: setting });
   } catch (error) {
@@ -24,8 +25,13 @@ export async function getServiceSetting(_req, res, next) {
 
 export async function updateServiceSetting(req, res, next) {
   try {
-    const existing = await ServiceSetting.findOne().sort({ createdAt: 1 });
-    const payload = normalizeSettingPayload(req.body);
+    const existing = await ServiceSetting.findOne(ownerFilter(req)).sort({
+      createdAt: 1,
+    });
+    const payload = {
+      ...normalizeSettingPayload(req.body),
+      owner: req.user._id,
+    };
     const setting = existing
       ? await ServiceSetting.findByIdAndUpdate(existing._id, payload, {
           new: true,

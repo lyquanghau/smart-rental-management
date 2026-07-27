@@ -1,9 +1,9 @@
 import { Contract } from '../models/Contract.js';
 import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
-import { Tenant } from '../models/Tenant.js';
 import { UtilityReading } from '../models/UtilityReading.js';
 import { createHttpError } from '../utils/httpError.js';
+import { getTenantIdForUser, ownerFilter } from '../utils/ownership.js';
 
 const invoicePopulate = [
   { path: 'room', select: 'name floor price maxOccupants status' },
@@ -39,21 +39,6 @@ function parseDueDate(value) {
   }
 
   return dueDate;
-}
-
-async function getTenantIdForUser(userId) {
-  const tenant = await Tenant.findOne({ user: userId, deletedAt: null }).select(
-    '_id',
-  );
-
-  if (!tenant) {
-    throw createHttpError(
-      404,
-      'Khong tim thay ho so khach thue lien ket voi tai khoan nay',
-    );
-  }
-
-  return tenant._id;
 }
 
 function buildInvoiceItems(contract, reading) {
@@ -112,15 +97,19 @@ function buildInvoiceItems(contract, reading) {
 }
 
 async function syncPaymentForInvoice(invoice) {
-  const existingPayment = await Payment.findOne({ invoice: invoice._id });
+  const existingPayment = await Payment.findOne({
+    owner: invoice.owner,
+    invoice: invoice._id,
+  });
   const contractId = invoice.contract?._id || invoice.contract;
 
   if (existingPayment?.status === 'paid') return existingPayment;
 
   return Payment.findOneAndUpdate(
-    { invoice: invoice._id },
+    { owner: invoice.owner, invoice: invoice._id },
     {
       $set: {
+        owner: invoice.owner,
         invoice: invoice._id,
         contract: contractId,
         amount: invoice.totalAmount,
@@ -137,7 +126,7 @@ async function syncPaymentForInvoice(invoice) {
 export async function listInvoices(req, res, next) {
   try {
     const { contract, month, status, year } = req.query;
-    const filters = {};
+    const filters = req.user.role === 'landlord' ? ownerFilter(req) : {};
 
     if (contract) filters.contract = contract;
     if (status) filters.status = status;
@@ -164,7 +153,10 @@ export async function listInvoices(req, res, next) {
 
 export async function getInvoice(req, res, next) {
   try {
-    const filters = { _id: req.params.id };
+    const filters =
+      req.user.role === 'landlord'
+        ? ownerFilter(req, { _id: req.params.id })
+        : { _id: req.params.id };
 
     if (req.user.role === 'tenant') {
       filters.tenant = await getTenantIdForUser(req.user._id);
@@ -186,11 +178,14 @@ export async function generateMonthlyInvoices(req, res, next) {
   try {
     const { month, year } = normalizeMonthYear(req.body.month, req.body.year);
     const dueDate = parseDueDate(req.body.dueDate);
-    const activeContracts = await Contract.find({ status: 'active' });
+    const activeContracts = await Contract.find(
+      ownerFilter(req, { status: 'active' }),
+    );
     const results = [];
 
     for (const contract of activeContracts) {
       const existingInvoice = await Invoice.findOne({
+        owner: req.user._id,
         contract: contract._id,
         month,
         year,
@@ -206,6 +201,7 @@ export async function generateMonthlyInvoices(req, res, next) {
       }
 
       const reading = await UtilityReading.findOne({
+        owner: req.user._id,
         contract: contract._id,
         month,
         year,
@@ -213,6 +209,7 @@ export async function generateMonthlyInvoices(req, res, next) {
       const serviceAmount = reading?.serviceTotal || 0;
       const totalAmount = contract.monthlyPrice + serviceAmount;
       const invoice = await Invoice.create({
+        owner: req.user._id,
         contract: contract._id,
         room: contract.room,
         tenant: contract.tenant,
@@ -232,9 +229,9 @@ export async function generateMonthlyInvoices(req, res, next) {
       results.push({ invoice: invoice._id, status: 'created' });
     }
 
-    const invoices = await Invoice.find({ month, year }).populate(
-      invoicePopulate,
-    );
+    const invoices = await Invoice.find(ownerFilter(req, { month, year }))
+      .populate(invoicePopulate)
+      .sort({ year: -1, month: -1, dueDate: -1 });
 
     res.status(201).json({
       data: {
@@ -258,8 +255,8 @@ export async function markInvoicePaid(req, res, next) {
       });
     }
 
-    const invoice = await Invoice.findByIdAndUpdate(
-      req.params.id,
+    const invoice = await Invoice.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id }),
       { status: 'paid', paidAt },
       { new: true, runValidators: true },
     ).populate(invoicePopulate);
@@ -269,9 +266,10 @@ export async function markInvoicePaid(req, res, next) {
     }
 
     await Payment.findOneAndUpdate(
-      { invoice: invoice._id },
+      { owner: req.user._id, invoice: invoice._id },
       {
         $set: {
+          owner: req.user._id,
           invoice: invoice._id,
           contract: invoice.contract?._id || invoice.contract,
           amount: invoice.totalAmount,
@@ -294,8 +292,8 @@ export async function markInvoicePaid(req, res, next) {
 
 export async function cancelInvoice(req, res, next) {
   try {
-    const invoice = await Invoice.findByIdAndUpdate(
-      req.params.id,
+    const invoice = await Invoice.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id }),
       { status: 'cancelled', note: req.body.note || '' },
       { new: true, runValidators: true },
     ).populate(invoicePopulate);
@@ -305,7 +303,7 @@ export async function cancelInvoice(req, res, next) {
     }
 
     await Payment.findOneAndUpdate(
-      { invoice: invoice._id },
+      { owner: req.user._id, invoice: invoice._id },
       { $set: { status: 'cancelled', note: invoice.note } },
       { new: true, runValidators: true },
     );

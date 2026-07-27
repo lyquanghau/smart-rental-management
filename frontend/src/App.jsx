@@ -40,12 +40,16 @@ export default function App() {
           <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route element={<MainLayout />}>
             <Route path="/" element={<RoleHome />} />
-            <Route path="/tenant-portal" element={<TenantPortalPage />} />
-            <Route path="/rooms" element={<RoomsPage />} />
-            <Route path="/tenants" element={<TenantsPage />} />
-            <Route path="/contracts" element={<ContractsPage />} />
-            <Route path="/payments" element={<PaymentsPage />} />
-            <Route path="/services" element={<ServicesPage />} />
+            <Route element={<ProtectedRoute allowedRoles={['tenant']} />}>
+              <Route path="/tenant-portal" element={<TenantPortalPage />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={['landlord']} />}>
+              <Route path="/rooms" element={<RoomsPage />} />
+              <Route path="/tenants" element={<TenantsPage />} />
+              <Route path="/contracts" element={<ContractsPage />} />
+              <Route path="/payments" element={<PaymentsPage />} />
+              <Route path="/services" element={<ServicesPage />} />
+            </Route>
             <Route path="/help" element={<HelpSupportPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

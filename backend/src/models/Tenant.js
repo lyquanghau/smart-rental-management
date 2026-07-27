@@ -2,6 +2,12 @@ import mongoose from 'mongoose';
 
 const tenantSchema = new mongoose.Schema(
   {
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
     fullName: {
       type: String,
       required: true,
@@ -39,7 +45,7 @@ const tenantSchema = new mongoose.Schema(
   },
 );
 
-tenantSchema.index({ deletedAt: 1, room: 1 });
-tenantSchema.index({ deletedAt: 1, fullName: 1 });
+tenantSchema.index({ owner: 1, deletedAt: 1, room: 1 });
+tenantSchema.index({ owner: 1, deletedAt: 1, fullName: 1 });
 
 export const Tenant = mongoose.model('Tenant', tenantSchema);

@@ -2,6 +2,12 @@ import mongoose from 'mongoose';
 
 const roomSchema = new mongoose.Schema(
   {
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
     name: {
       type: String,
       required: true,
@@ -38,7 +44,7 @@ const roomSchema = new mongoose.Schema(
   },
 );
 
-roomSchema.index({ deletedAt: 1, status: 1 });
-roomSchema.index({ deletedAt: 1, floor: 1 });
+roomSchema.index({ owner: 1, deletedAt: 1, status: 1 });
+roomSchema.index({ owner: 1, deletedAt: 1, floor: 1 });
 
 export const Room = mongoose.model('Room', roomSchema);

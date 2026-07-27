@@ -1,8 +1,8 @@
 import { Contract } from '../models/Contract.js';
 import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
-import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
+import { getTenantForUser, ownerFilter } from '../utils/ownership.js';
 
 const paymentPopulate = {
   path: 'contract',
@@ -55,22 +55,12 @@ function assertValidAmount(amount) {
 }
 
 async function getTenantContractIdsForUser(userId) {
-  const tenant = await Tenant.findOne({ user: userId, deletedAt: null }).select(
-    '_id',
-  );
-
-  if (!tenant) {
-    throw createHttpError(
-      404,
-      'Khong tim thay ho so khach thue lien ket voi tai khoan nay',
-    );
-  }
-
+  const tenant = await getTenantForUser(userId);
   const contracts = await Contract.find({ tenant: tenant._id }).select('_id');
   return contracts.map((item) => item._id);
 }
 
-async function normalizePaymentPayload(body) {
+async function normalizePaymentPayload(body, ownerId) {
   const dueDate = parseOptionalDate(body.dueDate);
   const paidAt = parseOptionalDate(body.paidAt);
   const amount = Number(body.amount);
@@ -89,7 +79,10 @@ async function normalizePaymentPayload(body) {
     });
   }
 
-  const contract = await Contract.findById(body.contract);
+  const contract = await Contract.findOne({
+    _id: body.contract,
+    owner: ownerId,
+  });
 
   if (!contract) {
     throw createHttpError(400, 'Hợp đồng không tồn tại', {
@@ -103,7 +96,26 @@ async function normalizePaymentPayload(body) {
     });
   }
 
+  if (body.invoice) {
+    const invoice = await Invoice.findOne({
+      _id: body.invoice,
+      owner: ownerId,
+      contract: contract._id,
+    });
+
+    if (!invoice) {
+      throw createHttpError(
+        400,
+        'Hoa don khong ton tai hoac khong thuoc hop dong nay',
+        {
+          invoice: 'Hoa don khong hop le',
+        },
+      );
+    }
+  }
+
   return {
+    owner: ownerId,
     contract: body.contract,
     invoice: body.invoice || undefined,
     amount,
@@ -126,7 +138,7 @@ export async function listPayments(req, res, next) {
       status,
       year,
     } = req.query;
-    const filters = {};
+    const filters = req.user.role === 'landlord' ? ownerFilter(req) : {};
     const safePage = Math.max(Number(page) || 1, 1);
     const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
@@ -167,7 +179,10 @@ export async function listPayments(req, res, next) {
 
 export async function getPayment(req, res, next) {
   try {
-    const filters = { _id: req.params.id };
+    const filters =
+      req.user.role === 'landlord'
+        ? ownerFilter(req, { _id: req.params.id })
+        : { _id: req.params.id };
 
     if (req.user.role === 'tenant') {
       filters.contract = {
@@ -190,7 +205,7 @@ export async function getPayment(req, res, next) {
 export async function createPayment(req, res, next) {
   try {
     const payment = await Payment.create(
-      await normalizePaymentPayload(req.body),
+      await normalizePaymentPayload(req.body, req.user._id),
     );
     const populatedPayment = await payment.populate(populateOptions);
 
@@ -205,9 +220,9 @@ export async function createPayment(req, res, next) {
 
 export async function updatePayment(req, res, next) {
   try {
-    const payment = await Payment.findByIdAndUpdate(
-      req.params.id,
-      await normalizePaymentPayload(req.body),
+    const payment = await Payment.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id }),
+      await normalizePaymentPayload(req.body, req.user._id),
       {
         new: true,
         runValidators: true,
@@ -245,20 +260,30 @@ export async function markPaymentPaid(req, res, next) {
     if (req.body.method) update.method = req.body.method;
     if (req.body.note !== undefined) update.note = req.body.note;
 
-    const payment = await Payment.findByIdAndUpdate(req.params.id, update, {
-      new: true,
-      runValidators: true,
-    }).populate(populateOptions);
+    const payment = await Payment.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id }),
+      update,
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).populate(populateOptions);
 
     if (!payment) {
       throw createHttpError(404, 'Không tìm thấy khoản thu');
     }
 
     if (payment.invoice) {
-      await Invoice.findByIdAndUpdate(payment.invoice, {
-        paidAt,
-        status: 'paid',
-      });
+      await Invoice.findOneAndUpdate(
+        {
+          _id: payment.invoice,
+          owner: req.user._id,
+        },
+        {
+          paidAt,
+          status: 'paid',
+        },
+      );
     }
 
     res.json({
@@ -276,20 +301,30 @@ export async function cancelPayment(req, res, next) {
 
     if (req.body.note !== undefined) update.note = req.body.note;
 
-    const payment = await Payment.findByIdAndUpdate(req.params.id, update, {
-      new: true,
-      runValidators: true,
-    }).populate(populateOptions);
+    const payment = await Payment.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id }),
+      update,
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).populate(populateOptions);
 
     if (!payment) {
       throw createHttpError(404, 'Không tìm thấy khoản thu');
     }
 
     if (payment.invoice) {
-      await Invoice.findByIdAndUpdate(payment.invoice, {
-        note: update.note,
-        status: 'cancelled',
-      });
+      await Invoice.findOneAndUpdate(
+        {
+          _id: payment.invoice,
+          owner: req.user._id,
+        },
+        {
+          note: update.note,
+          status: 'cancelled',
+        },
+      );
     }
 
     res.json({

@@ -30,7 +30,7 @@ router.post(
   validateBody({
     fullName: [required('Họ tên')],
     ...authRules,
-    role: [oneOf('Vai trò', ['landlord', 'tenant'])],
+    role: [oneOf('Vai trò', ['landlord'])],
   }),
   register,
 );
