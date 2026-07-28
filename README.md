@@ -63,8 +63,19 @@ Tài khoản mẫu:
 ```bash
 npm run lint
 npm run format:check
+npm run test
 npm run build
 ```
+
+Integration test API chỉ chạy khi bật rõ biến môi trường và dùng database test riêng:
+
+```bash
+set SMART_RENTAL_RUN_INTEGRATION_TESTS=true
+set MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>/smart_rental_test
+npm run test
+```
+
+Tên database trong `MONGODB_URI` phải chứa chữ `test`; test sẽ tự skip nếu không đáp ứng điều kiện này.
 
 ## Tài liệu phân tích nhanh
 
@@ -74,6 +85,7 @@ npm run build
 - `docs/COMPONENT_LIST.md`: danh sách page, component, service frontend.
 - `docs/DATABASE_DECISIONS.md`: quyết định dùng MongoDB Atlas + Mongoose thay cho Mongo local/migration SQL.
 - `docs/PRODUCT_READINESS.md`: checklist để demo/bán thử và các phần cần hoàn thiện trước khi bán thật.
+- `docs/DEMO_SCRIPT.md`: kịch bản demo 5-7 phút và các lỗi demo thường gặp.
 - `design/wireframe/README.md`: wireframe text cho các màn hình chính.
 
 ## Nhánh Git của team

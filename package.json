@@ -17,6 +17,7 @@
     "dev:frontend": "npm run dev -w frontend",
     "build": "npm run build -w frontend",
     "lint": "eslint .",
+    "test": "npm run test -w backend",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "seed": "npm run seed -w backend",

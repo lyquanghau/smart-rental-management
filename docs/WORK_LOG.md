@@ -1,5 +1,46 @@
 # Work Log
 
+## 2026-07-28
+
+### Product test readiness va demo script
+
+- Kiem tra dau phien:
+  - Dang o nhanh `dev`, dong bo voi `origin/dev`.
+  - `dev`, `main`, `origin/dev`, `origin/main` cung commit `f1a51f30`.
+  - Khong co nhanh local/remote nao con commit chua merge vao `main`.
+  - File phu tro/untracked giu ngoai commit: `chuyen_de_2.xlsx`, `code.txt`,
+    `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1667 modules.
+- Tao nhanh `feature/product-test-readiness` tu `dev`.
+- Doi chieu tien do voi `chuyen_de_2.xlsx`, `docs/WORK_LOG.md`, `docs/PRODUCT_READINESS.md`
+  va code hien tai:
+  - MVP cot loi da vuot ke hoach ban dau: auth, phong, khach thue, hop dong, PDF,
+    hoa don dich vu, thanh toan manual/mock, dashboard, cong khach thue va data isolation theo owner.
+  - Cac khoang trong lon con lai de thanh san pham thuong mai day du: deploy production da xac nhan,
+    VNPay/MoMo sandbox that, test API end-to-end, backup/monitoring va tai lieu phap ly.
+- Them test backend native bang `node:test`, khong them framework moi:
+  - `backend/tests/model-validation.test.js`: kiem tra owner bat buoc cho model nghiep vu,
+    validate gia tri am, enum trang thai, ky hoa don va login identifier.
+  - `backend/tests/env.test.js`: kiem tra guard production cho `JWT_SECRET`, `MONGODB_URI`,
+    `CLIENT_URLS` va `ALLOW_PUBLIC_REGISTRATION`.
+  - `backend/tests/middleware-utils.test.js`: kiem tra `ownerFilter`, `createHttpError` va
+    `validateBody`.
+  - `backend/tests/api-flows.integration.test.js`: integration test co guard an toan, mac dinh skip,
+    chi chay khi bat `SMART_RENTAL_RUN_INTEGRATION_TESTS=true` va `MONGODB_URI` tro toi database co ten
+    chua `test`. Luong test gom login, owner isolation, chan hop dong active trung phong, tao hoa don
+    thang khong trung va mark-paid dong bo payment.
+  - Them script `npm run test` o root va backend workspace.
+- Them `docs/DEMO_SCRIPT.md` cho kich ban demo 5-7 phut, dieu kien truoc demo, diem can noi ro khi
+  bao ve va loi demo thuong gap.
+- Cap nhat `README.md`, `docs/TEST_CHECKLIST.md`, `docs/PRODUCT_READINESS.md`.
+- Kiem tra trong qua trinh lam:
+  - `npm run test`: bi sandbox Windows chan spawn voi loi `EPERM`.
+  - `npm run test` ngoai sandbox: pass 15/15.
+  - Integration test mac dinh skip neu chua bat bien moi truong va database test rieng.
+
 ## 2026-07-27
 
 ### Product readiness va hardening de demo/ban thu

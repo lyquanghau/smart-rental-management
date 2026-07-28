@@ -6,6 +6,9 @@ Tài liệu này dùng cho kiểm thử thủ công trước khi demo, merge ho�
 
 - Chạy `npm run lint`.
 - Chạy `npm run format:check`.
+- Chạy `npm run test`.
+- Nếu cần kiểm tra API end-to-end, tạo database test riêng có tên chứa `test`, bật
+  `SMART_RENTAL_RUN_INTEGRATION_TESTS=true`, rồi chạy lại `npm run test`.
 - Chạy `npm run build`.
 - Backend chạy được tại `http://localhost:5000/api/health`.
 - Frontend chạy được tại `http://localhost:5173`.

@@ -13,6 +13,8 @@ Tài liệu này dùng để đánh giá Smart Rental trước khi demo cho khá
 - Khách thuê có cổng riêng để xem thông tin liên quan đến phòng, hợp đồng, hóa đơn và thanh toán.
 - Dữ liệu nghiệp vụ đã có multi-tenant isolation theo `owner`, phù hợp mô hình nhiều chủ trọ dùng
   chung một hệ thống.
+- Đã có test backend bằng `node:test` cho validation model, guard cấu hình production,
+  middleware/util quan trọng và integration flow có guard an toàn cho database test riêng.
 
 ## Có thể bán thử khi
 
@@ -28,7 +30,7 @@ Tài liệu này dùng để đánh giá Smart Rental trước khi demo cho khá
 ## Chưa nên cam kết là sản phẩm thương mại đầy đủ
 
 - Chưa có thanh toán VNPay/MoMo sandbox thật gồm redirect, return URL, IPN/webhook và kiểm tra chữ ký.
-- Chưa có automated test suite cho backend/frontend.
+- Chưa có automated test suite đầy đủ cho frontend UI và các luồng API edge case mở rộng.
 - Chưa có phân hệ tổ chức/chi nhánh nâng cao cho một chủ trọ quản lý nhiều tòa nhà hoặc nhiều nhân viên.
 - Chưa có sao lưu dữ liệu tự động, audit log và quy trình khôi phục sự cố.
 - Chưa có trang đăng ký/duyệt chủ trọ kèm xác minh email.
