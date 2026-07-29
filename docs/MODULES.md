@@ -114,6 +114,9 @@ Endpoint nền:
 - `PATCH /api/invoices/:id/mark-paid`
 - `PATCH /api/invoices/:id/cancel`
 
+Frontend trang `Dich vu` hien cho chu tro xem chi tiet breakdown hoa don, dong bo trang thai
+`paid`/`cancelled` qua API hoa don va payment lien quan.
+
 ## Dashboard
 
 Hiển thị số liệu tổng quan từ dữ liệu thật trong MongoDB. Module đã có API thống

@@ -1,18 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Calculator,
+  CheckCircle2,
+  Eye,
   FilePlus2,
   RefreshCw,
   Save,
   Settings2,
+  Trash2,
   Zap,
 } from 'lucide-react';
+import { Modal } from '../components/Modal.jsx';
 import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { getContracts } from '../services/contractService.js';
 import {
+  cancelInvoice,
   generateMonthlyInvoices,
   getInvoices,
+  markInvoicePaid,
 } from '../services/invoiceService.js';
 import { formatCurrency } from '../services/preferences.js';
 import {
@@ -49,7 +55,13 @@ const emptyReadingForm = {
 const copy = {
   en: {
     activeContracts: 'active contracts',
+    actions: 'Actions',
     calculator: 'Monthly service calculator',
+    cancel: 'Cancel invoice',
+    cancelled: 'Invoice cancelled.',
+    close: 'Close',
+    confirmCancel: (label) => `Cancel invoice ${label}?`,
+    confirmPaid: (label) => `Mark invoice ${label} as collected?`,
     dueDate: 'Invoice due date',
     electricity: 'Electricity',
     electricityCurrent: 'Current electricity index',
@@ -61,8 +73,12 @@ const copy = {
     generated: 'Generated invoices',
     invoicedAmount: 'Invoiced amount',
     internetFee: 'Internet fee',
+    invoiceDetail: 'Invoice detail',
+    invoiceItems: 'Cost breakdown',
+    invoiceMarkedPaid: 'Invoice marked as collected.',
     invoiceSummary: 'Invoice summary',
     loading: 'Loading...',
+    markPaid: 'Mark collected',
     month: 'Month',
     note: 'Note',
     parkingFeePerVehicle: 'Parking fee / vehicle',
@@ -82,8 +98,11 @@ const copy = {
     serviceAmount: 'Services',
     serviceSettings: 'Service prices',
     serviceTotal: 'Service total',
+    status: 'Status',
     total: 'Total',
     trashFee: 'Trash fee',
+    unitPrice: 'Unit price',
+    view: 'View detail',
     visibleInvoices: 'visible invoices',
     water: 'Water',
     waterCurrent: 'Current water index',
@@ -134,6 +153,41 @@ const copy = {
     waterPrevious: 'Chỉ số nước cũ',
     waterUnitPrice: 'Đơn giá nước / m3',
     year: 'Năm',
+  },
+};
+
+const invoiceCopy = {
+  en: {
+    actions: 'Actions',
+    cancel: 'Cancel invoice',
+    cancelled: 'Invoice cancelled.',
+    close: 'Close',
+    confirmCancel: (label) => `Cancel invoice ${label}?`,
+    confirmPaid: (label) => `Mark invoice ${label} as collected?`,
+    invoiceDetail: 'Invoice detail',
+    invoiceItems: 'Cost breakdown',
+    invoiceMarkedPaid: 'Invoice marked as collected.',
+    markPaid: 'Mark collected',
+    quantity: 'Quantity',
+    status: 'Status',
+    unitPrice: 'Unit price',
+    view: 'View detail',
+  },
+  vi: {
+    actions: 'Thao tac',
+    cancel: 'Huy hoa don',
+    cancelled: 'Da huy hoa don.',
+    close: 'Dong',
+    confirmCancel: (label) => `Huy hoa don ${label}?`,
+    confirmPaid: (label) => `Xac nhan da thu hoa don ${label}?`,
+    invoiceDetail: 'Chi tiet hoa don',
+    invoiceItems: 'Bang ke chi phi',
+    invoiceMarkedPaid: 'Da ghi nhan hoa don da thu.',
+    markPaid: 'Da thu',
+    quantity: 'So luong',
+    status: 'Trang thai',
+    unitPrice: 'Don gia',
+    view: 'Xem chi tiet',
   },
 };
 
@@ -193,10 +247,44 @@ function formatDateInput(value) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
+function formatDate(value) {
+  if (!value) return '-';
+  return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
+}
+
+function formatInvoiceCode(invoice) {
+  if (!invoice) return '';
+  return `${invoice.month}/${invoice.year}`;
+}
+
+function getStatusLabel(status, language) {
+  const labels = {
+    en: {
+      cancelled: 'Cancelled',
+      draft: 'Draft',
+      issued: 'Issued',
+      overdue: 'Overdue',
+      paid: 'Paid',
+    },
+    vi: {
+      cancelled: 'Da huy',
+      draft: 'Ban nhap',
+      issued: 'Da phat hanh',
+      overdue: 'Qua han',
+      paid: 'Da thanh toan',
+    },
+  };
+
+  return labels[language]?.[status] || status;
+}
+
 export function ServicesPage() {
   const { language } = usePreferences();
   const { showError, showSuccess } = useToast();
-  const text = copy[language] || copy.vi;
+  const text = {
+    ...(invoiceCopy[language] || invoiceCopy.vi),
+    ...(copy[language] || copy.vi),
+  };
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
   const [year, setYear] = useState(currentDate.getFullYear());
   const [dueDate, setDueDate] = useState(
@@ -214,6 +302,8 @@ export function ServicesPage() {
   const [isSavingSetting, setIsSavingSetting] = useState(false);
   const [isSavingReading, setIsSavingReading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [invoiceActionId, setInvoiceActionId] = useState('');
 
   const activeContracts = useMemo(
     () => contracts.filter((contract) => contract.status === 'active'),
@@ -372,6 +462,58 @@ export function ServicesPage() {
     }
   }
 
+  async function handleMarkInvoicePaid(invoice) {
+    const confirmed = window.confirm(
+      text.confirmPaid(formatInvoiceCode(invoice)),
+    );
+
+    if (!confirmed) return;
+
+    setInvoiceActionId(invoice._id);
+    setError('');
+
+    try {
+      const updatedInvoice = await markInvoicePaid(invoice._id);
+      setSelectedInvoice(updatedInvoice);
+      await loadData();
+      showSuccess(text.invoiceMarkedPaid);
+    } catch (err) {
+      setError(err.message);
+      showError(err.message);
+    } finally {
+      setInvoiceActionId('');
+    }
+  }
+
+  async function handleCancelInvoice(invoice) {
+    const confirmed = window.confirm(
+      text.confirmCancel(formatInvoiceCode(invoice)),
+    );
+
+    if (!confirmed) return;
+
+    setInvoiceActionId(invoice._id);
+    setError('');
+
+    try {
+      const updatedInvoice = await cancelInvoice(invoice._id, {
+        note: invoice.note,
+      });
+      setSelectedInvoice(updatedInvoice);
+      await loadData();
+      showSuccess(text.cancelled);
+    } catch (err) {
+      setError(err.message);
+      showError(err.message);
+    } finally {
+      setInvoiceActionId('');
+    }
+  }
+
+  function canChangeInvoice(invoice) {
+    return invoice?.status !== 'paid' && invoice?.status !== 'cancelled';
+  }
+
   return (
     <section className="services-page">
       <div className="page-heading services-heading">
@@ -414,6 +556,112 @@ export function ServicesPage() {
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}
+
+      <Modal
+        isOpen={Boolean(selectedInvoice)}
+        title={text.invoiceDetail}
+        onClose={() => setSelectedInvoice(null)}
+      >
+        {selectedInvoice ? (
+          <div className="invoice-detail-modal">
+            <div className="invoice-detail-grid">
+              <div>
+                <span>{text.roomTenant}</span>
+                <strong>{getContractLabel(selectedInvoice)}</strong>
+              </div>
+              <div>
+                <span>{text.month}</span>
+                <strong>{formatInvoiceCode(selectedInvoice)}</strong>
+              </div>
+              <div>
+                <span>{text.dueDate}</span>
+                <strong>{formatDate(selectedInvoice.dueDate)}</strong>
+              </div>
+              <div>
+                <span>{text.status}</span>
+                <strong>
+                  {getStatusLabel(selectedInvoice.status, language)}
+                </strong>
+              </div>
+              <div>
+                <span>{text.total}</span>
+                <strong>{formatMoney(selectedInvoice.totalAmount)}</strong>
+              </div>
+            </div>
+
+            <div className="table-panel compact-data-table invoice-items-panel">
+              <div className="table-panel-header">
+                <h2>{text.invoiceItems}</h2>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>{text.note}</th>
+                    <th>{text.quantity}</th>
+                    <th>{text.unitPrice}</th>
+                    <th>{text.total}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selectedInvoice.items || []).map((item) => (
+                    <tr key={`${item.name}-${item.amount}`}>
+                      <td>
+                        <strong>{item.name}</strong>
+                      </td>
+                      <td>{item.quantity}</td>
+                      <td>{formatMoney(item.unitPrice)}</td>
+                      <td>
+                        <strong>{formatMoney(item.amount)}</strong>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="modal-footer-actions">
+              {canChangeInvoice(selectedInvoice) ? (
+                <>
+                  <button
+                    disabled={invoiceActionId === selectedInvoice._id}
+                    type="button"
+                    onClick={() => handleMarkInvoicePaid(selectedInvoice)}
+                  >
+                    <CheckCircle2
+                      className="button-icon"
+                      size={16}
+                      strokeWidth={2.5}
+                    />
+                    {invoiceActionId === selectedInvoice._id
+                      ? text.saving
+                      : text.markPaid}
+                  </button>
+                  <button
+                    className="danger-button"
+                    disabled={invoiceActionId === selectedInvoice._id}
+                    type="button"
+                    onClick={() => handleCancelInvoice(selectedInvoice)}
+                  >
+                    <Trash2
+                      className="button-icon"
+                      size={16}
+                      strokeWidth={2.5}
+                    />
+                    {text.cancel}
+                  </button>
+                </>
+              ) : null}
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setSelectedInvoice(null)}
+              >
+                {text.close}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       <div className="services-summary-grid">
         <article className="service-summary-card">
@@ -725,6 +973,7 @@ export function ServicesPage() {
                 <th>{text.rent}</th>
                 <th>{text.serviceAmount}</th>
                 <th>{text.total}</th>
+                <th>{text.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -740,6 +989,51 @@ export function ServicesPage() {
                   <td>{formatMoney(invoice.serviceAmount)}</td>
                   <td>
                     <strong>{formatMoney(invoice.totalAmount)}</strong>
+                  </td>
+                  <td>
+                    <div className="row-actions">
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={() => setSelectedInvoice(invoice)}
+                      >
+                        <Eye
+                          className="button-icon"
+                          size={16}
+                          strokeWidth={2.5}
+                        />
+                        {text.view}
+                      </button>
+                      {canChangeInvoice(invoice) ? (
+                        <>
+                          <button
+                            disabled={invoiceActionId === invoice._id}
+                            type="button"
+                            onClick={() => handleMarkInvoicePaid(invoice)}
+                          >
+                            <CheckCircle2
+                              className="button-icon"
+                              size={16}
+                              strokeWidth={2.5}
+                            />
+                            {text.markPaid}
+                          </button>
+                          <button
+                            className="danger-button"
+                            disabled={invoiceActionId === invoice._id}
+                            type="button"
+                            onClick={() => handleCancelInvoice(invoice)}
+                          >
+                            <Trash2
+                              className="button-icon"
+                              size={16}
+                              strokeWidth={2.5}
+                            />
+                            {text.cancel}
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

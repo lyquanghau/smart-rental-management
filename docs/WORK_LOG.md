@@ -1,5 +1,49 @@
 # Work Log
 
+## 2026-07-29
+
+### Production pilot readiness: thao tac hoa don
+
+- Kiem tra dau phien:
+  - Bat dau o nhanh `feature/product-test-readiness`, sau do fast-forward vao `main`.
+  - Dong bo `dev` local theo `main` va tao nhanh `feature/production-pilot-readiness`.
+  - Sau merge, `main` va `dev` local cung commit `7dad35b`; remote `origin/main` va `origin/dev`
+    van sau local 1 commit vi chua push.
+  - Khong con nhanh local/remote nao co commit chua merge vao `main`.
+  - File phu tro/untracked tiep tuc giu ngoai commit: `chuyen_de_2.xlsx`, `code.txt`,
+    `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+- Kiem tra bat buoc dau phien:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1667 modules.
+  - `npm run test`: loi `spawn EPERM` trong sandbox Windows cua Node test runner.
+  - `npm run test` ngoai sandbox: pass 15 test, skip 1 integration test do chua bat database test rieng.
+- Doi chieu tien do:
+  - Core MVP da vuot ke hoach ban dau: auth, phong, khach thue, hop dong, PDF, dich vu, hoa don,
+    thanh toan manual/mock, dashboard, tenant portal va owner data isolation.
+  - Khoang trong lon de thanh san pham thuong mai day du van la deploy production, thanh toan
+    VNPay/MoMo sandbox that, backup/monitoring, legal docs va frontend E2E test.
+- Chon huong hom nay:
+  - Uu tien gia tri su dung that cho chu tro nho thay vi them payment gateway khi chua co credential.
+  - Khong them stack moi; tiep tuc dung React state, Modal co san, lucide icon va API invoice hien co.
+- Implement:
+  - Trang `Dich vu` co the xem chi tiet hoa don bang modal.
+  - Modal hien room/tenant, ky hoa don, han thanh toan, trang thai va breakdown tung dong chi phi.
+  - Chu tro co the danh dau hoa don da thu hoac huy hoa don ngay tai trang `Dich vu`.
+  - Cac hanh dong dung API co san `PATCH /api/invoices/:id/mark-paid` va
+    `PATCH /api/invoices/:id/cancel`, backend tiep tuc dong bo payment lien quan.
+  - Them CSS responsive cho modal chi tiet hoa don va bang breakdown.
+- Tai lieu:
+  - Cap nhat `docs/MODULES.md`.
+  - Cap nhat `docs/TEST_CHECKLIST.md`.
+- Ghi chu test toi nay:
+  - Mo `http://localhost:5173`, dang nhap landlord va test lai flow `Dich vu`:
+    xem chi tiet hoa don, danh dau da thu, huy hoa don.
+  - Kiem tra trang `Thanh toan` sau moi thao tac de xac nhan payment lien quan da dong bo
+    sang `paid` hoac `cancelled`.
+  - Quay lai `Dashboard` de kiem tra doanh thu/cong no cap nhat theo trang thai moi.
+
 ## 2026-07-28
 
 ### Product test readiness va demo script

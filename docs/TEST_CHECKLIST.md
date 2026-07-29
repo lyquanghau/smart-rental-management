@@ -88,3 +88,9 @@ Ghi chú: VNPay/MoMo hiện ở mức phương thức ghi nhận/mock. Nếu san
 - Kiểm tra mobile khoảng 390px.
 - Không có bảng/form bị che mất nút thao tác quan trọng.
 - Chuẩn bị sẵn dữ liệu demo, không demo trên database trống.
+
+## 9. Bo sung hoa don pilot-ready
+
+- Xem chi tiet hoa don va breakdown tien phong/dich vu tu trang Dich vu.
+- Danh dau hoa don da thu va kiem tra payment lien quan chuyen sang da thanh toan.
+- Huy hoa don va kiem tra payment lien quan chuyen sang da huy.
