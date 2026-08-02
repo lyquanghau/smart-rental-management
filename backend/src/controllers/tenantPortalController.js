@@ -1,6 +1,7 @@
 import { Contract } from '../models/Contract.js';
 import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
+import { ServiceSetting } from '../models/ServiceSetting.js';
 import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
 
@@ -48,6 +49,30 @@ async function getCurrentTenant(userId) {
   return tenant;
 }
 
+function buildPaymentInstructions(setting) {
+  if (!setting) {
+    return {
+      bankAccountName: '',
+      bankAccountNumber: '',
+      bankName: '',
+      isConfigured: false,
+      paymentNote: '',
+      transferContentTemplate: '',
+    };
+  }
+
+  return {
+    bankAccountName: setting.bankAccountName || '',
+    bankAccountNumber: setting.bankAccountNumber || '',
+    bankName: setting.bankName || '',
+    isConfigured: Boolean(
+      setting.bankName && setting.bankAccountNumber && setting.bankAccountName,
+    ),
+    paymentNote: setting.paymentNote || '',
+    transferContentTemplate: setting.transferContentTemplate || '',
+  };
+}
+
 export async function getTenantPortalSummary(req, res, next) {
   try {
     if (req.user.role !== 'tenant') {
@@ -75,6 +100,10 @@ export async function getTenantPortalSummary(req, res, next) {
 
     const activeContract =
       contracts.find((contract) => contract.status === 'active') || null;
+    const ownerId = activeContract?.owner || contracts[0]?.owner || null;
+    const serviceSetting = ownerId
+      ? await ServiceSetting.findOne({ owner: ownerId }).sort({ createdAt: 1 })
+      : null;
     const openInvoices = invoices.filter((invoice) =>
       ['draft', 'issued', 'overdue'].includes(invoice.status),
     );
@@ -89,6 +118,7 @@ export async function getTenantPortalSummary(req, res, next) {
         activeContract,
         contracts,
         invoices,
+        paymentInstructions: buildPaymentInstructions(serviceSetting),
         payments,
         totals: {
           openInvoiceAmount: openInvoices.reduce(

@@ -5,6 +5,14 @@ export async function getInvoices(params = {}) {
   return response.data.data;
 }
 
+export async function downloadInvoicePdf(id) {
+  const response = await api.get(`/invoices/${id}/pdf`, {
+    responseType: 'blob',
+  });
+
+  return response.data;
+}
+
 export async function generateMonthlyInvoices(payload) {
   const response = await api.post('/invoices/generate-monthly', payload);
   return response.data.data;

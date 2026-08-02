@@ -106,6 +106,12 @@ export const serviceSetting = {
   internetFee: 100000,
   trashFee: 30000,
   parkingFeePerVehicle: 100000,
+  bankName: 'VCB - Vietcombank',
+  bankAccountNumber: '0123456789',
+  bankAccountName: 'ADMIN SMART RENTAL',
+  transferContentTemplate: 'Thanh toan phong {room} thang {month}-{year}',
+  paymentNote:
+    'Sau khi chuyen khoan, vui long chup lai bien lai va gui cho chu tro de xac nhan.',
 };
 
 export const utilityReadings = [

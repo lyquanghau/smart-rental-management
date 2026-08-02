@@ -607,9 +607,21 @@ Request:
   "waterUnitPrice": 15000,
   "internetFee": 100000,
   "trashFee": 30000,
-  "parkingFeePerVehicle": 100000
+  "parkingFeePerVehicle": 100000,
+  "bankName": "VCB - Vietcombank",
+  "bankAccountNumber": "0123456789",
+  "bankAccountName": "ADMIN SMART RENTAL",
+  "transferContentTemplate": "Thanh toan phong {room} thang {month}-{year}",
+  "paymentNote": "Sau khi chuyen khoan, vui long gui bien lai cho chu tro."
 }
 ```
+
+Ghi chu:
+
+- Cac truong `bankName`, `bankAccountNumber`, `bankAccountName`,
+  `transferContentTemplate`, `paymentNote` dung de hien thi huong dan chuyen khoan
+  trong cong khach thue.
+- `transferContentTemplate` ho tro placeholder `{room}`, `{month}`, `{year}`.
 
 ### GET /utility-readings
 
@@ -675,6 +687,14 @@ contract=<contractId>
 
 Trả chi tiết hóa đơn gồm tiền phòng, tiền dịch vụ và từng dòng chi phí.
 
+### GET /invoices/:id/pdf
+
+Yeu cau JWT. Landlord chi tai duoc hoa don thuoc owner cua minh; tenant chi tai duoc hoa don
+cua ho so tenant dang dang nhap.
+
+Tra ve file PDF hoa don gom thong tin phong, khach thue, ky hoa don, bang ke chi phi,
+tong thanh toan va thong tin chuyen khoan neu chu tro da cau hinh.
+
 ### POST /invoices/generate-monthly
 
 Tạo hóa đơn tháng cho tất cả hợp đồng `active`. Nếu hóa đơn của hợp đồng trong
@@ -707,7 +727,48 @@ Chuyển hóa đơn sang `paid`, đồng thời tạo/cập nhật payment liên
 
 Chuyển hóa đơn sang `cancelled`, đồng thời hủy payment liên kết nếu có.
 
+## Tenant Portal
+
+### GET /tenant-portal/summary
+
+Yeu cau role `tenant`.
+
+Response tra ho so khach thue hien tai, phong, hop dong, hoa don, thanh toan va
+`paymentInstructions` lay tu cau hinh cua chu tro dang quan ly hop dong.
+
+```json
+{
+  "data": {
+    "tenant": {},
+    "room": {},
+    "activeContract": {},
+    "contracts": [],
+    "invoices": [],
+    "payments": [],
+    "paymentInstructions": {
+      "bankName": "VCB - Vietcombank",
+      "bankAccountNumber": "0123456789",
+      "bankAccountName": "ADMIN SMART RENTAL",
+      "transferContentTemplate": "Thanh toan phong {room} thang {month}-{year}",
+      "paymentNote": "Sau khi chuyen khoan, vui long gui bien lai cho chu tro.",
+      "isConfigured": true
+    },
+    "totals": {
+      "openInvoiceAmount": 0,
+      "openInvoiceCount": 0,
+      "openPaymentAmount": 0,
+      "openPaymentCount": 0
+    }
+  }
+}
+```
+
 ## Dashboard
+
+Bo sung nhac han dashboard:
+
+- `alerts.paymentReminders.dueSoon` tra toi da 5 hoa don chua thu den han trong 7 ngay.
+- `alerts.paymentReminders.overdue` tra toi da 5 hoa don qua han.
 
 Dashboard API yêu cầu đăng nhập bằng JWT.
 
@@ -748,6 +809,10 @@ Response:
     },
     "alerts": {
       "expiringContracts": [],
+      "paymentReminders": {
+        "dueSoon": [],
+        "overdue": []
+      },
       "unpaidPayments": []
     }
   }

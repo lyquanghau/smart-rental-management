@@ -43,6 +43,10 @@
 - Cho phép IP từ Render hoặc dùng access rule phù hợp trong giai đoạn demo.
 - Seed dữ liệu demo nếu database mới.
 
+Backup truoc deploy:
+
+- Doc `docs/BACKUP_RESTORE.md` va tao backup thu cong truoc moi lan deploy production.
+
 ## 5. Kiểm tra sau deploy
 
 - Mở frontend production.

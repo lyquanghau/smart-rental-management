@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Download, RefreshCw } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Copy, Download, RefreshCw } from 'lucide-react';
 import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { downloadContractPdf } from '../services/contractService.js';
+import { downloadInvoicePdf } from '../services/invoiceService.js';
 import { formatCurrency } from '../services/preferences.js';
 import { getTenantPortalSummary } from '../services/tenantPortalService.js';
 
@@ -10,6 +11,14 @@ const emptySummary = {
   activeContract: null,
   contracts: [],
   invoices: [],
+  paymentInstructions: {
+    bankAccountName: '',
+    bankAccountNumber: '',
+    bankName: '',
+    isConfigured: false,
+    paymentNote: '',
+    transferContentTemplate: '',
+  },
   payments: [],
   room: null,
   tenant: null,
@@ -25,12 +34,18 @@ const copy = {
   en: {
     activeContract: 'Active contract',
     billing: 'Billing',
+    bankAccountName: 'Account holder',
+    bankAccountNumber: 'Account number',
+    bankName: 'Bank',
     contractHistory: 'Contract history',
+    copiedTransferContent: 'Transfer content copied.',
+    copyTransferContent: 'Copy content',
     downloadPdf: 'Download PDF',
     dueDate: 'Due date',
     emptyContract: 'No contract data yet.',
     emptyInvoice: 'No invoices yet.',
     emptyPayment: 'No payment records yet.',
+    invoicePdfDownloaded: 'Invoice PDF downloaded.',
     floor: 'Floor',
     invoice: 'Invoice',
     invoiceTotal: 'Invoice total',
@@ -41,6 +56,9 @@ const copy = {
     noRoom: 'No room assigned',
     openAmount: 'Open amount',
     paidAt: 'Paid at',
+    paymentInstructions: 'Payment instructions',
+    paymentInstructionsMissing:
+      'Payment account information has not been configured yet.',
     paymentHistory: 'Payment history',
     portalTitle: 'Tenant portal',
     reload: 'Reload',
@@ -51,16 +69,23 @@ const copy = {
     term: 'Term',
     tenant: 'Tenant',
     to: 'to',
+    transferContent: 'Transfer content',
   },
   vi: {
     activeContract: 'Hop dong dang hieu luc',
     billing: 'Hoa don',
+    bankAccountName: 'Chu tai khoan',
+    bankAccountNumber: 'So tai khoan',
+    bankName: 'Ngan hang',
     contractHistory: 'Lich su hop dong',
+    copiedTransferContent: 'Da copy noi dung chuyen khoan.',
+    copyTransferContent: 'Copy noi dung',
     downloadPdf: 'Tai PDF',
     dueDate: 'Han thanh toan',
     emptyContract: 'Chua co du lieu hop dong.',
     emptyInvoice: 'Chua co hoa don.',
     emptyPayment: 'Chua co lich su thanh toan.',
+    invoicePdfDownloaded: 'Da tai PDF hoa don.',
     floor: 'Tang',
     invoice: 'Hoa don',
     invoiceTotal: 'Tong hoa don',
@@ -71,6 +96,8 @@ const copy = {
     noRoom: 'Chua gan phong',
     openAmount: 'So tien can thanh toan',
     paidAt: 'Ngay thu',
+    paymentInstructions: 'Huong dan thanh toan',
+    paymentInstructionsMissing: 'Chu tro chua cau hinh thong tin nhan tien.',
     paymentHistory: 'Lich su thanh toan',
     portalTitle: 'Cong khach thue',
     reload: 'Tai lai',
@@ -81,6 +108,7 @@ const copy = {
     term: 'Thoi han',
     tenant: 'Khach thue',
     to: 'den',
+    transferContent: 'Noi dung chuyen khoan',
   },
 };
 
@@ -98,6 +126,16 @@ function formatInvoiceCode(invoice) {
   return `${invoice.month}/${invoice.year}`;
 }
 
+function buildTransferContent(template, room, invoice) {
+  if (!invoice) return '';
+  const fallback = 'Thanh toan phong {room} thang {month}-{year}';
+
+  return (template || fallback)
+    .replaceAll('{room}', room?.name || 'N/A')
+    .replaceAll('{month}', String(invoice.month || ''))
+    .replaceAll('{year}', String(invoice.year || ''));
+}
+
 export function TenantPortalPage() {
   const { language } = usePreferences();
   const { showError, showSuccess } = useToast();
@@ -105,6 +143,7 @@ export function TenantPortalPage() {
   const [summary, setSummary] = useState(emptySummary);
   const [error, setError] = useState('');
   const [downloadingContractId, setDownloadingContractId] = useState('');
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   async function loadSummary() {
@@ -158,8 +197,53 @@ export function TenantPortalPage() {
     }
   }
 
+  async function handleDownloadInvoicePdf(invoice) {
+    setDownloadingInvoiceId(invoice._id);
+    setError('');
+
+    try {
+      const pdfBlob = await downloadInvoicePdf(invoice._id);
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      const roomName = invoice.room?.name || summary.room?.name || 'hoa-don';
+
+      link.href = url;
+      link.download = `hoa-don-${roomName}-${invoice.month}-${invoice.year}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showSuccess(text.invoicePdfDownloaded);
+    } catch (err) {
+      setError(err.message);
+      showError(err.message);
+    } finally {
+      setDownloadingInvoiceId('');
+    }
+  }
+
   const room = summary.room;
   const activeContract = summary.activeContract;
+  const openInvoice = useMemo(
+    () =>
+      summary.invoices.find((invoice) =>
+        ['draft', 'issued', 'overdue'].includes(invoice.status),
+      ) || null,
+    [summary.invoices],
+  );
+  const paymentInstructions = summary.paymentInstructions;
+  const transferContent = buildTransferContent(
+    paymentInstructions.transferContentTemplate,
+    room,
+    openInvoice,
+  );
+
+  async function handleCopyTransferContent() {
+    if (!transferContent) return;
+
+    await navigator.clipboard.writeText(transferContent);
+    showSuccess(text.copiedTransferContent);
+  }
 
   return (
     <section className="dashboard-page tenant-portal-page">
@@ -282,12 +366,77 @@ export function TenantPortalPage() {
                     {text.dueDate}: {formatDate(invoice.dueDate)} -{' '}
                     {invoice.status}
                   </small>
+                  <button
+                    className="secondary-button"
+                    disabled={downloadingInvoiceId === invoice._id}
+                    type="button"
+                    onClick={() => handleDownloadInvoicePdf(invoice)}
+                  >
+                    <Download
+                      className="button-icon"
+                      size={16}
+                      strokeWidth={2.5}
+                    />
+                    {downloadingInvoiceId === invoice._id
+                      ? text.loading
+                      : text.downloadPdf}
+                  </button>
                 </article>
               ))}
             </div>
           )}
         </section>
       </div>
+
+      <section className="payment-instruction-panel">
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow">{text.billing}</span>
+            <h2>{text.paymentInstructions}</h2>
+          </div>
+        </div>
+        {paymentInstructions.isConfigured ? (
+          <div className="payment-instruction-grid">
+            <div>
+              <span>{text.bankName}</span>
+              <strong>{paymentInstructions.bankName}</strong>
+            </div>
+            <div>
+              <span>{text.bankAccountNumber}</span>
+              <strong>{paymentInstructions.bankAccountNumber}</strong>
+            </div>
+            <div>
+              <span>{text.bankAccountName}</span>
+              <strong>{paymentInstructions.bankAccountName}</strong>
+            </div>
+            <div>
+              <span>{text.invoice}</span>
+              <strong>
+                {openInvoice ? formatInvoiceCode(openInvoice) : '-'}
+              </strong>
+            </div>
+            <div className="transfer-content-box">
+              <span>{text.transferContent}</span>
+              <strong>{transferContent || '-'}</strong>
+              {transferContent ? (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={handleCopyTransferContent}
+                >
+                  <Copy className="button-icon" size={16} strokeWidth={2.5} />
+                  {text.copyTransferContent}
+                </button>
+              ) : null}
+            </div>
+            {paymentInstructions.paymentNote ? (
+              <p>{paymentInstructions.paymentNote}</p>
+            ) : null}
+          </div>
+        ) : (
+          <p className="empty-note">{text.paymentInstructionsMissing}</p>
+        )}
+      </section>
 
       <section className="table-panel">
         <div className="table-panel-header">

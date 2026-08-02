@@ -92,5 +92,18 @@ Ghi chú: VNPay/MoMo hiện ở mức phương thức ghi nhận/mock. Nếu san
 ## 9. Bo sung hoa don pilot-ready
 
 - Xem chi tiet hoa don va breakdown tien phong/dich vu tu trang Dich vu.
+- Tai PDF hoa don tu trang Dich vu va kiem tra co bang ke chi phi, tong tien, thong tin chuyen khoan.
+- Tai PDF hoa don tu cong khach thue va kiem tra tenant khong xem duoc hoa don cua nguoi khac.
 - Danh dau hoa don da thu va kiem tra payment lien quan chuyen sang da thanh toan.
 - Huy hoa don va kiem tra payment lien quan chuyen sang da huy.
+- Chu tro cau hinh ngan hang, so tai khoan, chu tai khoan, mau noi dung chuyen khoan va ghi chu.
+- Khach thue vao cong khach thue, thay huong dan chuyen khoan dung thong tin chu tro da cau hinh.
+- Copy noi dung chuyen khoan va kiem tra placeholder phong/thang/nam duoc thay bang hoa don dang mo.
+- Dashboard hien nhac han hoa don qua han va hoa don den han trong 7 ngay.
+
+## 10. Backup va restore
+
+- Doc `docs/BACKUP_RESTORE.md` truoc khi thao tac voi database that.
+- Tao backup thu cong truoc deploy/demo quan trong.
+- Restore thu vao database test rieng va smoke test app.
+- Khong commit thu muc/file backup len Git.

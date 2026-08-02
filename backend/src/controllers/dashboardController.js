@@ -42,6 +42,14 @@ function expiringContractRange(now = new Date(), days = 30) {
   return { today, end };
 }
 
+function dueSoonRange(now = new Date(), days = 7) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = new Date(today);
+  end.setDate(end.getDate() + days);
+
+  return { today, end };
+}
+
 function mapContractPreview(contract) {
   return {
     _id: contract._id,
@@ -83,6 +91,7 @@ export async function getDashboardSummary(req, res, next) {
     const monthRange = currentMonthRange();
     const lastMonthRange = previousMonthRange();
     const contractRange = expiringContractRange();
+    const paymentReminderRange = dueSoonRange();
 
     const [
       roomStatusRows,
@@ -96,6 +105,8 @@ export async function getDashboardSummary(req, res, next) {
       expiringContracts,
       unpaidInvoices,
       unpaidStandalonePayments,
+      overdueInvoices,
+      dueSoonInvoices,
     ] = await Promise.all([
       Room.aggregate([
         { $match: { owner, deletedAt: null } },
@@ -291,6 +302,39 @@ export async function getDashboardSummary(req, res, next) {
         })
         .sort({ dueDate: 1 })
         .limit(5),
+      Invoice.find({
+        owner,
+        status: { $in: ['issued', 'overdue'] },
+        dueDate: { $lt: paymentReminderRange.today },
+      })
+        .populate({
+          path: 'contract',
+          select: 'room tenant startDate endDate monthlyPrice status',
+          populate: [
+            { path: 'room', select: 'name floor price maxOccupants status' },
+            { path: 'tenant', select: 'fullName phone email identityNumber' },
+          ],
+        })
+        .sort({ dueDate: 1 })
+        .limit(5),
+      Invoice.find({
+        owner,
+        status: 'issued',
+        dueDate: {
+          $gte: paymentReminderRange.today,
+          $lte: paymentReminderRange.end,
+        },
+      })
+        .populate({
+          path: 'contract',
+          select: 'room tenant startDate endDate monthlyPrice status',
+          populate: [
+            { path: 'room', select: 'name floor price maxOccupants status' },
+            { path: 'tenant', select: 'fullName phone email identityNumber' },
+          ],
+        })
+        .sort({ dueDate: 1 })
+        .limit(5),
     ]);
 
     const roomCounts = mapStatusCounts(roomStatusRows);
@@ -362,6 +406,10 @@ export async function getDashboardSummary(req, res, next) {
         },
         alerts: {
           expiringContracts: expiringContracts.map(mapContractPreview),
+          paymentReminders: {
+            dueSoon: dueSoonInvoices.map(mapInvoicePreview),
+            overdue: overdueInvoices.map(mapInvoicePreview),
+          },
           unpaidPayments: unpaidPaymentPreviews,
         },
       },

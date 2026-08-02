@@ -1,5 +1,62 @@
 # Work Log
 
+## 2026-08-02
+
+### Production value hardening: huong dan chuyen khoan manual
+
+- Kiem tra dau phien:
+  - Bat dau o nhanh `dev`, sau do tao nhanh `feature/production-value-hardening`.
+  - `dev`, `main`, `origin/dev`, `origin/main` cung commit `ca7542c`.
+  - Khong co nhanh local/remote nao co commit ahead so voi `main`.
+  - File phu tro/untracked tiep tuc giu ngoai commit: `chuyen_de_2.xlsx`, `code.txt`,
+    `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+- Kiem tra bat buoc dau phien:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass.
+  - `npm run test`: loi `spawn EPERM` trong sandbox Windows cua Node test runner.
+  - `npm run test` ngoai sandbox: pass 15 test, skip 1 integration test do chua bat database test rieng.
+- Doi chieu tien do:
+  - MVP da vuot ke hoach goc: auth, phong, khach thue, hop dong, PDF, dich vu, hoa don,
+    thanh toan manual/mock, dashboard, tenant portal va owner data isolation.
+  - Khoang trong lon de ban that van la deploy production, payment gateway that, backup/monitoring,
+    legal docs va frontend E2E test.
+- Chon huong hom nay:
+  - Uu tien thu tien that bang chuyen khoan/manual truoc khi co credential VNPay/MoMo.
+  - Khong them stack moi; tan dung `ServiceSetting`, React state hien co va tenant portal hien co.
+- Implement:
+  - Mo rong `ServiceSetting` voi thong tin ngan hang, so tai khoan, chu tai khoan,
+    mau noi dung chuyen khoan va ghi chu thanh toan.
+  - Trang `Dich vu` cho chu tro cau hinh cac thong tin chuyen khoan cung voi don gia dich vu.
+  - `GET /api/tenant-portal/summary` tra them `paymentInstructions` lay theo owner cua hop dong tenant.
+  - Cong khach thue hien thi huong dan chuyen khoan, hoa don dang mo va nut copy noi dung chuyen khoan.
+  - Seed data co san thong tin ngan hang demo de nhom test nhanh.
+- Tai lieu:
+  - Cap nhat `docs/API.md`, `docs/MODULES.md`, `docs/PRODUCT_READINESS.md`,
+    `docs/TEST_CHECKLIST.md`.
+- Bo sung theo yeu cau tiep theo:
+  - Them API `GET /api/invoices/:id/pdf` de xuat PDF hoa don cho landlord/tenant dung quyen.
+  - PDF hoa don gom thong tin phong, khach thue, ky hoa don, breakdown chi phi, tong tien
+    va thong tin chuyen khoan neu chu tro da cau hinh.
+  - Trang `Dich vu` co nut tai PDF hoa don tu bang va modal chi tiet.
+  - Cong khach thue co nut tai PDF hoa don trong danh sach hoa don.
+  - Dashboard co them `alerts.paymentReminders.overdue` va `alerts.paymentReminders.dueSoon`
+    de nhac hoa don qua han/den han trong 7 ngay.
+  - Them `docs/BACKUP_RESTORE.md` cho quy trinh backup/restore MongoDB an toan.
+  - Note backlog toi nay: quan ly toa nha/khu tro, QR chuyen khoan VietQR, deploy production
+    va domain that.
+- Kiem tra cuoi phien:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `git diff --check`: pass.
+  - `npm run test`: loi `spawn EPERM` trong sandbox Windows.
+  - `npm run test` ngoai sandbox: pass 15 test, skip 1 integration test do chua bat database test rieng.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows.
+  - `npm run build` ngoai sandbox: pass, build 1667 modules.
+  - Thu khoi dong dev server tu dong bang `Start-Process` bi loi moi truong `Path/PATH` trung key;
+    khong de lai process nen chay treo. Neu can test UI, chay thu cong `npm run dev`.
+
 ## 2026-07-29
 
 ### Production pilot readiness: thao tac hoa don

@@ -83,6 +83,14 @@ Endpoint nền:
 
 ## Services & Invoices
 
+Bo sung pilot-ready:
+
+- `ServiceSetting` luu don gia dich vu va thong tin nhan chuyen khoan cua tung chu tro.
+- Trang `Dich vu` cho chu tro cau hinh ngan hang, so tai khoan, chu tai khoan,
+  mau noi dung chuyen khoan va ghi chu thanh toan.
+- Cong khach thue hien thi huong dan chuyen khoan tu `ServiceSetting` cua chu tro,
+  giup thu tien that bang chuyen khoan/manual truoc khi co VNPay/MoMo sandbox.
+
 Quản lý điện, nước và dịch vụ hằng tháng. Module này tách riêng hóa đơn phải thu
 khỏi thanh toán:
 

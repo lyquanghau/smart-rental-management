@@ -34,6 +34,36 @@ const serviceSettingSchema = new mongoose.Schema(
       default: 100000,
       min: 0,
     },
+    bankName: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: '',
+    },
+    bankAccountNumber: {
+      type: String,
+      trim: true,
+      maxlength: 40,
+      default: '',
+    },
+    bankAccountName: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: '',
+    },
+    transferContentTemplate: {
+      type: String,
+      trim: true,
+      maxlength: 160,
+      default: 'Thanh toan phong {room} thang {month}-{year}',
+    },
+    paymentNote: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: '',
+    },
   },
   {
     timestamps: true,

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   cancelInvoice,
+  downloadInvoicePdf,
   generateMonthlyInvoices,
   getInvoice,
   listInvoices,
@@ -27,6 +28,7 @@ const markPaidRules = {
 };
 
 router.get('/', requireAuth, listInvoices);
+router.get('/:id/pdf', requireAuth, downloadInvoicePdf);
 router.get('/:id', requireAuth, getInvoice);
 router.post(
   '/generate-monthly',

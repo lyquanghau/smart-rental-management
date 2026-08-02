@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Calculator,
   CheckCircle2,
+  Download,
   Eye,
   FilePlus2,
   RefreshCw,
@@ -16,6 +17,7 @@ import { usePreferences } from '../hooks/usePreferences.js';
 import { getContracts } from '../services/contractService.js';
 import {
   cancelInvoice,
+  downloadInvoicePdf,
   generateMonthlyInvoices,
   getInvoices,
   markInvoicePaid,
@@ -33,11 +35,16 @@ import {
 const currentDate = new Date();
 
 const emptySetting = {
+  bankAccountName: '',
+  bankAccountNumber: '',
+  bankName: '',
   electricityUnitPrice: '',
   waterUnitPrice: '',
   internetFee: '',
   trashFee: '',
   parkingFeePerVehicle: '',
+  paymentNote: '',
+  transferContentTemplate: '',
 };
 
 const emptyReadingForm = {
@@ -56,6 +63,9 @@ const copy = {
   en: {
     activeContracts: 'active contracts',
     actions: 'Actions',
+    bankAccountName: 'Account holder',
+    bankAccountNumber: 'Account number',
+    bankName: 'Bank',
     calculator: 'Monthly service calculator',
     cancel: 'Cancel invoice',
     cancelled: 'Invoice cancelled.',
@@ -75,6 +85,7 @@ const copy = {
     internetFee: 'Internet fee',
     invoiceDetail: 'Invoice detail',
     invoiceItems: 'Cost breakdown',
+    invoicePdfDownloaded: 'Invoice PDF downloaded.',
     invoiceMarkedPaid: 'Invoice marked as collected.',
     invoiceSummary: 'Invoice summary',
     loading: 'Loading...',
@@ -98,6 +109,8 @@ const copy = {
     serviceAmount: 'Services',
     serviceSettings: 'Service prices',
     serviceTotal: 'Service total',
+    transferContentTemplate: 'Transfer content template',
+    transferNote: 'Payment note for tenants',
     status: 'Status',
     total: 'Total',
     trashFee: 'Trash fee',
@@ -111,6 +124,11 @@ const copy = {
     year: 'Year',
   },
   vi: {
+    bankAccountName: 'Chu tai khoan',
+    bankAccountNumber: 'So tai khoan',
+    bankName: 'Ngan hang',
+    transferContentTemplate: 'Mau noi dung chuyen khoan',
+    transferNote: 'Ghi chu thanh toan cho khach thue',
     activeContracts: 'hợp đồng đang hiệu lực',
     calculator: 'Tính dịch vụ hằng tháng',
     dueDate: 'Hạn thanh toán hóa đơn',
@@ -167,6 +185,7 @@ const invoiceCopy = {
     invoiceDetail: 'Invoice detail',
     invoiceItems: 'Cost breakdown',
     invoiceMarkedPaid: 'Invoice marked as collected.',
+    invoicePdfDownloaded: 'Da tai PDF hoa don.',
     markPaid: 'Mark collected',
     quantity: 'Quantity',
     status: 'Status',
@@ -208,21 +227,31 @@ function toNumber(value) {
 
 function toSettingForm(setting) {
   return {
+    bankAccountName: setting?.bankAccountName || '',
+    bankAccountNumber: setting?.bankAccountNumber || '',
+    bankName: setting?.bankName || '',
     electricityUnitPrice: String(setting?.electricityUnitPrice ?? ''),
     waterUnitPrice: String(setting?.waterUnitPrice ?? ''),
     internetFee: String(setting?.internetFee ?? ''),
     trashFee: String(setting?.trashFee ?? ''),
     parkingFeePerVehicle: String(setting?.parkingFeePerVehicle ?? ''),
+    paymentNote: setting?.paymentNote || '',
+    transferContentTemplate: setting?.transferContentTemplate || '',
   };
 }
 
 function toSettingPayload(form) {
   return {
+    bankAccountName: form.bankAccountName,
+    bankAccountNumber: form.bankAccountNumber,
+    bankName: form.bankName,
     electricityUnitPrice: toNumber(form.electricityUnitPrice),
     waterUnitPrice: toNumber(form.waterUnitPrice),
     internetFee: toNumber(form.internetFee),
     trashFee: toNumber(form.trashFee),
     parkingFeePerVehicle: toNumber(form.parkingFeePerVehicle),
+    paymentNote: form.paymentNote,
+    transferContentTemplate: form.transferContentTemplate,
   };
 }
 
@@ -304,6 +333,7 @@ export function ServicesPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [invoiceActionId, setInvoiceActionId] = useState('');
+  const [invoiceDownloadId, setInvoiceDownloadId] = useState('');
 
   const activeContracts = useMemo(
     () => contracts.filter((contract) => contract.status === 'active'),
@@ -510,6 +540,31 @@ export function ServicesPage() {
     }
   }
 
+  async function handleDownloadInvoicePdf(invoice) {
+    setInvoiceDownloadId(invoice._id);
+    setError('');
+
+    try {
+      const pdfBlob = await downloadInvoicePdf(invoice._id);
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      const roomName = invoice.room?.name || 'hoa-don';
+
+      link.href = url;
+      link.download = `hoa-don-${roomName}-${invoice.month}-${invoice.year}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showSuccess(text.invoicePdfDownloaded);
+    } catch (err) {
+      setError(err.message);
+      showError(err.message);
+    } finally {
+      setInvoiceDownloadId('');
+    }
+  }
+
   function canChangeInvoice(invoice) {
     return invoice?.status !== 'paid' && invoice?.status !== 'cancelled';
   }
@@ -620,6 +675,17 @@ export function ServicesPage() {
             </div>
 
             <div className="modal-footer-actions">
+              <button
+                className="secondary-button"
+                disabled={invoiceDownloadId === selectedInvoice._id}
+                type="button"
+                onClick={() => handleDownloadInvoicePdf(selectedInvoice)}
+              >
+                <Download className="button-icon" size={16} strokeWidth={2.5} />
+                {invoiceDownloadId === selectedInvoice._id
+                  ? text.loading
+                  : 'PDF'}
+              </button>
               {canChangeInvoice(selectedInvoice) ? (
                 <>
                   <button
@@ -743,6 +809,57 @@ export function ServicesPage() {
               value={settingForm.parkingFeePerVehicle}
               onChange={(event) =>
                 updateSetting('parkingFeePerVehicle', event.target.value)
+              }
+            />
+          </label>
+          <label>
+            {text.bankName}
+            <input
+              maxLength="120"
+              value={settingForm.bankName}
+              onChange={(event) =>
+                updateSetting('bankName', event.target.value)
+              }
+            />
+          </label>
+          <label>
+            {text.bankAccountNumber}
+            <input
+              maxLength="40"
+              value={settingForm.bankAccountNumber}
+              onChange={(event) =>
+                updateSetting('bankAccountNumber', event.target.value)
+              }
+            />
+          </label>
+          <label>
+            {text.bankAccountName}
+            <input
+              maxLength="120"
+              value={settingForm.bankAccountName}
+              onChange={(event) =>
+                updateSetting('bankAccountName', event.target.value)
+              }
+            />
+          </label>
+          <label>
+            {text.transferContentTemplate}
+            <input
+              maxLength="160"
+              value={settingForm.transferContentTemplate}
+              onChange={(event) =>
+                updateSetting('transferContentTemplate', event.target.value)
+              }
+            />
+          </label>
+          <label>
+            {text.transferNote}
+            <textarea
+              maxLength="500"
+              rows="3"
+              value={settingForm.paymentNote}
+              onChange={(event) =>
+                updateSetting('paymentNote', event.target.value)
               }
             />
           </label>
@@ -1003,6 +1120,21 @@ export function ServicesPage() {
                           strokeWidth={2.5}
                         />
                         {text.view}
+                      </button>
+                      <button
+                        className="secondary-button"
+                        disabled={invoiceDownloadId === invoice._id}
+                        type="button"
+                        onClick={() => handleDownloadInvoicePdf(invoice)}
+                      >
+                        <Download
+                          className="button-icon"
+                          size={16}
+                          strokeWidth={2.5}
+                        />
+                        {invoiceDownloadId === invoice._id
+                          ? text.loading
+                          : 'PDF'}
                       </button>
                       {canChangeInvoice(invoice) ? (
                         <>

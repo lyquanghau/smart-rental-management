@@ -1,5 +1,20 @@
 # Product readiness
 
+Cap nhat pilot-ready:
+
+- Chu tro co the cau hinh thong tin chuyen khoan trong trang `Dich vu`.
+- Khach thue co the xem ngan hang, so tai khoan, chu tai khoan, noi dung chuyen khoan
+  va ghi chu thanh toan trong cong khach thue.
+- Chu tro va khach thue co the tai PDF hoa don de in/gui thu cong.
+- Dashboard co nhac han hoa don qua han va hoa don den han trong 7 ngay.
+- Da co tai lieu backup/restore tai `docs/BACKUP_RESTORE.md`.
+
+Backlog toi nay:
+
+- Quan ly toa nha/khu tro.
+- QR chuyen khoan VietQR.
+- Deploy production va domain that.
+
 Tài liệu này dùng để đánh giá Smart Rental trước khi demo cho khách thật hoặc triển khai bán thử.
 
 ## Trạng thái hiện tại

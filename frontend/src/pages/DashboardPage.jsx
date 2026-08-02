@@ -34,6 +34,10 @@ const emptySummary = {
   },
   alerts: {
     expiringContracts: [],
+    paymentReminders: {
+      dueSoon: [],
+      overdue: [],
+    },
     unpaidPayments: [],
   },
 };
@@ -53,6 +57,7 @@ const copy = {
     contractsPayments: 'contracts/payments',
     dashboardTitle: 'Rental management',
     due: 'Due',
+    dueSoon: 'Due within 7 days',
     expiring: 'Expiring within 30 days',
     expires: 'Expires',
     items: 'items',
@@ -62,6 +67,7 @@ const copy = {
     loadingMetrics: 'Loading the latest metrics...',
     needsAttention: 'Needs attention',
     noPayment: 'No pending or overdue payments.',
+    noPaymentReminder: 'No payment reminders for the next 7 days.',
     noRevenue: 'No revenue data yet',
     noRevenueLastMonth: 'No revenue recorded last month',
     noRoom: 'No room',
@@ -86,6 +92,8 @@ const copy = {
       `${delta > 0 ? 'Up' : 'Down'} ${Math.abs(percent)}% from last month`,
   },
   vi: {
+    dueSoon: 'Den han trong 7 ngay',
+    noPaymentReminder: 'Khong co nhac han thanh toan trong 7 ngay toi.',
     activeTenants: 'Khách đang ở',
     cashFlow: 'Dòng tiền',
     collected: 'Đã thu',
@@ -212,7 +220,9 @@ export function DashboardPage() {
   );
   const actionCount =
     summary.alerts.expiringContracts.length +
-    summary.alerts.unpaidPayments.length;
+    summary.alerts.unpaidPayments.length +
+    summary.alerts.paymentReminders.dueSoon.length +
+    summary.alerts.paymentReminders.overdue.length;
 
   return (
     <section className="dashboard-page">
@@ -364,6 +374,43 @@ export function DashboardPage() {
                   <span>{contract.tenant?.fullName || text.noTenant}</span>
                   <small>
                     {text.expires}: {formatDate(contract.endDate, text)}
+                  </small>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="dashboard-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">{text.payments}</span>
+              <h2>{text.dueSoon}</h2>
+            </div>
+            <span className="panel-meta">
+              {summary.alerts.paymentReminders.overdue.length +
+                summary.alerts.paymentReminders.dueSoon.length}{' '}
+              {text.items}
+            </span>
+          </div>
+          {summary.alerts.paymentReminders.overdue.length === 0 &&
+          summary.alerts.paymentReminders.dueSoon.length === 0 ? (
+            <p className="empty-note">{text.noPaymentReminder}</p>
+          ) : (
+            <div className="alert-list">
+              {[
+                ...summary.alerts.paymentReminders.overdue,
+                ...summary.alerts.paymentReminders.dueSoon,
+              ].map((payment) => (
+                <article className="alert-item" key={payment._id}>
+                  <strong>{formatMoney(payment.amount)}</strong>
+                  <span>
+                    {payment.contract?.room?.name || text.noRoom} -{' '}
+                    {payment.contract?.tenant?.fullName || text.noTenant}
+                  </span>
+                  <small>
+                    {text.due}: {formatDate(payment.dueDate, text)} -{' '}
+                    {getPaymentStatusLabel(payment.status, language)}
                   </small>
                 </article>
               ))}

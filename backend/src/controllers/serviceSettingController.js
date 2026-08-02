@@ -8,6 +8,14 @@ function normalizeSettingPayload(body) {
     internetFee: Number(body.internetFee || 0),
     trashFee: Number(body.trashFee || 0),
     parkingFeePerVehicle: Number(body.parkingFeePerVehicle || 0),
+    bankName: String(body.bankName || '').trim(),
+    bankAccountNumber: String(body.bankAccountNumber || '').trim(),
+    bankAccountName: String(body.bankAccountName || '').trim(),
+    transferContentTemplate: String(
+      body.transferContentTemplate ||
+        'Thanh toan phong {room} thang {month}-{year}',
+    ).trim(),
+    paymentNote: String(body.paymentNote || '').trim(),
   };
 }
 
