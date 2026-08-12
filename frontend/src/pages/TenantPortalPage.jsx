@@ -1,11 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Copy, Download, RefreshCw } from 'lucide-react';
+import { Copy, Download, QrCode, RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { downloadContractPdf } from '../services/contractService.js';
-import { downloadInvoicePdf } from '../services/invoiceService.js';
+import {
+  createSepayPaymentCode,
+  downloadInvoicePdf,
+} from '../services/invoiceService.js';
 import { formatCurrency } from '../services/preferences.js';
 import { getTenantPortalSummary } from '../services/tenantPortalService.js';
+import sepayQrImage from '../assets/payment/sepay-qr-qronly.png';
 
 const emptySummary = {
   activeContract: null,
@@ -14,6 +19,7 @@ const emptySummary = {
   paymentInstructions: {
     bankAccountName: '',
     bankAccountNumber: '',
+    bankCode: '',
     bankName: '',
     isConfigured: false,
     paymentNote: '',
@@ -46,6 +52,14 @@ const copy = {
     emptyInvoice: 'No invoices yet.',
     emptyPayment: 'No payment records yet.',
     invoicePdfDownloaded: 'Invoice PDF downloaded.',
+    sepayPaymentCreated: 'SePay payment code created.',
+    momoPaymentFailed: 'MoMo payment was not completed.',
+    momoPaymentReturned:
+      'MoMo returned a successful result. Waiting for IPN confirmation.',
+    paymentAmount: 'Amount',
+    scanToPay: 'Scan this QR to pay',
+    sepayPay: 'Show payment QR',
+    sepayCode: 'Payment code',
     floor: 'Floor',
     invoice: 'Invoice',
     invoiceTotal: 'Invoice total',
@@ -59,6 +73,7 @@ const copy = {
     paymentInstructions: 'Payment instructions',
     paymentInstructionsMissing:
       'Payment account information has not been configured yet.',
+    paymentQr: 'Payment QR',
     paymentHistory: 'Payment history',
     portalTitle: 'Tenant portal',
     reload: 'Reload',
@@ -86,6 +101,14 @@ const copy = {
     emptyInvoice: 'Chua co hoa don.',
     emptyPayment: 'Chua co lich su thanh toan.',
     invoicePdfDownloaded: 'Da tai PDF hoa don.',
+    sepayPaymentCreated: 'Da tao ma thanh toan SePay.',
+    momoPaymentFailed: 'Giao dich MoMo chua hoan tat.',
+    momoPaymentReturned:
+      'MoMo tra ve ket qua thanh cong. Dang cho IPN xac nhan.',
+    paymentAmount: 'So tien',
+    scanToPay: 'Quet QR nay de thanh toan',
+    sepayPay: 'Hien QR thanh toan',
+    sepayCode: 'Ma thanh toan',
     floor: 'Tang',
     invoice: 'Hoa don',
     invoiceTotal: 'Tong hoa don',
@@ -98,6 +121,7 @@ const copy = {
     paidAt: 'Ngay thu',
     paymentInstructions: 'Huong dan thanh toan',
     paymentInstructionsMissing: 'Chu tro chua cau hinh thong tin nhan tien.',
+    paymentQr: 'QR thanh toan',
     paymentHistory: 'Lich su thanh toan',
     portalTitle: 'Cong khach thue',
     reload: 'Tai lai',
@@ -139,12 +163,15 @@ function buildTransferContent(template, room, invoice) {
 export function TenantPortalPage() {
   const { language } = usePreferences();
   const { showError, showSuccess } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const text = copy[language] || copy.vi;
   const [summary, setSummary] = useState(emptySummary);
   const [error, setError] = useState('');
   const [downloadingContractId, setDownloadingContractId] = useState('');
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [paymentActionId, setPaymentActionId] = useState('');
+  const [sepayPayment, setSepayPayment] = useState(null);
 
   async function loadSummary() {
     setIsLoading(true);
@@ -170,6 +197,22 @@ export function TenantPortalPage() {
 
   useEffect(() => {
     loadSummary();
+  }, []);
+
+  useEffect(() => {
+    const resultCode = searchParams.get('resultCode');
+    const orderId = searchParams.get('orderId');
+
+    if (!resultCode && !orderId) return;
+
+    if (resultCode === '0') {
+      showSuccess(text.momoPaymentReturned);
+    } else {
+      showError(text.momoPaymentFailed);
+    }
+
+    loadSummary();
+    setSearchParams({}, { replace: true });
   }, []);
 
   async function handleDownloadPdf(contract) {
@@ -232,17 +275,36 @@ export function TenantPortalPage() {
     [summary.invoices],
   );
   const paymentInstructions = summary.paymentInstructions;
+  const hasPaymentTarget = Boolean(openInvoice);
   const transferContent = buildTransferContent(
     paymentInstructions.transferContentTemplate,
     room,
     openInvoice,
   );
+  const payableTransferContent = sepayPayment?.paymentCode || transferContent;
+  const paymentQrUrl = sepayPayment?.qrCodeUrl || sepayQrImage;
 
   async function handleCopyTransferContent() {
-    if (!transferContent) return;
+    if (!payableTransferContent) return;
 
-    await navigator.clipboard.writeText(transferContent);
+    await navigator.clipboard.writeText(payableTransferContent);
     showSuccess(text.copiedTransferContent);
+  }
+
+  async function handleCreateSepayPayment(invoice) {
+    setPaymentActionId(invoice._id);
+    setError('');
+
+    try {
+      const payment = await createSepayPaymentCode(invoice._id);
+      setSepayPayment(payment);
+      showSuccess(text.sepayPaymentCreated);
+    } catch (err) {
+      setError(err.message);
+      showError(err.message);
+    } finally {
+      setPaymentActionId('');
+    }
   }
 
   return (
@@ -381,6 +443,52 @@ export function TenantPortalPage() {
                       ? text.loading
                       : text.downloadPdf}
                   </button>
+                  {['draft', 'issued', 'overdue'].includes(invoice.status) ? (
+                    <button
+                      className="secondary-button"
+                      disabled={paymentActionId === invoice._id}
+                      type="button"
+                      onClick={() => handleCreateSepayPayment(invoice)}
+                    >
+                      <QrCode
+                        className="button-icon"
+                        size={16}
+                        strokeWidth={2.5}
+                      />
+                      {paymentActionId === invoice._id
+                        ? text.loading
+                        : text.sepayPay}
+                    </button>
+                  ) : null}
+                  {sepayPayment?.invoiceId === invoice._id ? (
+                    <div className="invoice-payment-qr">
+                      <div className="payment-qr-box">
+                        <span>{text.scanToPay}</span>
+                        <img
+                          alt={`${text.paymentQr} ${paymentInstructions.bankAccountName || text.invoice}`}
+                          src={paymentQrUrl}
+                        />
+                      </div>
+                      <div className="invoice-payment-details">
+                        <span>{text.paymentAmount}</span>
+                        <strong>{formatMoney(sepayPayment.amount)}</strong>
+                        <span>{text.transferContent}</span>
+                        <strong>{sepayPayment.paymentCode}</strong>
+                        <button
+                          className="secondary-button"
+                          type="button"
+                          onClick={handleCopyTransferContent}
+                        >
+                          <Copy
+                            className="button-icon"
+                            size={16}
+                            strokeWidth={2.5}
+                          />
+                          {text.copyTransferContent}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                 </article>
               ))}
             </div>
@@ -395,8 +503,15 @@ export function TenantPortalPage() {
             <h2>{text.paymentInstructions}</h2>
           </div>
         </div>
-        {paymentInstructions.isConfigured ? (
+        {hasPaymentTarget ? (
           <div className="payment-instruction-grid">
+            <div className="payment-qr-box">
+              <span>{text.paymentQr}</span>
+              <img
+                alt={`${text.paymentQr} ${paymentInstructions.bankAccountName || text.invoice}`}
+                src={paymentQrUrl}
+              />
+            </div>
             <div>
               <span>{text.bankName}</span>
               <strong>{paymentInstructions.bankName}</strong>
@@ -417,8 +532,8 @@ export function TenantPortalPage() {
             </div>
             <div className="transfer-content-box">
               <span>{text.transferContent}</span>
-              <strong>{transferContent || '-'}</strong>
-              {transferContent ? (
+              <strong>{payableTransferContent || '-'}</strong>
+              {payableTransferContent ? (
                 <button
                   className="secondary-button"
                   type="button"
@@ -431,6 +546,12 @@ export function TenantPortalPage() {
             </div>
             {paymentInstructions.paymentNote ? (
               <p>{paymentInstructions.paymentNote}</p>
+            ) : null}
+            {sepayPayment ? (
+              <div className="momo-payment-box">
+                <span>{text.sepayCode}</span>
+                <strong>{sepayPayment.paymentCode}</strong>
+              </div>
             ) : null}
           </div>
         ) : (

@@ -107,3 +107,32 @@ Ghi chú: VNPay/MoMo hiện ở mức phương thức ghi nhận/mock. Nếu san
 - Tao backup thu cong truoc deploy/demo quan trong.
 - Restore thu vao database test rieng va smoke test app.
 - Khong commit thu muc/file backup len Git.
+
+## 11. MoMo mock auto payment va thong bao
+
+- Dat `MOMO_MOCK_MODE=true` trong backend `.env`.
+- Tao hoa don thang cho hop dong active.
+- Dang nhap bang tai khoan tenant, vao Cong khach thue.
+- Bam `Thanh toan MoMo` tren hoa don chua thu, kiem tra API tra `mockMode=true` va `orderId`.
+- Bam `Gia lap da thanh toan`, kiem tra hoa don chuyen sang `paid` va payment lien quan chuyen sang `paid`, method `momo`.
+- Dang nhap landlord, kiem tra Header hien badge thong bao chua doc.
+- Mo dropdown thong bao, thay thong bao hoa don da thanh toan.
+- Bam tung thong bao hoac `Danh dau da doc`, kiem tra unread count giam.
+- Neu co credential MoMo that, dat `MOMO_MOCK_MODE=false`, cau hinh `MOMO_IPN_URL` public HTTPS
+  va test IPN that tren sandbox.
+
+## 12. SePay bank webhook va thong bao
+
+- Dat `SEPAY_MOCK_MODE=true` trong backend `.env` de test nhanh local.
+- Tao hoa don thang cho hop dong active.
+- Dang nhap bang tai khoan tenant, vao Cong khach thue.
+- Bam `Lay ma SePay`, kiem tra API tra `paymentCode` bat dau bang `SRINV`.
+- Kiem tra noi dung chuyen khoan tren cong khach thue doi sang ma `SRINV...` va copy duoc.
+- Bam `Gia lap da thanh toan`, kiem tra hoa don chuyen sang `paid`, payment lien quan chuyen sang
+  `paid`, method/provider `sepay`.
+- Dang nhap landlord, kiem tra Header hien badge thong bao chua doc.
+- Khi test SePay that: tao webhook tren SePay dashboard, chon Money in, HMAC-SHA256,
+  URL `https://<backend-domain>/api/webhooks/sepay`, copy Secret Key vao `SEPAY_WEBHOOK_SECRET`,
+  dat `SEPAY_MOCK_MODE=false`, `SEPAY_AUTH_MODE=hmac`.
+- Chuyen khoan so tien dung bang hoa don va noi dung chua ma `SRINV...`; kiem tra SePay delivery log
+  tra success va invoice tu dong sang `paid`.

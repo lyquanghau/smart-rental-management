@@ -83,6 +83,7 @@ test(
     const { Tenant } = await import('../src/models/Tenant.js');
     const { Contract } = await import('../src/models/Contract.js');
     const { Invoice } = await import('../src/models/Invoice.js');
+    const { Notification } = await import('../src/models/Notification.js');
     const { Payment } = await import('../src/models/Payment.js');
     const { UtilityReading } = await import('../src/models/UtilityReading.js');
     const { ServiceSetting } = await import('../src/models/ServiceSetting.js');
@@ -94,6 +95,7 @@ test(
       Tenant.deleteMany({}),
       Contract.deleteMany({}),
       Invoice.deleteMany({}),
+      Notification.deleteMany({}),
       Payment.deleteMany({}),
       UtilityReading.deleteMany({}),
       ServiceSetting.deleteMany({}),

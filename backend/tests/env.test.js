@@ -11,6 +11,18 @@ const ENV_KEYS = [
   'ALLOW_PUBLIC_REGISTRATION',
   'RATE_LIMIT_WINDOW_MS',
   'RATE_LIMIT_MAX',
+  'MOMO_ACCESS_KEY',
+  'MOMO_ENDPOINT',
+  'MOMO_IPN_URL',
+  'MOMO_MOCK_MODE',
+  'MOMO_PARTNER_CODE',
+  'MOMO_REDIRECT_URL',
+  'MOMO_SECRET_KEY',
+  'SEPAY_API_KEY',
+  'SEPAY_AUTH_MODE',
+  'SEPAY_MOCK_MODE',
+  'SEPAY_WEBHOOK_SECRET',
+  'SMART_RENTAL_SKIP_DOTENV',
 ];
 
 let importCounter = 0;
@@ -23,6 +35,7 @@ async function loadEnvModule(values) {
   }
 
   Object.assign(process.env, values);
+  process.env.SMART_RENTAL_SKIP_DOTENV = 'true';
 
   const module = await import(
     `../src/config/env.js?testCase=${Date.now()}-${importCounter++}`
@@ -96,4 +109,61 @@ test('production env accepts strong deployment settings', async () => {
   assert.doesNotThrow(() => validateEnv());
   assert.equal(env.allowPublicRegistration, false);
   assert.deepEqual(env.clientUrls, ['https://smart-rental.example.com']);
+});
+
+test('production env rejects real MoMo mode without gateway settings', async () => {
+  const { validateEnv } = await loadEnvModule({
+    NODE_ENV: 'production',
+    MONGODB_URI: 'mongodb+srv://user:pass@example.mongodb.net/smart_rental',
+    JWT_SECRET: 'a-production-secret-with-more-than-32-characters',
+    CLIENT_URLS: 'https://smart-rental.example.com',
+    MOMO_MOCK_MODE: 'false',
+  });
+
+  assert.throws(() => validateEnv(), /Missing MoMo production settings/);
+});
+
+test('production env accepts real MoMo mode with gateway settings', async () => {
+  const { env, validateEnv } = await loadEnvModule({
+    NODE_ENV: 'production',
+    MONGODB_URI: 'mongodb+srv://user:pass@example.mongodb.net/smart_rental',
+    JWT_SECRET: 'a-production-secret-with-more-than-32-characters',
+    CLIENT_URLS: 'https://smart-rental.example.com',
+    MOMO_ACCESS_KEY: 'access-key',
+    MOMO_IPN_URL: 'https://api.smart-rental.example.com/api/webhooks/momo',
+    MOMO_MOCK_MODE: 'false',
+    MOMO_PARTNER_CODE: 'partner-code',
+    MOMO_REDIRECT_URL: 'https://smart-rental.example.com/tenant-portal',
+    MOMO_SECRET_KEY: 'secret-key',
+  });
+
+  assert.doesNotThrow(() => validateEnv());
+  assert.equal(env.momo.mockMode, false);
+});
+
+test('production env rejects real SePay mode without webhook secret', async () => {
+  const { validateEnv } = await loadEnvModule({
+    NODE_ENV: 'production',
+    MONGODB_URI: 'mongodb+srv://user:pass@example.mongodb.net/smart_rental',
+    JWT_SECRET: 'a-production-secret-with-more-than-32-characters',
+    CLIENT_URLS: 'https://smart-rental.example.com',
+    SEPAY_MOCK_MODE: 'false',
+  });
+
+  assert.throws(() => validateEnv(), /Missing SePay production settings/);
+});
+
+test('production env accepts real SePay HMAC mode with webhook secret', async () => {
+  const { env, validateEnv } = await loadEnvModule({
+    NODE_ENV: 'production',
+    MONGODB_URI: 'mongodb+srv://user:pass@example.mongodb.net/smart_rental',
+    JWT_SECRET: 'a-production-secret-with-more-than-32-characters',
+    CLIENT_URLS: 'https://smart-rental.example.com',
+    SEPAY_AUTH_MODE: 'hmac',
+    SEPAY_MOCK_MODE: 'false',
+    SEPAY_WEBHOOK_SECRET: 'sepay-webhook-secret',
+  });
+
+  assert.doesNotThrow(() => validateEnv());
+  assert.equal(env.sepay.mockMode, false);
 });

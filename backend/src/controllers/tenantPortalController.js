@@ -54,6 +54,7 @@ function buildPaymentInstructions(setting) {
     return {
       bankAccountName: '',
       bankAccountNumber: '',
+      bankCode: '',
       bankName: '',
       isConfigured: false,
       paymentNote: '',
@@ -64,6 +65,7 @@ function buildPaymentInstructions(setting) {
   return {
     bankAccountName: setting.bankAccountName || '',
     bankAccountNumber: setting.bankAccountNumber || '',
+    bankCode: setting.bankCode || '',
     bankName: setting.bankName || '',
     isConfigured: Boolean(
       setting.bankName && setting.bankAccountNumber && setting.bankAccountName,

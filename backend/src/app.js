@@ -44,7 +44,13 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(apiLimiter);
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, _res, buffer) => {
+      req.rawBody = buffer.toString('utf8');
+    },
+  }),
+);
 app.use(morgan('dev'));
 
 app.use('/api', routes);

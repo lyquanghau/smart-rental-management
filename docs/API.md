@@ -695,6 +695,89 @@ cua ho so tenant dang dang nhap.
 Tra ve file PDF hoa don gom thong tin phong, khach thue, ky hoa don, bang ke chi phi,
 tong thanh toan va thong tin chuyen khoan neu chu tro da cau hinh.
 
+### POST /invoices/:id/momo-payment-link
+
+Yeu cau JWT. Tenant chi tao phien thanh toan cho hoa don cua minh; landlord chi tao duoc cho
+hoa don thuoc owner cua minh.
+
+Tao phien thanh toan MoMo cho hoa don chua `paid`/`cancelled`.
+
+Response:
+
+```json
+{
+  "data": {
+    "invoiceId": "...",
+    "amount": 2700000,
+    "orderId": "INV...",
+    "requestId": "INV...-mock",
+    "checkoutUrl": "http://localhost:5173/tenant-portal?mockMomoOrderId=INV...",
+    "deeplink": "",
+    "qrCodeUrl": "",
+    "mockMode": true
+  },
+  "message": "Da tao phien thanh toan MoMo"
+}
+```
+
+Ghi chu:
+
+- Khi `MOMO_MOCK_MODE=true`, API khong goi MoMo that va dung de demo luong webhook tu dong.
+- Khi `MOMO_MOCK_MODE=false`, backend can cau hinh `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`,
+  `MOMO_SECRET_KEY`, `MOMO_REDIRECT_URL`, `MOMO_IPN_URL`.
+- `MOMO_ENDPOINT` dung sandbox mac dinh `https://test-payment.momo.vn/v2/gateway/api/create`;
+  production dung `https://payment.momo.vn/v2/gateway/api/create`.
+- `MOMO_REDIRECT_URL` la URL frontend, vi du `https://smart-rental.vercel.app/tenant-portal`.
+- `MOMO_IPN_URL` la URL backend public HTTPS, vi du
+  `https://smart-rental-api.onrender.com/api/webhooks/momo`.
+
+### POST /invoices/:id/momo-mock-success
+
+Yeu cau JWT va chi hoat dong khi `MOMO_MOCK_MODE=true`.
+
+Gia lap MoMo IPN thanh cong cho hoa don, sau do backend tu:
+
+- Chuyen `Invoice.status` sang `paid`.
+- Cap nhat/tien tao `Payment` lien quan sang `paid`, method `momo`.
+- Tao notification cho landlord.
+
+Endpoint nay chi dung cho dev/demo khi chua co tai khoan MoMo merchant.
+
+### POST /invoices/:id/sepay-payment-code
+
+Yeu cau JWT. Tenant chi tao ma thanh toan cho hoa don cua minh; landlord chi tao duoc cho
+hoa don thuoc owner cua minh.
+
+Tao ma thanh toan SePay/VietQR cho hoa don chua `paid`/`cancelled`. Tenant dung ma nay trong
+noi dung chuyen khoan de SePay webhook co the doi soat tu dong.
+
+Response:
+
+```json
+{
+  "data": {
+    "invoiceId": "...",
+    "amount": 2700000,
+    "orderId": "SRINV...",
+    "paymentCode": "SRINV...",
+    "mockMode": true
+  },
+  "message": "Da tao ma thanh toan SePay"
+}
+```
+
+### POST /invoices/:id/sepay-mock-success
+
+Yeu cau JWT va chi hoat dong khi `SEPAY_MOCK_MODE=true`.
+
+Gia lap SePay webhook tien vao thanh cong cho hoa don, sau do backend tu:
+
+- Chuyen `Invoice.status` sang `paid`.
+- Cap nhat/tien tao `Payment` lien quan sang `paid`, method `sepay`.
+- Tao notification cho landlord.
+
+Endpoint nay chi dung cho dev/demo khi chua cau hinh SePay webhook that.
+
 ### POST /invoices/generate-monthly
 
 Tạo hóa đơn tháng cho tất cả hợp đồng `active`. Nếu hóa đơn của hợp đồng trong
@@ -761,6 +844,100 @@ Response tra ho so khach thue hien tai, phong, hop dong, hoa don, thanh toan va
     }
   }
 }
+```
+
+## Notifications
+
+Cac API thong bao yeu cau role `landlord`.
+
+### GET /notifications
+
+Query optional:
+
+```txt
+limit=8
+unread=true
+```
+
+Response:
+
+```json
+{
+  "data": [
+    {
+      "_id": "...",
+      "type": "payment_success",
+      "title": "Hoa don da thanh toan",
+      "message": "Hoa don phong A101 thang 8/2026 da duoc thanh toan 2700000 VND.",
+      "entityType": "invoice",
+      "entityId": "...",
+      "readAt": null,
+      "createdAt": "2026-08-03T00:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "unreadCount": 1
+  }
+}
+```
+
+### PATCH /notifications/:id/read
+
+Danh dau mot thong bao da doc.
+
+### PATCH /notifications/read-all
+
+Danh dau tat ca thong bao cua landlord hien tai da doc.
+
+## Webhooks
+
+### POST /webhooks/momo
+
+Endpoint public de MoMo gui IPN server-to-server.
+
+Backend verify HMAC SHA256 signature bang `MOMO_SECRET_KEY`. Neu `resultCode = 0`, backend tim
+hoa don theo `paymentProvider=momo` va `paymentOrderId=orderId`, kiem tra so tien khop
+`Invoice.totalAmount`, sau do tu dong cap nhat invoice/payment va tao notification.
+
+Webhook duoc xu ly idempotent bang `sourceEventKey`, tranh tao nhieu thong bao khi MoMo gui lai
+cung mot giao dich.
+
+### POST /webhooks/sepay
+
+Endpoint public de SePay gui giao dich ngan hang server-to-server.
+
+Payload SePay chinh:
+
+```json
+{
+  "id": 92704,
+  "gateway": "Vietcombank",
+  "transactionDate": "2026-08-05 11:08:33",
+  "accountNumber": "1017588888",
+  "code": "SRINVABC123",
+  "content": "SRINVABC123 chuyen tien",
+  "transferType": "in",
+  "transferAmount": 2700000,
+  "referenceCode": "FT24012345678"
+}
+```
+
+Backend xu ly:
+
+- Verify webhook theo `SEPAY_AUTH_MODE`: `hmac`, `api_key`, hoac `none` chi cho dev.
+- Voi `hmac`, verify `X-SePay-Signature` va `X-SePay-Timestamp` bang `SEPAY_WEBHOOK_SECRET`.
+- Chi xu ly tien vao `transferType=in`.
+- Tim ma `SRINV...` tu `code` hoac `content`.
+- Kiem tra `transferAmount` khop `Invoice.totalAmount`.
+- Cap nhat invoice/payment sang `paid` va tao notification.
+- Dedupe bang `sourceEventKey=sepay:<id>`.
+
+Production nen dung:
+
+```txt
+SEPAY_MOCK_MODE=false
+SEPAY_AUTH_MODE=hmac
+SEPAY_WEBHOOK_SECRET=<secret-key-copy-tu-SePay>
 ```
 
 ## Dashboard

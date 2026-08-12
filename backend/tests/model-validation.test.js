@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import mongoose from 'mongoose';
 import { Contract } from '../src/models/Contract.js';
 import { Invoice } from '../src/models/Invoice.js';
+import { Notification } from '../src/models/Notification.js';
 import { Payment } from '../src/models/Payment.js';
 import { Room } from '../src/models/Room.js';
 import { ServiceSetting } from '../src/models/ServiceSetting.js';
@@ -46,6 +47,10 @@ test('business models require an owner for tenant data isolation', () => {
       year: 2026,
     }),
     new ServiceSetting(),
+    new Notification({
+      message: 'Hoa don da thanh toan',
+      title: 'Thanh toan thanh cong',
+    }),
   ];
 
   for (const model of models) {

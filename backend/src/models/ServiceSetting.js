@@ -40,6 +40,12 @@ const serviceSettingSchema = new mongoose.Schema(
       maxlength: 120,
       default: '',
     },
+    bankCode: {
+      type: String,
+      trim: true,
+      maxlength: 40,
+      default: '',
+    },
     bankAccountNumber: {
       type: String,
       trim: true,

@@ -31,7 +31,7 @@ const paymentSchema = new mongoose.Schema(
     },
     method: {
       type: String,
-      enum: ['cash', 'bank_transfer', 'momo', 'vnpay'],
+      enum: ['cash', 'bank_transfer', 'momo', 'vnpay', 'sepay'],
       default: 'cash',
     },
     status: {
@@ -40,6 +40,28 @@ const paymentSchema = new mongoose.Schema(
       default: 'pending',
     },
     note: {
+      type: String,
+      trim: true,
+    },
+    provider: {
+      type: String,
+      enum: ['manual', 'momo', 'sepay', 'payos', 'casso'],
+      default: 'manual',
+    },
+    providerOrderId: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+    providerRequestId: {
+      type: String,
+      trim: true,
+    },
+    providerTransactionId: {
+      type: String,
+      trim: true,
+    },
+    providerReference: {
       type: String,
       trim: true,
     },

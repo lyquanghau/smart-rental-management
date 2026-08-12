@@ -134,3 +134,32 @@ hợp đồng sắp hết hạn và khoản thu cần xử lý.
 Endpoint nền:
 
 - `GET /api/dashboard/summary`
+
+## SePay/MoMo auto payment & Notifications
+
+SePay la huong uu tien cho san pham dung that vi phu hop luong chu tro nhan tien qua ngan hang:
+
+- `POST /api/invoices/:id/sepay-payment-code` tao ma thanh toan dang `SRINV...`.
+- Tenant dung ma nay lam noi dung chuyen khoan/VietQR.
+- `POST /api/webhooks/sepay` nhan giao dich tien vao tu SePay, verify HMAC/API key,
+  doi soat theo ma thanh toan va so tien.
+- `POST /api/invoices/:id/sepay-mock-success` dung cho dev/demo khi chua cau hinh webhook that.
+- Khi giao dich thanh cong, backend tu dong chuyen `Invoice` va `Payment` lien quan sang `paid`,
+  method/provider `sepay`, va tao notification cho landlord.
+
+Bo sung luong MoMo-ready cho MVP:
+
+- `POST /api/invoices/:id/momo-payment-link` tao phien thanh toan cho hoa don chua thu.
+- `POST /api/webhooks/momo` nhan IPN MoMo, verify signature khi dung credential that.
+- `POST /api/invoices/:id/momo-mock-success` dung cho dev/demo khi chua co tai khoan MoMo merchant.
+- Khi giao dich thanh cong, backend tu dong chuyen `Invoice` va `Payment` lien quan sang `paid`.
+- Luong xu ly IPN co tinh idempotent de tranh xu ly trung khi gateway gui lai ket qua.
+
+Thong bao noi bo:
+
+- `Notification` luu thong bao theo `owner`, co `readAt` de dem thong bao chua doc.
+- Khi MoMo/IPN mock xac nhan thanh toan thanh cong, backend tao notification
+  `payment_success` lien ket ve hoa don.
+- Frontend header hien badge so thong bao chua doc va dropdown danh sach thong bao gan day.
+- Endpoint: `GET /api/notifications`, `PATCH /api/notifications/:id/read`,
+  `PATCH /api/notifications/read-all`.

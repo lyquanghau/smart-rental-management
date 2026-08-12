@@ -8,6 +8,7 @@ function normalizeSettingPayload(body) {
     internetFee: Number(body.internetFee || 0),
     trashFee: Number(body.trashFee || 0),
     parkingFeePerVehicle: Number(body.parkingFeePerVehicle || 0),
+    bankCode: String(body.bankCode || '').trim(),
     bankName: String(body.bankName || '').trim(),
     bankAccountNumber: String(body.bankAccountNumber || '').trim(),
     bankAccountName: String(body.bankAccountName || '').trim(),

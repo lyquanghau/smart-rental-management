@@ -37,6 +37,7 @@ const currentDate = new Date();
 const emptySetting = {
   bankAccountName: '',
   bankAccountNumber: '',
+  bankCode: '',
   bankName: '',
   electricityUnitPrice: '',
   waterUnitPrice: '',
@@ -65,6 +66,7 @@ const copy = {
     actions: 'Actions',
     bankAccountName: 'Account holder',
     bankAccountNumber: 'Account number',
+    bankCode: 'VietQR bank code',
     bankName: 'Bank',
     calculator: 'Monthly service calculator',
     cancel: 'Cancel invoice',
@@ -126,6 +128,7 @@ const copy = {
   vi: {
     bankAccountName: 'Chu tai khoan',
     bankAccountNumber: 'So tai khoan',
+    bankCode: 'Ma ngan hang VietQR',
     bankName: 'Ngan hang',
     transferContentTemplate: 'Mau noi dung chuyen khoan',
     transferNote: 'Ghi chu thanh toan cho khach thue',
@@ -229,6 +232,7 @@ function toSettingForm(setting) {
   return {
     bankAccountName: setting?.bankAccountName || '',
     bankAccountNumber: setting?.bankAccountNumber || '',
+    bankCode: setting?.bankCode || '',
     bankName: setting?.bankName || '',
     electricityUnitPrice: String(setting?.electricityUnitPrice ?? ''),
     waterUnitPrice: String(setting?.waterUnitPrice ?? ''),
@@ -244,6 +248,7 @@ function toSettingPayload(form) {
   return {
     bankAccountName: form.bankAccountName,
     bankAccountNumber: form.bankAccountNumber,
+    bankCode: form.bankCode,
     bankName: form.bankName,
     electricityUnitPrice: toNumber(form.electricityUnitPrice),
     waterUnitPrice: toNumber(form.waterUnitPrice),
@@ -819,6 +824,17 @@ export function ServicesPage() {
               value={settingForm.bankName}
               onChange={(event) =>
                 updateSetting('bankName', event.target.value)
+              }
+            />
+          </label>
+          <label>
+            {text.bankCode}
+            <input
+              maxLength="40"
+              placeholder="MBBank"
+              value={settingForm.bankCode}
+              onChange={(event) =>
+                updateSetting('bankCode', event.target.value)
               }
             />
           </label>

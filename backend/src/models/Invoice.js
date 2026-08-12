@@ -96,6 +96,45 @@ const invoiceSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    paymentProvider: {
+      type: String,
+      enum: ['manual', 'momo', 'sepay', 'payos', 'casso'],
+      default: 'manual',
+    },
+    paymentOrderId: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+    paymentRequestId: {
+      type: String,
+      trim: true,
+    },
+    paymentLinkId: {
+      type: String,
+      trim: true,
+    },
+    paymentCheckoutUrl: {
+      type: String,
+      trim: true,
+    },
+    paymentDeeplink: {
+      type: String,
+      trim: true,
+    },
+    paymentQrCodeUrl: {
+      type: String,
+      trim: true,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['none', 'pending', 'paid', 'failed', 'cancelled'],
+      default: 'none',
+    },
+    paidReference: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,
