@@ -111,7 +111,7 @@ const copy = {
     markedPaid: 'Đã ghi nhận khoản thu.',
     cancelled: 'Đã hủy khoản thu.',
     selectContract: 'Chọn hợp đồng',
-    selectContractHelp: 'Chọn hợp đồng active để tạo khoản thu.',
+    selectContractHelp: 'Chọn hợp đồng đang hiệu lực để tạo khoản thu.',
     status: 'Trạng thái',
     update: 'Cập nhật',
     updatePayment: 'Cập nhật khoản thu',

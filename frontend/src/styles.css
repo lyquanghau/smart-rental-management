@@ -991,15 +991,19 @@ h1 {
   width: fit-content;
 }
 
-.status-available,
 .status-paid {
   background: var(--color-primary-soft);
   color: var(--color-primary-strong);
 }
 
+.status-available {
+  background: #dcfce7;
+  color: #166534;
+}
+
 .status-occupied {
-  background: #e7efff;
-  color: #1d4ed8;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .status-maintenance,
@@ -2265,15 +2269,19 @@ tbody tr:hover td {
   color: #ffffff;
 }
 
-[data-theme='dark'] .status-available,
 [data-theme='dark'] .status-paid {
   background: #063b45;
   color: #67e8f9;
 }
 
+[data-theme='dark'] .status-available {
+  background: #052e16;
+  color: #86efac;
+}
+
 [data-theme='dark'] .status-occupied {
-  background: #172554;
-  color: #bfdbfe;
+  background: #1e3a8a;
+  color: #dbeafe;
 }
 
 [data-theme='dark'] .status-maintenance,

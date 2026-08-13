@@ -1372,3 +1372,147 @@ PATCH /api/payments/:id/cancel
   - Bo sung hien thi nguoi o cung sau khi tao hop dong.
   - Kiem tra va sua luong gui mail tai khoan tenant khi tao hop dong.
   - Chinh mau status phong `Da thue`.
+
+### Tiep tuc hoan thien luong hop dong dung that
+
+- Kiem tra dau phien:
+  - Dang o nhanh `main`, dong bo voi `origin/main`.
+  - Khong co nhanh local/remote nao con commit chua merge vao `main`.
+  - File phu tro/untracked tiep tuc giu ngoai commit: `chuyen_de_2.xlsx`, `code.txt`,
+    `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass.
+- Doi chieu tien do:
+  - Du an da vuot MVP trong `chuyen_de_2.xlsx`; huong hien tai tiep tuc uu tien san pham that
+    cho chu tro nho: hop dong, tenant portal, hoa don, VietQR/SePay, notification va PDF.
+  - Cac khoang trong con lai de ban that la SePay production that, deploy/domain on dinh,
+    backup/monitoring va test E2E frontend.
+- Implement tiep cac ton dong cuoi ngay:
+  - `GET /api/rooms/:id` tra them `activeContract` de frontend co thong tin nguoi dai dien
+    va danh sach nguoi o cung cua hop dong active.
+  - Trang `Hop dong` hien tong so nguoi o va ten nguoi o cung trong danh sach hop dong.
+  - Thong tin tai khoan tenant sau khi tao hop dong duoc dua ra ngoai modal de chu tro nhin thay
+    sau khi form dong.
+  - Trang thai gui email tai khoan tenant hien ro: da gui, SMTP chua cau hinh, hoac gui that bai.
+  - Chi tiet phong hien khach dai dien va danh sach nguoi o cung cua hop dong active.
+  - Chinh mau badge phong: `Trong` xanh la, `Da thue` xanh duong, `Bao tri` vang de de phan biet.
+- Tai lieu:
+  - Cap nhat `docs/API.md` cho truong `activeContract` cua chi tiet phong.
+  - Cap nhat `docs/SETUP.md` them cau hinh SMTP gui tai khoan tenant.
+  - Cap nhat `docs/TEST_CHECKLIST.md` them test hop dong nhieu nguoi o va email tenant.
+- Kiem tra sau implement:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass sau khi format rieng `frontend/src/pages/ContractsPage.jsx`.
+  - `git diff --check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1671 modules.
+
+### Sua hien thi mat khau tam va gui email khi cap lai mat khau
+
+- Phat hien van de:
+  - Trang `Khach thue` hien mat khau tam dang plain text ngay tren man hinh sau khi tao/cap lai
+    mat khau, khong phu hop khi demo hoac share man hinh.
+  - Luong `Cap lai mat khau` reset password va tra ve frontend nhung chua goi SMTP mail service,
+    nen khach thue khong nhan duoc email tu thao tac nay.
+  - `backend/.env` local hien chua cau hinh cac bien `SMTP_*`, nen email cung se bi skipped
+    cho den khi cau hinh SMTP va restart backend.
+- Implement:
+  - Them component `TemporaryCredentialPanel` dung chung cho trang `Khach thue` va `Hop dong`.
+  - Mat khau tam duoc che mac dinh, chi hien khi bam `Hien` hoac copy bang nut `Copy mat khau`.
+  - `PATCH /api/auth/users/:id/unlock` goi `sendTenantCredentialsEmail` va tra them
+    `emailDelivery` de frontend hien trang thai gui mail.
+  - Cap nhat CSS cho hang mat khau/copy khong vo layout.
+- Tai lieu:
+  - Cap nhat `docs/API.md` cho response cap lai mat khau co `emailDelivery`.
+- Kiem tra sau sua:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `git diff --check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1672 modules.
+
+### Chuyen tenant password sang email-only
+
+- Dieu chinh theo yeu cau bao mat:
+  - Chu tro khong duoc xem mat khau tenant plaintext tren UI hoac qua API response.
+  - Mat khau tenant ban dau/cap lai duoc sinh ngau nhien va chi gui qua email khach thue.
+  - Neu SMTP chua cau hinh hoac gui email that bai, backend khong tao/cap lai tai khoan tenant.
+  - Luong cap lai mat khau gui email thanh cong truoc roi moi luu password hash moi, tranh khoa
+    tenant khi email khong di duoc.
+- Implement:
+  - Them `backend/src/utils/password.js` de sinh mat khau tam ngau nhien dung chung.
+  - `ensureTenantAccountForRoom`, tao hop dong active va cap lai mat khau khong con tra password
+    ve frontend.
+  - Trang `Khach thue` va `Hop dong` khong hien bat ky thong tin dang nhap nao tren man hinh,
+    chi hien trang thai email da gui hoac loi.
+  - Xoa component `TemporaryCredentialPanel` vi khong con can bat ky UI xem/copy mat khau nao.
+- Tai lieu:
+  - Cap nhat `docs/API.md`, `docs/MODULES.md`, `docs/SETUP.md`, `docs/TEST_CHECKLIST.md`,
+    `docs/DEMO_SCRIPT.md`, `docs/PRODUCT_READINESS.md` theo huong email-only.
+- Kiem tra sau sua:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass sau khi format cac file source lien quan.
+  - `npm run test`: loi `spawn EPERM` trong sandbox Windows cua Node test runner.
+  - `npm run test` ngoai sandbox: pass 26 test, skip 1 integration test theo guard.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1671 modules.
+
+### Lam lai PDF hop dong theo mau ngan gon
+
+- Yeu cau:
+  - Doi file PDF hop dong thue tro sinh tu he thong theo mau
+    `docs/contract/mau-hop-dong-thue-nha-tro-ngan-gon.docx`.
+  - Bo giao dien PDF kieu dashboard/card cu, uu tien van ban hop dong de in va ky that.
+- Implement:
+  - `GET /api/contracts/:id/pdf` van dung endpoint cu de khong doi frontend/API.
+  - Backend populate them thong tin `owner` cua hop dong de dien Ben A trong PDF.
+  - Tao template PDF moi gom quoc hieu, tieu ngu, tieu de, thong tin Ben A/Ben B,
+    phong thue, gia thue, tien coc, thoi han, trach nhiem cac ben va khu vuc ky ten.
+  - Giu cac gia tri dong tu du lieu that cua hop dong: ma hop dong, chu tro, khach thue,
+    phong, tang, nguoi o cung, gia thue, tien coc, ngay bat dau/ket thuc, trang thai.
+  - Them xu ly xuong trang truoc khu vuc chu ky de tranh tran noi dung khi hop dong dai.
+- Ghi chu cong nghe:
+  - Tiep tuc dung `pdfkit` vi du an da co san, phu hop MVP va khong doi stack.
+  - Khong them thu vien docx-to-pdf vi de phat sinh phu thuoc Office/LibreOffice tren may deploy.
+- Kiem tra sau sua:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1671 modules.
+
+### Bo sung thong tin hop dong in an
+
+- Yeu cau:
+  - PDF hop dong dung thong tin chu tro: Ly Quang Hau, email, so dien thoai, CCCD,
+    ngay sinh va dia chi nha tro.
+  - Doi font hop dong sang Times New Roman/serif, tang co chu va in dam ten rieng.
+  - Khi lap hop dong, bo sung ngay sinh va dia chi thuong tru cua khach thue.
+- Implement:
+  - Them `dateOfBirth` va `permanentAddress` vao model `Tenant`.
+  - Form `Hop dong` them truong ngay sinh va dia chi thuong tru khi tao khach moi.
+  - Form `Khach thue` cung them 2 truong nay de sua thong tin khach da co.
+  - API tenant/contract nhan va luu `dateOfBirth`, `permanentAddress`.
+  - PDF hop dong dien thong tin Ben A theo profile chu tro, dien HK thuong tru/ngay sinh Ben B,
+    dung font Times New Roman tren Windows va fallback serif tren moi truong khac.
+- Tai lieu:
+  - Cap nhat `docs/API.md` cho field `dateOfBirth`, `permanentAddress` va `tenantInfo`
+    khi tao hop dong.
+
+### Ra soat ngon ngu UI va bo sung doi mat khau trong cai dat
+
+- Yeu cau:
+  - Ra soat giao dien cuoi ngay de che do tieng Viet hien tieng Viet co dau, khong lan chu
+    khong dau hoac gia tri ky thuat tu API.
+  - Khi chuyen sang tieng Anh, tiep tuc dung nhom copy tieng Anh rieng.
+  - Ben khach thue phai co phan doi mat khau trong `Cai dat`.
+- Implement:
+  - Them form doi mat khau vao trang `Cai dat`, dung API co san `PATCH /auth/change-password`.
+  - Form doi mat khau validate mat khau hien tai, do dai toi thieu 8 ky tu, xac nhan mat khau
+    va khong cho trung mat khau cu.
+  - Sua sidebar tenant tu chu khong dau sang nhan `Cong khach thue` co dau trong UI.
+  - Viet hoa/bo dau cac copy tieng Viet con thieu o header, cong khach thue, khach thue,
+    dich vu/hoa don, dashboard va thanh toan.
+  - Map trang thai hop dong/hoa don/thanh toan va phuong thuc thanh toan sang nhan theo ngon ngu,
+    tranh hien truc tiep `active`, `issued`, `pending`, `cash` tren UI.

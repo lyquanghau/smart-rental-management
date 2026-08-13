@@ -17,6 +17,8 @@ const emptyForm = {
   phone: '',
   email: '',
   identityNumber: '',
+  dateOfBirth: '',
+  permanentAddress: '',
   room: '',
 };
 
@@ -34,6 +36,7 @@ const copy = {
     empty: 'No tenants yet.',
     floor: 'Floor',
     floorOption: 'floor',
+    dateOfBirth: 'Date of birth',
     fullName: 'Full name',
     loading: 'Loading...',
     loadingData: 'Loading data...',
@@ -41,6 +44,7 @@ const copy = {
     noEmail: 'No email',
     noId: 'No ID number',
     phone: 'Phone number',
+    permanentAddress: 'Permanent address',
     reload: 'Reload',
     room: 'Room',
     saving: 'Saving...',
@@ -65,6 +69,7 @@ const copy = {
     empty: 'Chưa có khách thuê nào.',
     floor: 'Tầng',
     floorOption: 'tầng',
+    dateOfBirth: 'Ngày sinh',
     fullName: 'Họ tên',
     loading: 'Đang tải...',
     loadingData: 'Đang tải dữ liệu...',
@@ -72,6 +77,7 @@ const copy = {
     noEmail: 'Chưa có email',
     noId: 'Chưa có CCCD/CMND',
     phone: 'Số điện thoại',
+    permanentAddress: 'Địa chỉ thường trú',
     reload: 'Tải lại',
     room: 'Phòng',
     saving: 'Đang lưu...',
@@ -95,36 +101,31 @@ const accountCopy = {
     confirmResetPassword: (name) =>
       `Reset login password for ${name}? A new temporary password will be generated.`,
     credentialNote:
-      'The temporary password is shown once. Ask the tenant to change it after login.',
-    newCredentialTitle: 'Give this login to the tenant',
-    passwordDeadline: 'Password change deadline',
+      'The tenant must use the login information sent to their email.',
+    newCredentialTitle: 'Login information emailed to tenant',
     resetPassword: 'Reset password',
     resetPasswordSuccess: 'Temporary password generated.',
     emailSent: 'Credentials email sent.',
-    emailSkipped: 'SMTP is not configured, send the credentials manually.',
-    emailFailed: 'Credentials email failed. Send the credentials manually.',
+    emailSkipped: 'SMTP is not configured. No password was sent.',
+    emailFailed: 'Credentials email failed. No password was sent.',
     tempPassword: 'Temporary password',
-    username: 'Username',
   },
   vi: {
-    account: 'Tai khoan',
-    accountActive: 'Dang hoat dong',
-    accountLocked: 'Dang bi khoa',
-    accountNoLogin: 'Chua co tai khoan',
-    accountTemporary: 'Mat khau tam',
+    account: 'Tài khoản',
+    accountActive: 'Đang hoạt động',
+    accountLocked: 'Đang bị khóa',
+    accountNoLogin: 'Chưa có tài khoản',
+    accountTemporary: 'Mật khẩu tạm',
     confirmResetPassword: (name) =>
-      `Cap lai mat khau dang nhap cho ${name}? He thong se tao mat khau tam moi.`,
-    credentialNote:
-      'Mat khau tam chi hien thi mot lan. Nhac khach thue doi sau khi dang nhap.',
-    newCredentialTitle: 'Gui thong tin nay cho khach thue',
-    passwordDeadline: 'Han doi mat khau',
-    resetPassword: 'Cap lai mat khau',
-    resetPasswordSuccess: 'Da tao mat khau tam.',
-    emailSent: 'Da gui email thong tin dang nhap.',
-    emailSkipped: 'Chua cau hinh SMTP, hay gui thong tin dang nhap thu cong.',
-    emailFailed: 'Gui email that bai. Hay gui thong tin dang nhap thu cong.',
-    tempPassword: 'Mat khau tam',
-    username: 'Ten dang nhap',
+      `Cấp lại mật khẩu đăng nhập cho ${name}? Hệ thống sẽ tạo mật khẩu tạm mới.`,
+    credentialNote: 'Khách thuê sử dụng thông tin đăng nhập đã gửi về email.',
+    newCredentialTitle: 'Đã gửi thông tin đăng nhập qua email',
+    resetPassword: 'Cấp lại mật khẩu',
+    resetPasswordSuccess: 'Đã tạo mật khẩu tạm.',
+    emailSent: 'Đã gửi email thông tin đăng nhập.',
+    emailSkipped: 'Chưa cấu hình SMTP. Mật khẩu chưa được gửi.',
+    emailFailed: 'Gửi email thất bại. Mật khẩu chưa được gửi.',
+    tempPassword: 'Mật khẩu tạm',
   },
 };
 
@@ -134,6 +135,10 @@ function toFormData(tenant) {
     phone: tenant.phone || '',
     email: tenant.email || '',
     identityNumber: tenant.identityNumber || '',
+    dateOfBirth: tenant.dateOfBirth
+      ? new Date(tenant.dateOfBirth).toISOString().slice(0, 10)
+      : '',
+    permanentAddress: tenant.permanentAddress || '',
     room: tenant.room?._id || tenant.room || '',
   };
 }
@@ -144,13 +149,10 @@ function toPayload(formData) {
     phone: formData.phone.trim(),
     email: formData.email.trim() || null,
     identityNumber: formData.identityNumber.trim() || null,
+    dateOfBirth: formData.dateOfBirth || null,
+    permanentAddress: formData.permanentAddress.trim() || null,
     room: formData.room || null,
   };
-}
-
-function formatDate(value, text) {
-  if (!value) return text.accountNoLogin;
-  return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
 }
 
 function getAccountStatus(tenant, text) {
@@ -248,6 +250,7 @@ export function TenantsPage() {
     event.preventDefault();
     setIsSubmitting(true);
     setError('');
+    setCredential(null);
 
     try {
       let savedTenant;
@@ -261,8 +264,6 @@ export function TenantsPage() {
       if (savedTenant?.loginAccount) {
         setCredential({
           emailDelivery: savedTenant.loginAccount.emailDelivery,
-          tenantName: savedTenant.fullName,
-          temporaryPassword: savedTenant.loginAccount.password,
           user: savedTenant.loginAccount.user,
         });
       }
@@ -307,11 +308,11 @@ export function TenantsPage() {
 
     setError('');
     setResettingUserId(tenant.user._id);
+    setCredential(null);
 
     try {
       const data = await unlockUser(tenant.user._id);
       setCredential({
-        tenantName: tenant.fullName,
         ...data,
       });
       await loadData();
@@ -353,20 +354,6 @@ export function TenantsPage() {
       {credential ? (
         <div className="credential-panel account-credential-panel">
           <strong>{text.newCredentialTitle}</strong>
-          <span>{credential.tenantName}</span>
-          <span>
-            {text.username}: {credential.user.username}
-          </span>
-          <span>Email: {credential.user.email}</span>
-          <span>
-            {text.tempPassword}: {credential.temporaryPassword}
-          </span>
-          {credential.user.temporaryPasswordExpiresAt ? (
-            <span>
-              {text.passwordDeadline}:{' '}
-              {formatDate(credential.user.temporaryPasswordExpiresAt, text)}
-            </span>
-          ) : null}
           {credential.emailDelivery ? (
             <small>
               {credential.emailDelivery.sent
@@ -422,6 +409,27 @@ export function TenantsPage() {
               value={formData.identityNumber}
               onChange={(event) =>
                 updateField('identityNumber', event.target.value)
+              }
+            />
+          </label>
+
+          <label>
+            {text.dateOfBirth}
+            <input
+              type="date"
+              value={formData.dateOfBirth}
+              onChange={(event) =>
+                updateField('dateOfBirth', event.target.value)
+              }
+            />
+          </label>
+
+          <label>
+            {text.permanentAddress}
+            <input
+              value={formData.permanentAddress}
+              onChange={(event) =>
+                updateField('permanentAddress', event.target.value)
               }
             />
           </label>

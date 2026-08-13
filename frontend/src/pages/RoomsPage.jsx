@@ -30,6 +30,10 @@ const copy = {
     confirmDelete: (name) =>
       `Delete room ${name}? The record will be hidden from the list.`,
     currentTenants: 'Current tenants',
+    occupantIdentityNumber: 'ID number',
+    occupantNote: 'Note',
+    occupants: 'Occupants',
+    representativeTenant: 'Representative tenant',
     details: 'Details',
     edit: 'Edit',
     delete: 'Delete',
@@ -72,6 +76,10 @@ const copy = {
     confirmDelete: (name) =>
       `Xóa phòng ${name}? Dữ liệu sẽ được ẩn khỏi danh sách.`,
     currentTenants: 'Khách hiện tại',
+    occupantIdentityNumber: 'CCCD/CMND',
+    occupantNote: 'Ghi chú',
+    occupants: 'Người ở cùng',
+    representativeTenant: 'Khách đại diện',
     details: 'Chi tiết',
     edit: 'Sửa',
     delete: 'Xóa',
@@ -464,6 +472,41 @@ export function RoomsPage() {
                 <p className="empty-note">{text.emptyAssigned}</p>
               )}
             </section>
+
+            {selectedRoom.activeContract ? (
+              <section className="room-detail-section">
+                <h3>{text.occupants}</h3>
+                <ul className="detail-list">
+                  <li>
+                    <strong>{text.representativeTenant}</strong>
+                    <span>
+                      {selectedRoom.activeContract.tenant?.fullName ||
+                        text.emptyAssigned}
+                    </span>
+                  </li>
+                  {selectedRoom.activeContract.occupants?.map(
+                    (occupant, index) => (
+                      <li key={`${occupant.fullName}-${index}`}>
+                        <strong>{occupant.fullName}</strong>
+                        <span>
+                          {[
+                            occupant.phone,
+                            occupant.identityNumber
+                              ? `${text.occupantIdentityNumber}: ${occupant.identityNumber}`
+                              : '',
+                            occupant.note
+                              ? `${text.occupantNote}: ${occupant.note}`
+                              : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </section>
+            ) : null}
 
             <div className="modal-footer-actions">
               <button type="button" onClick={() => startEdit(selectedRoom)}>

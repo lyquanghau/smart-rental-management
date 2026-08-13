@@ -1,4 +1,5 @@
 import { Room } from '../models/Room.js';
+import { Contract } from '../models/Contract.js';
 import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
 import { ownerFilter } from '../utils/ownership.js';
@@ -90,13 +91,20 @@ export async function getRoom(req, res, next) {
   try {
     await syncRoomOccupancyStatuses(req.user._id);
 
-    const [room, currentTenants] = await Promise.all([
+    const [room, currentTenants, activeContract] = await Promise.all([
       Room.findOne(ownerFilter(req, { _id: req.params.id, deletedAt: null })),
       Tenant.find({
         owner: req.user._id,
         room: req.params.id,
         deletedAt: null,
       }).sort({ fullName: 1 }),
+      Contract.findOne({
+        owner: req.user._id,
+        room: req.params.id,
+        status: 'active',
+      })
+        .populate('tenant', 'fullName phone email identityNumber')
+        .sort({ startDate: -1 }),
     ]);
 
     if (!room) {
@@ -106,6 +114,7 @@ export async function getRoom(req, res, next) {
     res.json({
       data: {
         ...room.toObject(),
+        activeContract,
         currentTenants,
       },
     });

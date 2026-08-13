@@ -28,7 +28,7 @@ export function MainLayout() {
       className={`app-shell ${isSidebarCollapsed ? 'sidebar-is-collapsed' : ''}`}
     >
       <a className="skip-link" href="#main-content">
-        {language === 'en' ? 'Skip navigation' : 'Bỏ qua menu'}
+        {language === 'en' ? 'Skip navigation' : 'Bỏ qua điều hướng'}
       </a>
       <Sidebar isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} />
       <div className="main-column">

@@ -54,8 +54,9 @@ Endpoint nền:
 
 Tenant account rule: khi landlord them khach va gan phong, backend tu dong tao tai khoan tenant.
 Username = ho ten khong dau + ma phong, vi du `Ly Quang Hau` phong `101` thanh `lyquanghau101`;
-mat khau ban dau la so dien thoai. Neu SMTP da cau hinh, backend gui username/mat khau vao email
-khach thue.
+mat khau ban dau duoc sinh ngau nhien va chi gui qua email khach thue. Neu SMTP chua cau hinh
+hoac gui email that bai, backend khong tao/cap lai tai khoan tenant vi chu tro khong duoc phep
+nhin thay mat khau plaintext.
 
 ## Contracts
 

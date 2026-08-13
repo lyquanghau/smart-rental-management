@@ -96,6 +96,23 @@ Reset lại dữ liệu mẫu:
 npm run seed:reset
 ```
 
+## 8. SMTP gui tai khoan tenant
+
+Neu muon he thong gui tai khoan/mat khau tenant khi tao khach hoac tao hop dong active, cau hinh
+SMTP trong `backend/.env`:
+
+```txt
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=<smtp-user>
+SMTP_PASSWORD=<smtp-password-or-app-password>
+SMTP_FROM="Smart Rental <no-reply@smartrental.local>"
+```
+
+Neu chua cau hinh SMTP hoac SMTP gui that bai, backend se khong tao/cap lai mat khau tai khoan
+tenant. Chu tro khong duoc nhin thay mat khau; thong tin dang nhap chi duoc gui qua email khach thue.
+
 Tài khoản mẫu:
 
 - `admin@smartrental.local` / `Admin@123456`

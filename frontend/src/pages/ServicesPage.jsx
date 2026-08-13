@@ -127,12 +127,12 @@ const copy = {
     year: 'Year',
   },
   vi: {
-    bankAccountName: 'Chu tai khoan',
-    bankAccountNumber: 'So tai khoan',
-    bankCode: 'Ma ngan hang VietQR',
-    bankName: 'Ngan hang',
-    transferContentTemplate: 'Mau noi dung chuyen khoan',
-    transferNote: 'Ghi chu thanh toan cho khach thue',
+    bankAccountName: 'Chủ tài khoản',
+    bankAccountNumber: 'Số tài khoản',
+    bankCode: 'Mã ngân hàng VietQR',
+    bankName: 'Ngân hàng',
+    transferContentTemplate: 'Mẫu nội dung chuyển khoản',
+    transferNote: 'Ghi chú thanh toán cho khách thuê',
     activeContracts: 'hợp đồng đang hiệu lực',
     calculator: 'Tính dịch vụ hằng tháng',
     dueDate: 'Hạn thanh toán hóa đơn',
@@ -163,7 +163,7 @@ const copy = {
     settingsSaved: 'Đã lưu đơn giá dịch vụ.',
     readingSaved: 'Đã lưu chỉ số điện nước.',
     invoicesGenerated: 'Đã tạo hóa đơn tháng.',
-    selectContract: 'Chọn hợp đồng active',
+    selectContract: 'Chọn hợp đồng đang hiệu lực',
     serviceAmount: 'Dịch vụ',
     serviceSettings: 'Đơn giá dịch vụ',
     serviceTotal: 'Tổng dịch vụ',
@@ -197,20 +197,20 @@ const invoiceCopy = {
     view: 'View detail',
   },
   vi: {
-    actions: 'Thao tac',
-    cancel: 'Huy hoa don',
-    cancelled: 'Da huy hoa don.',
-    close: 'Dong',
-    confirmCancel: (label) => `Huy hoa don ${label}?`,
-    confirmPaid: (label) => `Xac nhan da thu hoa don ${label}?`,
-    invoiceDetail: 'Chi tiet hoa don',
-    invoiceItems: 'Bang ke chi phi',
-    invoiceMarkedPaid: 'Da ghi nhan hoa don da thu.',
-    markPaid: 'Da thu',
-    quantity: 'So luong',
-    status: 'Trang thai',
-    unitPrice: 'Don gia',
-    view: 'Xem chi tiet',
+    actions: 'Thao tác',
+    cancel: 'Hủy hóa đơn',
+    cancelled: 'Đã hủy hóa đơn.',
+    close: 'Đóng',
+    confirmCancel: (label) => `Hủy hóa đơn ${label}?`,
+    confirmPaid: (label) => `Xác nhận đã thu hóa đơn ${label}?`,
+    invoiceDetail: 'Chi tiết hóa đơn',
+    invoiceItems: 'Bảng kê chi phí',
+    invoiceMarkedPaid: 'Đã ghi nhận hóa đơn đã thu.',
+    markPaid: 'Đã thu',
+    quantity: 'Số lượng',
+    status: 'Trạng thái',
+    unitPrice: 'Đơn giá',
+    view: 'Xem chi tiết',
   },
 };
 
@@ -302,11 +302,11 @@ function getStatusLabel(status, language) {
       paid: 'Paid',
     },
     vi: {
-      cancelled: 'Da huy',
-      draft: 'Ban nhap',
-      issued: 'Da phat hanh',
-      overdue: 'Qua han',
-      paid: 'Da thanh toan',
+      cancelled: 'Đã hủy',
+      draft: 'Bản nháp',
+      issued: 'Đã phát hành',
+      overdue: 'Quá hạn',
+      paid: 'Đã thanh toán',
     },
   };
 
@@ -1127,7 +1127,8 @@ export function ServicesPage() {
                   <td>
                     <strong>{getContractLabel(invoice)}</strong>
                     <span>
-                      {invoice.month}/{invoice.year} - {invoice.status}
+                      {invoice.month}/{invoice.year} -{' '}
+                      {getStatusLabel(invoice.status, language)}
                     </span>
                   </td>
                   <td>{formatMoney(invoice.rentAmount)}</td>

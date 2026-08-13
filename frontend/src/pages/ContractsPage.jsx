@@ -30,6 +30,8 @@ const emptyForm = {
   tenantPhone: '',
   tenantEmail: '',
   tenantIdentityNumber: '',
+  tenantDateOfBirth: '',
+  tenantPermanentAddress: '',
   occupantCount: '1',
   occupants: [],
   startDate: '',
@@ -81,12 +83,17 @@ const copy = {
     tempAccountTitle: 'New tenant account created',
     tempPassword: 'Temporary password',
     passwordDeadline: 'Password change deadline',
+    emailFailed: 'Credentials email failed. No password was sent.',
+    emailSent: 'Credentials email sent.',
+    emailSkipped: 'SMTP is not configured. No password was sent.',
     username: 'Username',
     selectRoom: 'Select room',
     selectTenant: 'Select tenant',
     tenantEmail: 'Tenant email',
+    tenantDateOfBirth: 'Date of birth',
     tenantFullName: 'Representative full name',
     tenantIdentityNumber: 'ID number',
+    tenantPermanentAddress: 'Permanent address',
     tenantPhone: 'Tenant phone',
     occupantCount: 'Number of occupants',
     occupantIdentityNumber: 'ID number',
@@ -163,12 +170,17 @@ const copy = {
     tempAccountTitle: 'Tài khoản khách thuê vừa tạo',
     tempPassword: 'Mật khẩu tạm',
     passwordDeadline: 'Hạn đổi mật khẩu',
+    emailFailed: 'Gửi email thất bại. Mật khẩu chưa được gửi.',
+    emailSent: 'Đã gửi email thông tin đăng nhập.',
+    emailSkipped: 'Chưa cấu hình SMTP. Mật khẩu chưa được gửi.',
     username: 'Tên đăng nhập',
     selectRoom: 'Chọn phòng',
     selectTenant: 'Chọn khách thuê',
     tenantEmail: 'Email khách thuê',
+    tenantDateOfBirth: 'Ngày sinh',
     tenantFullName: 'Họ tên người đại diện',
     tenantIdentityNumber: 'CCCD/CMND',
+    tenantPermanentAddress: 'Địa chỉ thường trú',
     tenantPhone: 'Số điện thoại khách thuê',
     occupantCount: 'Số người ở',
     occupantIdentityNumber: 'CCCD/CMND',
@@ -253,6 +265,17 @@ function getContractLabel(contract, text) {
   return `${roomName} - ${tenantName}`;
 }
 
+function getOccupantTotal(contract) {
+  return (contract.occupants?.length || 0) + 1;
+}
+
+function getEmailDeliveryLabel(emailDelivery, text) {
+  if (!emailDelivery) return '';
+  if (emailDelivery.sent) return text.emailSent;
+  if (emailDelivery.skipped) return text.emailSkipped;
+  return text.emailFailed;
+}
+
 function getDurationMonths(startDate, endDate) {
   if (!startDate || !endDate) return '12';
 
@@ -286,6 +309,8 @@ function toFormData(contract) {
     tenantPhone: contract.tenant?.phone || '',
     tenantEmail: contract.tenant?.email || '',
     tenantIdentityNumber: contract.tenant?.identityNumber || '',
+    tenantDateOfBirth: formatDateInput(contract.tenant?.dateOfBirth),
+    tenantPermanentAddress: contract.tenant?.permanentAddress || '',
     occupantCount: String((contract.occupants?.length || 0) + 1),
     occupants: contract.occupants || [],
     startDate,
@@ -319,6 +344,8 @@ function toPayload(formData) {
           phone: formData.tenantPhone.trim(),
           email: formData.tenantEmail.trim(),
           identityNumber: formData.tenantIdentityNumber.trim(),
+          dateOfBirth: formData.tenantDateOfBirth || null,
+          permanentAddress: formData.tenantPermanentAddress.trim() || null,
         },
     startDate: formData.startDate,
     endDate:
@@ -518,6 +545,7 @@ export function ContractsPage() {
     event.preventDefault();
     setIsSubmitting(true);
     setError('');
+    setTemporaryAccount(null);
 
     try {
       if (isEditing) {
@@ -624,6 +652,17 @@ export function ContractsPage() {
 
       {error ? <p className="error-message">{error}</p> : null}
 
+      {temporaryAccount ? (
+        <div className="credential-panel account-credential-panel">
+          <strong>{text.tempAccountTitle}</strong>
+          {temporaryAccount.emailDelivery ? (
+            <small>
+              {getEmailDeliveryLabel(temporaryAccount.emailDelivery, text)}
+            </small>
+          ) : null}
+        </div>
+      ) : null}
+
       <Modal
         isOpen={Boolean(pdfPreview)}
         panelClassName="pdf-modal-panel"
@@ -672,26 +711,6 @@ export function ContractsPage() {
                 ? text.updateContract
                 : text.addContract}
           </h2>
-
-          {temporaryAccount ? (
-            <div className="credential-panel">
-              <strong>{text.tempAccountTitle}</strong>
-              <span>
-                {text.username}: {temporaryAccount.user.username}
-              </span>
-              <span>Email: {temporaryAccount.user.email}</span>
-              <span>
-                {text.tempPassword}: {temporaryAccount.temporaryPassword}
-              </span>
-              <span>
-                {text.passwordDeadline}:{' '}
-                {formatDate(
-                  temporaryAccount.user.temporaryPasswordExpiresAt,
-                  text,
-                )}
-              </span>
-            </div>
-          ) : null}
 
           <label>
             {text.room}
@@ -779,6 +798,29 @@ export function ContractsPage() {
                   value={formData.tenantIdentityNumber}
                   onChange={(event) =>
                     updateField('tenantIdentityNumber', event.target.value)
+                  }
+                />
+              </label>
+
+              <label>
+                {text.tenantDateOfBirth}
+                <input
+                  disabled={isViewing}
+                  type="date"
+                  value={formData.tenantDateOfBirth}
+                  onChange={(event) =>
+                    updateField('tenantDateOfBirth', event.target.value)
+                  }
+                />
+              </label>
+
+              <label>
+                {text.tenantPermanentAddress}
+                <input
+                  disabled={isViewing}
+                  value={formData.tenantPermanentAddress}
+                  onChange={(event) =>
+                    updateField('tenantPermanentAddress', event.target.value)
                   }
                 />
               </label>
@@ -1013,6 +1055,17 @@ export function ContractsPage() {
                         <span>
                           {contract.tenant?.fullName || text.noTenant}
                         </span>
+                        <span>
+                          {getOccupantTotal(contract)} {text.people}
+                        </span>
+                        {contract.occupants?.length > 0 ? (
+                          <span>
+                            {text.occupants}:{' '}
+                            {contract.occupants
+                              .map((occupant) => occupant.fullName)
+                              .join(', ')}
+                          </span>
+                        ) : null}
                       </td>
                       <td>
                         <strong>{formatDate(contract.startDate, text)}</strong>

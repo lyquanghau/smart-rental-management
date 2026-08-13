@@ -7,22 +7,62 @@ import { Tenant } from '../models/Tenant.js';
 import { User } from '../models/User.js';
 import { createHttpError } from '../utils/httpError.js';
 import { getTenantIdForUser, ownerFilter } from '../utils/ownership.js';
-import { sendTenantCredentialsEmail } from '../utils/mailService.js';
+import {
+  isMailConfigured,
+  sendTenantCredentialsEmail,
+} from '../utils/mailService.js';
+import { generateTemporaryPassword } from '../utils/password.js';
 import { buildTenantRoomUsername } from '../utils/tenantAccount.js';
 
 const contractPopulate = [
+  { path: 'owner', select: 'fullName email phone' },
   { path: 'room', select: 'name floor price maxOccupants status' },
-  { path: 'tenant', select: 'fullName phone email identityNumber room user' },
+  {
+    path: 'tenant',
+    select:
+      'fullName phone email identityNumber dateOfBirth permanentAddress room user',
+  },
 ];
 
-const vietnameseFontPaths = [
-  'C:/Windows/Fonts/arial.ttf',
-  '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-  '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-];
+const landlordContractProfile = {
+  fullName: 'Lý Quang Hậu',
+  email: 'ly.quang.hau8402@gmail.com',
+  phone: '0706581564',
+  identityNumber: '093204008182',
+  dateOfBirth: '2004-04-08',
+  rentalAddress:
+    '158/25 Phạm Văn Chiêu, phường Thông Tây Hội, thành phố Hồ Chí Minh',
+};
 
-function getVietnameseFontPath() {
-  return vietnameseFontPaths.find((fontPath) => existsSync(fontPath));
+const vietnameseFontPaths = {
+  regular: [
+    'C:/Windows/Fonts/times.ttf',
+    '/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
+  ],
+  bold: [
+    'C:/Windows/Fonts/timesbd.ttf',
+    '/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf',
+  ],
+};
+
+function getVietnameseFontPaths() {
+  return {
+    bold: vietnameseFontPaths.bold.find((fontPath) => existsSync(fontPath)),
+    regular: vietnameseFontPaths.regular.find((fontPath) =>
+      existsSync(fontPath),
+    ),
+  };
+}
+
+function getContractFont(document, weight = 'regular') {
+  return (
+    document._contractFonts?.[weight] ||
+    (weight === 'bold' ? 'Times-Bold' : 'Times-Roman')
+  );
 }
 
 function parseOptionalDate(value) {
@@ -32,12 +72,6 @@ function parseOptionalDate(value) {
   if (Number.isNaN(date.getTime())) return null;
 
   return date;
-}
-
-function formatDate(value) {
-  if (!value) return 'Chưa có';
-
-  return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
 }
 
 function formatMoney(value) {
@@ -104,14 +138,23 @@ async function findOrCreateTenantForContract(body, ownerId, roomId) {
   }
 
   const tenantInfo = body.tenantInfo || {};
+  const dateOfBirth = parseOptionalDate(tenantInfo.dateOfBirth);
   const payload = {
     owner: ownerId,
     fullName: tenantInfo.fullName?.trim(),
     phone: tenantInfo.phone?.trim(),
     email: tenantInfo.email?.trim()?.toLowerCase() || null,
     identityNumber: tenantInfo.identityNumber?.trim() || null,
+    dateOfBirth,
+    permanentAddress: tenantInfo.permanentAddress?.trim() || null,
     room: roomId,
   };
+
+  if (tenantInfo.dateOfBirth && !dateOfBirth) {
+    throw createHttpError(400, 'Ngay sinh khach thue khong hop le', {
+      tenantInfo: 'Ngay sinh khach thue phai la ngay hop le',
+    });
+  }
 
   if (!payload.fullName) {
     throw createHttpError(400, 'Họ tên khách thuê là bắt buộc', {
@@ -135,6 +178,17 @@ async function findOrCreateTenantForContract(body, ownerId, roomId) {
     );
   }
 
+  if (!isMailConfigured()) {
+    throw createHttpError(
+      503,
+      'Chua cau hinh SMTP de gui tai khoan khach thue',
+      {
+        tenantInfo:
+          'He thong chi tao tai khoan khi gui duoc thong tin dang nhap qua email',
+      },
+    );
+  }
+
   const existingTenant = await Tenant.findOne({
     owner: ownerId,
     deletedAt: null,
@@ -142,10 +196,18 @@ async function findOrCreateTenantForContract(body, ownerId, roomId) {
   });
 
   if (existingTenant) {
+    if (payload.identityNumber)
+      existingTenant.identityNumber = payload.identityNumber;
+    if (payload.dateOfBirth) existingTenant.dateOfBirth = payload.dateOfBirth;
+    if (payload.permanentAddress) {
+      existingTenant.permanentAddress = payload.permanentAddress;
+    }
+
     if (String(existingTenant.room || '') !== String(roomId)) {
       existingTenant.room = roomId;
-      await existingTenant.save();
     }
+
+    await existingTenant.save();
 
     await Room.updateOne(
       {
@@ -175,60 +237,78 @@ async function findOrCreateTenantForContract(body, ownerId, roomId) {
   return tenant;
 }
 
-function addSectionTitle(document, title, y = document.y) {
-  document.fillColor('#075985').fontSize(12).text(title, 48, y, { width: 500 });
+function addCenteredContractLine(document, text, options = {}) {
   document
-    .moveTo(48, document.y + 5)
-    .lineTo(547, document.y + 5)
-    .strokeColor('#bae6fd')
-    .lineWidth(1)
-    .stroke();
-  document.moveDown(0.9);
-  document.fillColor('#0f172a');
-}
-
-function addInfoRow(document, label, value, x, y, width = 225) {
-  document.fillColor('#64748b').fontSize(9).text(label, x, y, { width });
-  document
-    .fillColor('#0f172a')
-    .fontSize(10.5)
-    .text(value || 'Chưa có', x, y + 14, { width });
-}
-
-function addCard(document, x, y, width, height, title) {
-  document
-    .roundedRect(x, y, width, height, 10)
-    .fillAndStroke('#f8fafc', '#dbeafe');
-  document
-    .fillColor('#075985')
-    .fontSize(11)
-    .text(title, x + 16, y + 14, {
-      width: width - 32,
+    .font(
+      getContractFont(document, options.bold === false ? 'regular' : 'bold'),
+    )
+    .fillColor('#111827')
+    .fontSize(options.fontSize || 12)
+    .text(text, {
+      align: 'center',
+      lineGap: options.lineGap ?? 1,
+      underline: options.underline || false,
     });
 }
 
-function addFinanceRow(document, label, value, y, highlight = false) {
+function addPlainContractParagraph(document, text, options = {}) {
   document
-    .roundedRect(58, y, 479, 34, 7)
-    .fillAndStroke(highlight ? '#e0f2fe' : '#ffffff', '#dbeafe');
-  document
-    .fillColor('#475569')
-    .fontSize(10)
-    .text(label, 72, y + 11, {
-      width: 240,
+    .font(getContractFont(document, options.bold ? 'bold' : 'regular'))
+    .fillColor('#111827')
+    .fontSize(options.fontSize || 11.5)
+    .text(text, {
+      align: options.align || 'justify',
+      lineGap: options.lineGap ?? 2,
     });
-  document
-    .fillColor(highlight ? '#075985' : '#0f172a')
-    .fontSize(10.5)
-    .text(value, 330, y + 11, { width: 190, align: 'right' });
+  document.moveDown(options.after ?? 0.35);
 }
 
-function addClause(document, index, text) {
-  document.fillColor('#0f172a').fontSize(10).text(`${index}. ${text}`, {
-    align: 'justify',
-    lineGap: 2,
-  });
+function addPlainContractHeading(document, text) {
   document.moveDown(0.45);
+  document
+    .font(getContractFont(document, 'bold'))
+    .fillColor('#111827')
+    .fontSize(12)
+    .text(text, { align: 'center', lineGap: 1 });
+  document.moveDown(0.35);
+}
+
+function addPlainBulletClause(document, text) {
+  document
+    .font(getContractFont(document))
+    .fillColor('#111827')
+    .fontSize(11.5)
+    .text(`- ${text}`, {
+      align: 'justify',
+      indent: 12,
+      lineGap: 2,
+    });
+  document.moveDown(0.2);
+}
+
+function addPlainPartyLine(document, label, value, options = {}) {
+  const finalValue =
+    value || '................................................';
+
+  document
+    .font(getContractFont(document))
+    .fillColor('#111827')
+    .fontSize(11.5)
+    .text(`${label}: `, { continued: true, lineGap: 2 });
+  document
+    .font(getContractFont(document, options.boldValue ? 'bold' : 'regular'))
+    .text(finalValue, { lineGap: 2 });
+  document.moveDown(0.2);
+}
+
+function formatDayMonthYear(value) {
+  const date = value ? new Date(value) : new Date();
+
+  return {
+    day: String(date.getDate()).padStart(2, '0'),
+    month: String(date.getMonth() + 1).padStart(2, '0'),
+    year: String(date.getFullYear()),
+  };
 }
 
 async function ensureTenantAccount(tenantId, ownerId, roomId) {
@@ -271,6 +351,18 @@ async function ensureTenantAccount(tenantId, ownerId, roomId) {
 
   const username = buildTenantRoomUsername(tenant, room);
   const email = tenant.email.trim().toLowerCase();
+
+  if (!isMailConfigured()) {
+    throw createHttpError(
+      503,
+      'Chua cau hinh SMTP de gui tai khoan khach thue',
+      {
+        email:
+          'He thong chi tao tai khoan khi gui duoc thong tin dang nhap qua email',
+      },
+    );
+  }
+
   const existingUser = await User.findOne({
     $or: [{ email }, { username }],
   });
@@ -282,7 +374,7 @@ async function ensureTenantAccount(tenantId, ownerId, roomId) {
     });
   }
 
-  const password = tenant.phone.trim();
+  const password = generateTemporaryPassword();
   const user = await User.create({
     fullName: tenant.fullName,
     email,
@@ -294,14 +386,23 @@ async function ensureTenantAccount(tenantId, ownerId, roomId) {
     temporaryPasswordExpiresAt: null,
   });
 
-  tenant.user = user._id;
-  await tenant.save();
   const emailDelivery = await sendTenantCredentialsEmail({
     password,
     tenantEmail: email,
     tenantName: tenant.fullName,
     username,
   });
+
+  if (!emailDelivery.sent) {
+    await User.deleteOne({ _id: user._id });
+    throw createHttpError(503, 'Khong gui duoc email tai khoan khach thue', {
+      email:
+        emailDelivery.error || 'Kiem tra cau hinh SMTP va email khach thue',
+    });
+  }
+
+  tenant.user = user._id;
+  await tenant.save();
 
   return {
     user: {
@@ -314,233 +415,252 @@ async function ensureTenantAccount(tenantId, ownerId, roomId) {
       temporaryPasswordExpiresAt: user.temporaryPasswordExpiresAt,
     },
     emailDelivery,
-    password,
-    temporaryPassword: password,
   };
 }
 
-function buildContractPdf(contract, res) {
+function buildPlainRoomContractPdf(contract, res) {
   const room = contract.room || {};
   const tenant = contract.tenant || {};
+  const owner = contract.owner || {};
+  const landlord = {
+    ...landlordContractProfile,
+    fullName: landlordContractProfile.fullName || owner.fullName,
+    email: landlordContractProfile.email || owner.email,
+    phone: landlordContractProfile.phone || owner.phone,
+  };
+  const createdDate = formatDayMonthYear(new Date());
+  const startDate = formatDayMonthYear(contract.startDate);
+  const endDate = contract.endDate
+    ? formatDayMonthYear(contract.endDate)
+    : null;
+  const landlordBirthDate = formatDayMonthYear(landlord.dateOfBirth);
+  const tenantBirthDate = tenant.dateOfBirth
+    ? formatDayMonthYear(tenant.dateOfBirth)
+    : null;
+  const roomAddress = `Phòng ${room.name || '........'}${room.floor ? `, tầng ${room.floor}` : ''}, ${landlord.rentalAddress}`;
   const document = new PDFDocument({
-    margin: 48,
+    margin: 50,
     size: 'A4',
     info: {
-      Title: `Hop dong thue phong ${formatContractCode(contract)}`,
       Author: 'Smart Rental',
+      Title: `Hop dong thue phong ${formatContractCode(contract)}`,
     },
   });
-  const vietnameseFontPath = getVietnameseFontPath();
+  const vietnameseFontPath = getVietnameseFontPaths();
 
   document.pipe(res);
 
-  if (vietnameseFontPath) {
-    document.registerFont('Vietnamese', vietnameseFontPath);
-    document.font('Vietnamese');
+  document._contractFonts = {
+    bold: 'Times-Bold',
+    regular: 'Times-Roman',
+  };
+
+  if (vietnameseFontPath.regular) {
+    document.registerFont('ContractRegular', vietnameseFontPath.regular);
+    document._contractFonts.regular = 'ContractRegular';
   }
 
-  document.rect(0, 0, 595.28, 154).fill('#e0f2fe');
-  document.rect(0, 0, 595.28, 14).fill('#0284c7');
-  document
-    .fillColor('#075985')
-    .fontSize(18)
-    .text('SMART RENTAL', 48, 72, { width: 220 });
-  document
-    .fillColor('#475569')
-    .fontSize(9)
-    .text('He thong quan ly phong tro thong minh', 48, 96, {
-      width: 220,
-    });
-  document
-    .fillColor('#0f172a')
-    .fontSize(18)
-    .text('HỢP ĐỒNG THUÊ PHÒNG', 292, 72, {
-      align: 'right',
-      width: 255,
-    });
-  document
-    .fillColor('#475569')
-    .fontSize(10)
-    .text(`Số: ${formatContractCode(contract)}`, 292, 98, {
-      align: 'right',
-      width: 255,
-    });
-  document.fontSize(9).text(`Ngày lập: ${formatDate(new Date())}`, 292, 114, {
-    align: 'right',
-    width: 255,
+  if (vietnameseFontPath.bold) {
+    document.registerFont('ContractBold', vietnameseFontPath.bold);
+    document._contractFonts.bold = 'ContractBold';
+  }
+
+  addCenteredContractLine(document, 'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM', {
+    fontSize: 13,
   });
-
-  document.y = 174;
-  document
-    .fillColor('#0f172a')
-    .fontSize(10)
-    .text(
-      'Căn cứ nhu cầu thuê phòng và thỏa thuận giữa các bên, hợp đồng này ghi nhận các thông tin thuê phòng như sau:',
-      48,
-      document.y,
-      { align: 'justify', lineGap: 2, width: 499 },
-    );
+  addCenteredContractLine(document, 'Độc lập - Tự do - Hạnh phúc', {
+    fontSize: 12,
+    underline: true,
+  });
   document.moveDown(1.1);
+  addCenteredContractLine(document, 'HỢP ĐỒNG THUÊ PHÒNG TRỌ', {
+    fontSize: 17,
+  });
+  addCenteredContractLine(document, `Số: ${formatContractCode(contract)}`, {
+    bold: false,
+    fontSize: 11,
+  });
+  document.moveDown(0.9);
 
-  const partyY = document.y;
-  addCard(document, 48, partyY, 238, 112, 'BÊN CHO THUÊ');
-  addInfoRow(
+  addPlainContractParagraph(
     document,
-    'Đơn vị',
-    'Smart Rental / Chủ trọ',
-    64,
-    partyY + 40,
-    190,
-  );
-  addInfoRow(
-    document,
-    'Vai trò',
-    'Bên quản lý và cho thuê phòng',
-    64,
-    partyY + 74,
-    190,
+    `Hôm nay ngày ${createdDate.day} tháng ${createdDate.month} năm ${createdDate.year}; chúng tôi gồm:`,
   );
 
-  addCard(document, 309, partyY, 238, 112, 'BÊN THUÊ');
-  addInfoRow(document, 'Họ tên', tenant.fullName, 325, partyY + 40, 190);
-  addInfoRow(document, 'Số điện thoại', tenant.phone, 325, partyY + 74, 95);
-  addInfoRow(
+  addPlainContractHeading(
     document,
-    'CCCD/CMND',
-    tenant.identityNumber,
-    430,
-    partyY + 74,
-    95,
+    '1. Đại diện bên cho thuê phòng trọ (Bên A)',
   );
+  addPlainPartyLine(document, 'Ông/bà', landlord.fullName, {
+    boldValue: true,
+  });
+  addPlainPartyLine(
+    document,
+    'Sinh ngày',
+    `${landlordBirthDate.day}/${landlordBirthDate.month}/${landlordBirthDate.year}`,
+  );
+  addPlainPartyLine(document, 'Số CMND/CCCD', landlord.identityNumber);
+  addPlainPartyLine(document, 'Email', landlord.email);
+  addPlainPartyLine(document, 'Số điện thoại', landlord.phone);
+  addPlainPartyLine(document, 'Địa chỉ nhà trọ', landlord.rentalAddress);
 
-  document.y = partyY + 136;
-  addSectionTitle(document, '1. THÔNG TIN PHÒNG THUÊ');
-  const roomY = document.y;
-  addInfoRow(document, 'Phòng', room.name, 58, roomY, 110);
-  addInfoRow(document, 'Tầng', String(room.floor ?? 'Chưa có'), 182, roomY, 90);
-  addInfoRow(
+  addPlainContractHeading(document, '2. Bên thuê phòng trọ (Bên B)');
+  addPlainPartyLine(document, 'Ông/bà', tenant.fullName, { boldValue: true });
+  addPlainPartyLine(
     document,
-    'Số người tối đa',
-    String(room.maxOccupants || 2),
-    292,
-    roomY,
-    110,
+    'Sinh ngày',
+    tenantBirthDate
+      ? `${tenantBirthDate.day}/${tenantBirthDate.month}/${tenantBirthDate.year}`
+      : null,
   );
-  addInfoRow(
-    document,
-    'Giá niêm yết',
-    formatMoney(room.price),
-    420,
-    roomY,
-    110,
-  );
+  addPlainPartyLine(document, 'HK thường trú', tenant.permanentAddress);
+  addPlainPartyLine(document, 'Số CMND/CCCD', tenant.identityNumber);
+  addPlainPartyLine(document, 'Email', tenant.email);
+  addPlainPartyLine(document, 'Số điện thoại', tenant.phone);
 
-  document.y = roomY + 54;
-  addSectionTitle(document, '2. THỜI HẠN VÀ GIÁ TRỊ HỢP ĐỒNG');
-  const financeY = document.y;
-  addFinanceRow(
-    document,
-    'Ngày bắt đầu',
-    formatDate(contract.startDate),
-    financeY,
-  );
-  addFinanceRow(
-    document,
-    'Ngày kết thúc',
-    formatDate(contract.endDate),
-    financeY + 40,
-  );
-  addFinanceRow(
-    document,
-    'Tiền thuê hằng tháng',
-    formatMoney(contract.monthlyPrice),
-    financeY + 80,
-    true,
-  );
-  addFinanceRow(
-    document,
-    'Tiền cọc',
-    formatMoney(contract.deposit),
-    financeY + 120,
-  );
-  addFinanceRow(
-    document,
-    'Trạng thái hợp đồng',
-    formatStatus(contract.status),
-    financeY + 160,
-  );
-
-  document.y = financeY + 214;
-  addSectionTitle(document, '3. ĐIỀU KHOẢN CHÍNH');
-  addClause(
-    document,
-    1,
-    'Bên thuê sử dụng phòng đúng mục đích để ở, giữ gìn tài sản, vệ sinh chung và tuân thủ nội quy khu trọ.',
-  );
-  addClause(
-    document,
-    2,
-    'Tiền thuê được thanh toán theo tháng. Các khoản điện, nước, internet, rác, gửi xe và phụ phí khác được tính theo chỉ số hoặc đơn giá dịch vụ tại thời điểm phát sinh.',
-  );
-  addClause(
-    document,
-    3,
-    'Bên thuê có trách nhiệm thanh toán đúng hạn. Nếu chậm thanh toán, hai bên xử lý theo thỏa thuận và nội quy đã thông báo.',
-  );
-  addClause(
-    document,
-    4,
-    'Khi kết thúc hợp đồng, bên thuê bàn giao phòng và tài sản trong tình trạng hợp lý. Tiền cọc được đối soát sau khi trừ các khoản còn nợ hoặc hư hỏng nếu có.',
-  );
-
-  document.moveDown(0.5);
-  document
-    .fillColor('#64748b')
-    .fontSize(9)
-    .text(
-      'Tài liệu được sinh tự động từ Smart Rental. Các bên cần kiểm tra thông tin thực tế trước khi ký và lưu trữ bản chính theo quy định của đơn vị quản lý.',
-      { align: 'justify', lineGap: 2 },
+  if (contract.occupants?.length > 0) {
+    addPlainContractParagraph(
+      document,
+      `Người ở cùng: ${contract.occupants.map((item) => item.fullName).join(', ')}.`,
     );
+  }
 
-  const signatureY = Math.max(document.y + 30, 690);
-  document.fillColor('#0f172a').fontSize(10);
-  document.text('ĐẠI DIỆN BÊN CHO THUÊ', 70, signatureY, {
+  addPlainContractParagraph(
+    document,
+    'Sau khi bàn bạc trên tinh thần dân chủ, hai bên cùng có lợi, cùng thống nhất như sau:',
+  );
+  addPlainContractParagraph(
+    document,
+    `Bên A đồng ý cho Bên B thuê 01 phòng ở tại địa chỉ: ${roomAddress}.`,
+  );
+  addPlainContractParagraph(
+    document,
+    `Giá thuê: ${formatMoney(contract.monthlyPrice)}/tháng.`,
+  );
+  addPlainContractParagraph(
+    document,
+    'Hình thức thanh toán: Thanh toán theo tháng theo thỏa thuận giữa hai bên hoặc theo hướng dẫn thanh toán của hệ thống Smart Rental.',
+  );
+  addPlainContractParagraph(
+    document,
+    'Tiền điện, tiền nước và các khoản dịch vụ khác được tính theo chỉ số sử dụng thực tế hoặc đơn giá dịch vụ do Bên A thông báo.',
+  );
+  addPlainContractParagraph(
+    document,
+    `Tiền đặt cọc: ${formatMoney(contract.deposit)}.`,
+  );
+  addPlainContractParagraph(
+    document,
+    `Hợp đồng có giá trị kể từ ngày ${startDate.day} tháng ${startDate.month} năm ${startDate.year}${
+      endDate
+        ? ` đến ngày ${endDate.day} tháng ${endDate.month} năm ${endDate.year}`
+        : ''
+    }.`,
+  );
+  addPlainContractParagraph(
+    document,
+    `Trạng thái hợp đồng trên hệ thống: ${formatStatus(contract.status)}.`,
+  );
+
+  addPlainContractHeading(document, 'TRÁCH NHIỆM CỦA CÁC BÊN');
+  addPlainContractParagraph(document, '* Trách nhiệm của Bên A:', {
+    align: 'left',
+  });
+  addPlainBulletClause(
+    document,
+    'Tạo mọi điều kiện thuận lợi để Bên B thực hiện theo hợp đồng.',
+  );
+  addPlainBulletClause(
+    document,
+    'Cung cấp nguồn điện, nước, wifi và các dịch vụ đã thỏa thuận cho Bên B sử dụng.',
+  );
+
+  addPlainContractParagraph(document, '* Trách nhiệm của Bên B:', {
+    align: 'left',
+  });
+  addPlainBulletClause(
+    document,
+    'Thanh toán đầy đủ các khoản tiền theo đúng thỏa thuận.',
+  );
+  addPlainBulletClause(
+    document,
+    'Bảo quản trang thiết bị và cơ sở vật chất do Bên A trang bị ban đầu; làm hỏng phải sửa, mất phải đền.',
+  );
+  addPlainBulletClause(
+    document,
+    'Không được tự ý sửa chữa, cải tạo cơ sở vật chất khi chưa được sự đồng ý của Bên A.',
+  );
+  addPlainBulletClause(
+    document,
+    'Giữ gìn vệ sinh trong và ngoài khuôn viên phòng trọ.',
+  );
+  addPlainBulletClause(
+    document,
+    'Chấp hành mọi quy định của pháp luật Nhà nước và quy định của địa phương.',
+  );
+  addPlainBulletClause(
+    document,
+    'Nếu cho khách ở qua đêm thì phải báo và được sự đồng ý của chủ nhà, đồng thời chịu trách nhiệm về hành vi vi phạm pháp luật của khách trong thời gian ở lại.',
+  );
+
+  addPlainContractHeading(document, 'TRÁCH NHIỆM CHUNG');
+  addPlainBulletClause(
+    document,
+    'Hai bên phải tạo điều kiện cho nhau thực hiện hợp đồng.',
+  );
+  addPlainBulletClause(
+    document,
+    'Trong thời gian hợp đồng còn hiệu lực, nếu bên nào vi phạm các điều khoản đã thỏa thuận thì bên còn lại có quyền đơn phương chấm dứt hợp đồng và yêu cầu bồi thường thiệt hại nếu có.',
+  );
+  addPlainBulletClause(
+    document,
+    'Một trong hai bên muốn chấm dứt hợp đồng trước thời hạn thì phải báo trước cho bên kia ít nhất 30 ngày và hai bên phải có sự thống nhất.',
+  );
+  addPlainBulletClause(
+    document,
+    'Khi kết thúc hợp đồng, Bên A hoàn trả tiền đặt cọc cho Bên B sau khi đối soát các khoản còn nợ hoặc hư hỏng nếu có.',
+  );
+  addPlainBulletClause(
+    document,
+    'Hợp đồng được lập thành 02 bản có giá trị pháp lý như nhau, mỗi bên giữ một bản.',
+  );
+
+  if (document.y > 640) {
+    document.addPage();
+  }
+
+  const signatureY = Math.max(document.y + 24, 650);
+  document.fontSize(10.5).fillColor('#111827');
+  document.text('ĐẠI DIỆN BÊN B', 70, signatureY, {
     align: 'center',
     width: 180,
   });
-  document.text('BÊN THUÊ', 345, signatureY, {
+  document.text('ĐẠI DIỆN BÊN A', 345, signatureY, {
     align: 'center',
-    width: 140,
+    width: 160,
+  });
+  document.fontSize(9).text('(Ký và ghi rõ họ tên)', 70, signatureY + 18, {
+    align: 'center',
+    width: 180,
+  });
+  document.text('(Ký và ghi rõ họ tên)', 335, signatureY + 18, {
+    align: 'center',
+    width: 180,
   });
   document
-    .fillColor('#64748b')
-    .fontSize(9)
-    .text('(Ký và ghi rõ họ tên)', 70, signatureY + 18, {
-      align: 'center',
-      width: 180,
-    });
-  document.text('(Ký và ghi rõ họ tên)', 330, signatureY + 18, {
-    align: 'center',
-    width: 170,
-  });
-  document
-    .moveTo(76, signatureY + 92)
-    .lineTo(244, signatureY + 92)
-    .moveTo(330, signatureY + 92)
-    .lineTo(500, signatureY + 92)
-    .strokeColor('#94a3b8')
+    .moveTo(78, signatureY + 92)
+    .lineTo(242, signatureY + 92)
+    .moveTo(342, signatureY + 92)
+    .lineTo(508, signatureY + 92)
+    .strokeColor('#9ca3af')
     .lineWidth(0.8)
     .stroke();
 
-  document
-    .fillColor('#94a3b8')
-    .fontSize(8)
-    .text(`Smart Rental · ${formatContractCode(contract)}`, 48, 804, {
-      align: 'center',
-      width: 499,
-    });
-
   document.end();
+}
+
+function buildContractPdf(contract, res) {
+  return buildPlainRoomContractPdf(contract, res);
 }
 
 async function normalizeContractPayload(
@@ -748,11 +868,11 @@ export async function downloadContractPdf(req, res, next) {
 export async function createContract(req, res, next) {
   try {
     const payload = await normalizeContractPayload(req.body, req.user._id);
-    const contract = await Contract.create(payload);
     const temporaryAccount =
       payload.status === 'active'
         ? await ensureTenantAccount(payload.tenant, req.user._id, payload.room)
         : null;
+    const contract = await Contract.create(payload);
     const populatedContract = await contract.populate(contractPopulate);
 
     res.status(201).json({

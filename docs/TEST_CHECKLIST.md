@@ -43,10 +43,18 @@ Tài liệu này dùng cho kiểm thử thủ công trước khi demo, merge ho�
 - Tạo hợp đồng active cho phòng còn trống.
 - Không cho tạo hợp đồng active trùng phòng.
 - Kiểm tra giá thuê tự điền theo phòng và tiền cọc theo số tháng.
-- Khi tạo hợp đồng active cho khách chưa có tài khoản, hệ thống trả mật khẩu tạm một lần.
+- Khi tao hop dong active cho khach chua co tai khoan, he thong gui thong tin dang nhap qua email
+  va khong hien mat khau cho chu tro.
 - Sửa hợp đồng.
 - Kết thúc hợp đồng.
 - Tải PDF hợp đồng.
+
+Checklist bo sung cho hop dong nhieu nguoi o va email tenant:
+
+- Tao hop dong co nhieu nguoi o, kiem tra danh sach hop dong hien tong so nguoi va ten nguoi o cung.
+- Mo chi tiet phong da co hop dong active, kiem tra thay khach dai dien va danh sach nguoi o cung.
+- Neu SMTP da cau hinh, tao hop dong active va kiem tra khach thue nhan email tai khoan.
+- Neu SMTP chua cau hinh hoac cau hinh sai, kiem tra API/UI bao loi va khong hien mat khau.
 
 ## 6. Thanh toán
 
@@ -154,6 +162,6 @@ Ghi chú: VNPay/MoMo hiện ở mức phương thức ghi nhận/mock. Nếu san
 - Kiem tra danh sach phong gom `101-110`, `201-210`, `301-310`; tat ca o trang thai `available`.
 - Them khach co email, so dien thoai va gan phong `101`.
 - Neu ten khach la `Ly Quang Hau`, kiem tra tai khoan tenant co username `lyquanghau101`.
-- Kiem tra mat khau ban dau dang duoc luu theo so dien thoai khach da nhap.
-- Neu SMTP da cau hinh, kiem tra email khach nhan username va mat khau.
-- Neu SMTP chua cau hinh, kiem tra UI hien thong bao can gui thong tin dang nhap thu cong.
+- Kiem tra mat khau ban dau khong hien tren UI va khong tra ve API cho chu tro.
+- Neu SMTP da cau hinh, kiem tra email khach nhan username va mat khau ngau nhien.
+- Neu SMTP chua cau hinh, kiem tra backend chan tao/cap lai tai khoan tenant va tra loi ro rang.

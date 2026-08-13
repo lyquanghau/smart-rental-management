@@ -52,6 +52,7 @@ const copy = {
     emptyInvoice: 'No invoices yet.',
     emptyPayment: 'No payment records yet.',
     invoicePdfDownloaded: 'Invoice PDF downloaded.',
+    items: 'items',
     sepayPaymentCreated: 'SePay payment code created.',
     momoPaymentFailed: 'MoMo payment was not completed.',
     momoPaymentReturned:
@@ -75,6 +76,18 @@ const copy = {
       'Payment account information has not been configured yet.',
     paymentQr: 'Payment QR',
     paymentHistory: 'Payment history',
+    paymentMethodCash: 'Cash',
+    paymentMethodBankTransfer: 'Bank transfer',
+    paymentMethodMomo: 'MoMo',
+    paymentMethodVnpay: 'VNPay',
+    statusActive: 'Active',
+    statusCancelled: 'Cancelled',
+    statusDraft: 'Draft',
+    statusEnded: 'Ended',
+    statusIssued: 'Issued',
+    statusOverdue: 'Overdue',
+    statusPaid: 'Paid',
+    statusPending: 'Pending',
     portalTitle: 'Tenant portal',
     reload: 'Reload',
     rent: 'Rent',
@@ -87,52 +100,65 @@ const copy = {
     transferContent: 'Transfer content',
   },
   vi: {
-    activeContract: 'Hop dong dang hieu luc',
-    billing: 'Hoa don',
-    bankAccountName: 'Chu tai khoan',
-    bankAccountNumber: 'So tai khoan',
-    bankName: 'Ngan hang',
-    contractHistory: 'Lich su hop dong',
-    copiedTransferContent: 'Da copy noi dung chuyen khoan.',
-    copyTransferContent: 'Copy noi dung',
-    downloadPdf: 'Tai PDF',
-    dueDate: 'Han thanh toan',
-    emptyContract: 'Chua co du lieu hop dong.',
-    emptyInvoice: 'Chua co hoa don.',
-    emptyPayment: 'Chua co lich su thanh toan.',
-    invoicePdfDownloaded: 'Da tai PDF hoa don.',
-    sepayPaymentCreated: 'Da tao ma thanh toan SePay.',
-    momoPaymentFailed: 'Giao dich MoMo chua hoan tat.',
+    activeContract: 'Hợp đồng đang hiệu lực',
+    billing: 'Hóa đơn',
+    bankAccountName: 'Chủ tài khoản',
+    bankAccountNumber: 'Số tài khoản',
+    bankName: 'Ngân hàng',
+    contractHistory: 'Lịch sử hợp đồng',
+    copiedTransferContent: 'Đã sao chép nội dung chuyển khoản.',
+    copyTransferContent: 'Sao chép nội dung',
+    downloadPdf: 'Tải PDF',
+    dueDate: 'Hạn thanh toán',
+    emptyContract: 'Chưa có dữ liệu hợp đồng.',
+    emptyInvoice: 'Chưa có hóa đơn.',
+    emptyPayment: 'Chưa có lịch sử thanh toán.',
+    invoicePdfDownloaded: 'Đã tải PDF hóa đơn.',
+    items: 'mục',
+    sepayPaymentCreated: 'Đã tạo mã thanh toán SePay.',
+    momoPaymentFailed: 'Giao dịch MoMo chưa hoàn tất.',
     momoPaymentReturned:
-      'MoMo tra ve ket qua thanh cong. Dang cho IPN xac nhan.',
-    paymentAmount: 'So tien',
-    scanToPay: 'Quet QR nay de thanh toan',
-    sepayPay: 'Hien QR thanh toan',
-    sepayCode: 'Ma thanh toan',
-    floor: 'Tang',
-    invoice: 'Hoa don',
-    invoiceTotal: 'Tong hoa don',
-    loading: 'Dang tai...',
-    loadingData: 'Dang tai du lieu khach thue...',
-    monthlyRent: 'Tien phong moi thang',
-    myRoom: 'Phong cua toi',
-    noRoom: 'Chua gan phong',
-    openAmount: 'So tien can thanh toan',
-    paidAt: 'Ngay thu',
-    paymentInstructions: 'Huong dan thanh toan',
-    paymentInstructionsMissing: 'Chu tro chua cau hinh thong tin nhan tien.',
-    paymentQr: 'QR thanh toan',
-    paymentHistory: 'Lich su thanh toan',
-    portalTitle: 'Cong khach thue',
-    reload: 'Tai lai',
-    rent: 'Tien phong',
-    services: 'Dich vu',
-    status: 'Trang thai',
-    subtitle: 'Xem phong, hop dong, hoa don va lich su thanh toan cua ban.',
-    term: 'Thoi han',
-    tenant: 'Khach thue',
-    to: 'den',
-    transferContent: 'Noi dung chuyen khoan',
+      'MoMo trả về kết quả thành công. Đang chờ IPN xác nhận.',
+    paymentAmount: 'Số tiền',
+    scanToPay: 'Quét QR này để thanh toán',
+    sepayPay: 'Hiện QR thanh toán',
+    sepayCode: 'Mã thanh toán',
+    floor: 'Tầng',
+    invoice: 'Hóa đơn',
+    invoiceTotal: 'Tổng hóa đơn',
+    loading: 'Đang tải...',
+    loadingData: 'Đang tải dữ liệu khách thuê...',
+    monthlyRent: 'Tiền phòng mỗi tháng',
+    myRoom: 'Phòng của tôi',
+    noRoom: 'Chưa gán phòng',
+    openAmount: 'Số tiền cần thanh toán',
+    paidAt: 'Ngày thu',
+    paymentInstructions: 'Hướng dẫn thanh toán',
+    paymentInstructionsMissing: 'Chủ trọ chưa cấu hình thông tin nhận tiền.',
+    paymentQr: 'QR thanh toán',
+    paymentHistory: 'Lịch sử thanh toán',
+    paymentMethodCash: 'Tiền mặt',
+    paymentMethodBankTransfer: 'Chuyển khoản',
+    paymentMethodMomo: 'MoMo',
+    paymentMethodVnpay: 'VNPay',
+    statusActive: 'Đang hiệu lực',
+    statusCancelled: 'Đã hủy',
+    statusDraft: 'Bản nháp',
+    statusEnded: 'Đã kết thúc',
+    statusIssued: 'Đã phát hành',
+    statusOverdue: 'Quá hạn',
+    statusPaid: 'Đã thanh toán',
+    statusPending: 'Chờ thu',
+    portalTitle: 'Cổng khách thuê',
+    reload: 'Tải lại',
+    rent: 'Tiền phòng',
+    services: 'Dịch vụ',
+    status: 'Trạng thái',
+    subtitle: 'Xem phòng, hợp đồng, hóa đơn và lịch sử thanh toán của bạn.',
+    term: 'Thời hạn',
+    tenant: 'Khách thuê',
+    to: 'đến',
+    transferContent: 'Nội dung chuyển khoản',
   },
 };
 
@@ -152,12 +178,38 @@ function formatInvoiceCode(invoice) {
 
 function buildTransferContent(template, room, invoice) {
   if (!invoice) return '';
-  const fallback = 'Thanh toan phong {room} thang {month}-{year}';
+  const fallback = 'Thanh toán phòng {room} tháng {month}-{year}';
 
   return (template || fallback)
     .replaceAll('{room}', room?.name || 'N/A')
     .replaceAll('{month}', String(invoice.month || ''))
     .replaceAll('{year}', String(invoice.year || ''));
+}
+
+function getStatusLabel(status, text) {
+  const labels = {
+    active: text.statusActive,
+    cancelled: text.statusCancelled,
+    draft: text.statusDraft,
+    ended: text.statusEnded,
+    issued: text.statusIssued,
+    overdue: text.statusOverdue,
+    paid: text.statusPaid,
+    pending: text.statusPending,
+  };
+
+  return labels[status] || status || text.statusPending;
+}
+
+function getPaymentMethodLabel(method, text) {
+  const labels = {
+    bank_transfer: text.paymentMethodBankTransfer,
+    cash: text.paymentMethodCash,
+    momo: text.paymentMethodMomo,
+    vnpay: text.paymentMethodVnpay,
+  };
+
+  return labels[method] || method || text.paymentMethodCash;
 }
 
 export function TenantPortalPage() {
@@ -347,17 +399,25 @@ export function TenantPortalPage() {
         <article className="metric-card">
           <span>{text.monthlyRent}</span>
           <strong>{formatMoney(activeContract?.monthlyPrice || 0)}</strong>
-          <small>{activeContract?.status || text.emptyContract}</small>
+          <small>
+            {activeContract
+              ? getStatusLabel(activeContract.status, text)
+              : text.emptyContract}
+          </small>
         </article>
         <article className="metric-card metric-card-warning">
           <span>{text.openAmount}</span>
           <strong>{formatMoney(summary.totals.openPaymentAmount)}</strong>
-          <small>{summary.totals.openPaymentCount} items</small>
+          <small>
+            {summary.totals.openPaymentCount} {text.items}
+          </small>
         </article>
         <article className="metric-card">
           <span>{text.invoiceTotal}</span>
           <strong>{formatMoney(summary.totals.openInvoiceAmount)}</strong>
-          <small>{summary.totals.openInvoiceCount} items</small>
+          <small>
+            {summary.totals.openInvoiceCount} {text.items}
+          </small>
         </article>
       </div>
 
@@ -426,7 +486,7 @@ export function TenantPortalPage() {
                   </span>
                   <small>
                     {text.dueDate}: {formatDate(invoice.dueDate)} -{' '}
-                    {invoice.status}
+                    {getStatusLabel(invoice.status, text)}
                   </small>
                   <button
                     className="secondary-button"
@@ -588,7 +648,7 @@ export function TenantPortalPage() {
                         ? formatInvoiceCode(payment.invoice)
                         : payment.note || text.invoice}
                     </strong>
-                    <span>{payment.method}</span>
+                    <span>{getPaymentMethodLabel(payment.method, text)}</span>
                   </td>
                   <td>
                     <strong>{formatDate(payment.dueDate)}</strong>
@@ -600,7 +660,7 @@ export function TenantPortalPage() {
                     <strong>{formatMoney(payment.amount)}</strong>
                   </td>
                   <td>
-                    <strong>{payment.status}</strong>
+                    <strong>{getStatusLabel(payment.status, text)}</strong>
                   </td>
                 </tr>
               ))}

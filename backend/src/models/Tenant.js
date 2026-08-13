@@ -27,6 +27,13 @@ const tenantSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    dateOfBirth: {
+      type: Date,
+    },
+    permanentAddress: {
+      type: String,
+      trim: true,
+    },
     room: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Room',

@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
 
-function isMailConfigured() {
+export function isMailConfigured() {
   return Boolean(env.mail.host && env.mail.from);
 }
 

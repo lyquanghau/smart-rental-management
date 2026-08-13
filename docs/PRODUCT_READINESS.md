@@ -77,7 +77,7 @@ Ung dung da du loi MVP cho mot nha tro nho:
 2. Xem dashboard tong quan.
 3. Tao phong moi hoac kiem tra phong con trong.
 4. Them khach thue.
-5. Tao hop dong active va ghi lai tai khoan/mat khau tam cua khach thue.
+5. Tao hop dong active va kiem tra email khach thue nhan thong tin dang nhap.
 6. Xem truoc va tai PDF hop dong.
 7. Nhap chi so dien/nuoc, tao hoa don thang.
 8. Lay ma SePay tren cong khach thue va demo mock webhook neu SePay chua duyet.

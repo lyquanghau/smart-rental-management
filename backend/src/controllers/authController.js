@@ -1,10 +1,14 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { randomBytes } from 'node:crypto';
 import { env } from '../config/env.js';
 import { Tenant } from '../models/Tenant.js';
 import { User } from '../models/User.js';
 import { createHttpError } from '../utils/httpError.js';
+import {
+  isMailConfigured,
+  sendTenantCredentialsEmail,
+} from '../utils/mailService.js';
+import { generateTemporaryPassword } from '../utils/password.js';
 
 const TEMPORARY_PASSWORD_TTL_DAYS = 3;
 
@@ -31,10 +35,6 @@ function serializeUser(user) {
     mustChangePassword: user.mustChangePassword,
     temporaryPasswordExpiresAt: user.temporaryPasswordExpiresAt,
   };
-}
-
-export function generateTemporaryPassword() {
-  return `Sr@${randomBytes(6).toString('base64url')}`;
 }
 
 export function getTemporaryPasswordExpiresAt() {
@@ -212,7 +212,7 @@ export async function unlockUser(req, res, next) {
       user: user._id,
       owner: req.user._id,
       deletedAt: null,
-    }).select('_id');
+    }).select('_id fullName email');
 
     if (!tenant) {
       throw createHttpError(
@@ -223,6 +223,27 @@ export async function unlockUser(req, res, next) {
 
     const temporaryPassword = generateTemporaryPassword();
 
+    if (!isMailConfigured()) {
+      throw createHttpError(503, 'Chua cau hinh SMTP de gui mat khau tam', {
+        email:
+          'He thong chi cap lai mat khau khi gui duoc email cho khach thue',
+      });
+    }
+
+    const emailDelivery = await sendTenantCredentialsEmail({
+      password: temporaryPassword,
+      tenantEmail: tenant.email || user.email,
+      tenantName: tenant.fullName || user.fullName,
+      username: user.username || user.email,
+    });
+
+    if (!emailDelivery.sent) {
+      throw createHttpError(503, 'Khong gui duoc email mat khau tam', {
+        email:
+          emailDelivery.error || 'Kiem tra cau hinh SMTP va email khach thue',
+      });
+    }
+
     user.passwordHash = await bcrypt.hash(temporaryPassword, 10);
     user.isActive = true;
     user.mustChangePassword = true;
@@ -231,8 +252,8 @@ export async function unlockUser(req, res, next) {
 
     res.json({
       data: {
+        emailDelivery,
         user: serializeUser(user),
-        temporaryPassword,
       },
       message: 'Mở khóa tài khoản và cấp lại mật khẩu tạm thành công',
     });

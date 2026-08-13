@@ -72,6 +72,7 @@ const labels = {
     services: 'Dịch vụ',
     settings: 'Cài đặt',
     signOut: 'Đăng xuất',
+    tenantPortal: 'Cổng khách thuê',
     utilityNav: 'Hỗ trợ và cài đặt',
   },
 };
@@ -90,8 +91,7 @@ export function Sidebar({ isCollapsed, onToggle }) {
   const { language } = usePreferences();
   const text = labels[language] || labels.vi;
   const isTenant = user?.role === 'tenant';
-  const tenantPortalLabel =
-    language === 'en' ? text.tenantPortal : 'Cong khach thue';
+  const tenantPortalLabel = text.tenantPortal;
   const toggleLabel = isCollapsed ? 'Mở thanh bên' : 'Thu gọn thanh bên';
   const toggleIcon = isCollapsed ? 'arrow_forward' : 'arrow_back';
 

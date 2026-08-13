@@ -1,7 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { createHttpError } from './httpError.js';
-import { sendTenantCredentialsEmail } from './mailService.js';
+import { isMailConfigured, sendTenantCredentialsEmail } from './mailService.js';
+import { generateTemporaryPassword } from './password.js';
 
 export function normalizeLoginPart(value) {
   return String(value || '')
@@ -41,7 +42,19 @@ export async function ensureTenantAccountForRoom({ room, tenant }) {
 
   const username = buildTenantRoomUsername(tenant, room);
   const email = tenant.email.trim().toLowerCase();
-  const password = tenant.phone.trim();
+  const password = generateTemporaryPassword();
+
+  if (!isMailConfigured()) {
+    throw createHttpError(
+      503,
+      'Chua cau hinh SMTP de gui tai khoan khach thue',
+      {
+        email:
+          'He thong chi tao tai khoan khi gui duoc thong tin dang nhap qua email',
+      },
+    );
+  }
+
   const existingUser = await User.findOne({
     $or: [{ email }, { username }],
   });
@@ -70,12 +83,19 @@ export async function ensureTenantAccountForRoom({ room, tenant }) {
     username,
   });
 
+  if (!emailDelivery.sent) {
+    await User.deleteOne({ _id: user._id });
+    throw createHttpError(503, 'Khong gui duoc email tai khoan khach thue', {
+      email:
+        emailDelivery.error || 'Kiem tra cau hinh SMTP va email khach thue',
+    });
+  }
+
   tenant.user = user._id;
   await tenant.save();
 
   return {
     emailDelivery,
-    password,
     user: {
       _id: user._id,
       email: user.email,

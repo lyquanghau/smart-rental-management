@@ -17,11 +17,11 @@ const labels = {
     title: 'Rental operations today',
   },
   vi: {
-    emptyNotifications: 'Chua co thong bao.',
-    eyebrow: 'Bang dieu hanh',
-    markAllRead: 'Danh dau da doc',
-    notifications: 'Thong bao',
-    title: 'Van hanh khu tro hom nay',
+    emptyNotifications: 'Chưa có thông báo.',
+    eyebrow: 'Bảng điều hành',
+    markAllRead: 'Đánh dấu đã đọc',
+    notifications: 'Thông báo',
+    title: 'Vận hành khu trọ hôm nay',
   },
 };
 

@@ -1,19 +1,38 @@
 import { Room } from '../models/Room.js';
 import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
+import { isMailConfigured } from '../utils/mailService.js';
 import { ownerFilter } from '../utils/ownership.js';
 import { ensureTenantAccountForRoom } from '../utils/tenantAccount.js';
 
+function parseOptionalDate(value) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date;
+}
+
 async function normalizeTenantPayload(body, ownerId) {
   const room = body.room || null;
+  const dateOfBirth = parseOptionalDate(body.dateOfBirth);
   const payload = {
     owner: ownerId,
     fullName: body.fullName?.trim(),
     phone: body.phone?.trim(),
     email: body.email?.trim() || null,
     identityNumber: body.identityNumber?.trim() || null,
+    dateOfBirth,
+    permanentAddress: body.permanentAddress?.trim() || null,
     room,
   };
+
+  if (body.dateOfBirth && !dateOfBirth) {
+    throw createHttpError(400, 'Ngay sinh khong hop le', {
+      dateOfBirth: 'Ngay sinh phai la ngay hop le',
+    });
+  }
 
   if (room) {
     const existingRoom = await Room.findOne({
@@ -32,6 +51,17 @@ async function normalizeTenantPayload(body, ownerId) {
         'Can email khach thue de tao tai khoan dang nhap',
         {
           email: 'Email la bat buoc khi gan khach vao phong',
+        },
+      );
+    }
+
+    if (!isMailConfigured()) {
+      throw createHttpError(
+        503,
+        'Chua cau hinh SMTP de gui tai khoan khach thue',
+        {
+          email:
+            'He thong chi tao tai khoan khi gui duoc thong tin dang nhap qua email',
         },
       );
     }

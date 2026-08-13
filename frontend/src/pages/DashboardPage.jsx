@@ -92,8 +92,8 @@ const copy = {
       `${delta > 0 ? 'Up' : 'Down'} ${Math.abs(percent)}% from last month`,
   },
   vi: {
-    dueSoon: 'Den han trong 7 ngay',
-    noPaymentReminder: 'Khong co nhac han thanh toan trong 7 ngay toi.',
+    dueSoon: 'Đến hạn trong 7 ngày',
+    noPaymentReminder: 'Không có nhắc hạn thanh toán trong 7 ngày tới.',
     activeTenants: 'Khách đang ở',
     cashFlow: 'Dòng tiền',
     collected: 'Đã thu',

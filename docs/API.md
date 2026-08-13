@@ -152,6 +152,11 @@ Response:
 ```json
 {
   "data": {
+    "emailDelivery": {
+      "sent": false,
+      "skipped": true,
+      "error": ""
+    },
     "user": {
       "_id": "...",
       "fullName": "Nguyen Van An",
@@ -160,8 +165,7 @@ Response:
       "role": "tenant",
       "mustChangePassword": true,
       "temporaryPasswordExpiresAt": "2026-07-13T00:00:00.000Z"
-    },
-    "temporaryPassword": "Sr@temporary"
+    }
   },
   "message": "Mở khóa tài khoản và cấp lại mật khẩu tạm thành công"
 }
@@ -233,7 +237,26 @@ Response:
         "room": "...",
         "deletedAt": null
       }
-    ]
+    ],
+    "activeContract": {
+      "_id": "...",
+      "tenant": {
+        "_id": "...",
+        "fullName": "Nguyen Van An",
+        "phone": "0901000001",
+        "email": "an@example.com",
+        "identityNumber": "079200000001"
+      },
+      "occupants": [
+        {
+          "fullName": "Tran Van B",
+          "phone": "0901000002",
+          "identityNumber": "079200000002",
+          "note": "Nguoi o cung"
+        }
+      ],
+      "status": "active"
+    }
   }
 }
 ```
@@ -302,6 +325,8 @@ Response:
       "phone": "0901000001",
       "email": "an@example.com",
       "identityNumber": "079200000001",
+      "dateOfBirth": "2004-04-08T00:00:00.000Z",
+      "permanentAddress": "158/25 Pham Van Chieu, phuong Thong Tay Hoi, TP HCM",
       "room": {
         "_id": "...",
         "name": "A102",
@@ -342,6 +367,8 @@ Response:
     "phone": "0901000001",
     "email": "an@example.com",
     "identityNumber": "079200000001",
+    "dateOfBirth": "2004-04-08T00:00:00.000Z",
+    "permanentAddress": "158/25 Pham Van Chieu, phuong Thong Tay Hoi, TP HCM",
     "room": {
       "_id": "...",
       "name": "A102",
@@ -374,6 +401,8 @@ Request:
   "phone": "0901000001",
   "email": "an@example.com",
   "identityNumber": "079200000001",
+  "dateOfBirth": "2004-04-08",
+  "permanentAddress": "158/25 Pham Van Chieu, phuong Thong Tay Hoi, TP HCM",
   "room": "room-object-id"
 }
 ```
@@ -383,11 +412,9 @@ Ghi chu tai khoan khach thue:
 - Neu landlord them khach va gan phong ngay luc tao, backend tu dong tao tai khoan tenant.
 - `username` duoc tao tu ho ten khong dau + ma phong. Vi du `Ly Quang Hau` o phong `101`
   se co username `lyquanghau101`.
-- Mat khau ban dau la so dien thoai khach thue da nhap.
-- Email khach thue la bat buoc khi gan phong, vi backend se gui username/mat khau qua email neu
-  SMTP da duoc cau hinh.
-- Neu chua cau hinh SMTP, backend van tao tai khoan va tra `loginAccount.emailDelivery.skipped=true`
-  de landlord gui thong tin thu cong.
+- Mat khau ban dau duoc sinh ngau nhien va chi gui qua email khach thue.
+- Email khach thue va SMTP la bat buoc khi gan phong, vi chu tro khong duoc phep nhin thay mat khau.
+- Neu chua cau hinh SMTP hoac gui email that bai, backend khong tao tai khoan tenant.
 
 ### PUT /tenants/:id
 
@@ -399,6 +426,8 @@ Request:
   "phone": "0901000001",
   "email": "an@example.com",
   "identityNumber": "079200000001",
+  "dateOfBirth": "2004-04-08",
+  "permanentAddress": "158/25 Pham Van Chieu, phuong Thong Tay Hoi, TP HCM",
   "room": "room-object-id"
 }
 ```
@@ -448,7 +477,14 @@ Request:
 ```json
 {
   "room": "room-object-id",
-  "tenant": "tenant-object-id",
+  "tenantInfo": {
+    "fullName": "Nguyen Van An",
+    "phone": "0901000001",
+    "email": "an@example.com",
+    "identityNumber": "079200000001",
+    "dateOfBirth": "2004-04-08",
+    "permanentAddress": "158/25 Pham Van Chieu, phuong Thong Tay Hoi, TP HCM"
+  },
   "startDate": "2026-06-01",
   "endDate": "2027-06-01",
   "monthlyPrice": 2700000,
@@ -464,12 +500,12 @@ Ghi chú:
   trả thêm `temporaryAccount` trong response để chủ trọ gửi thông tin đăng nhập cho khách.
 - `temporaryAccount.user.username` được sinh từ số điện thoại kèm mã tenant, ví dụ
   `0901000001-a1b2c3`, để tránh trùng giữa nhiều chủ trọ.
-- `temporaryAccount.temporaryPassword` chỉ trả về một lần trong response tạo hợp đồng; backend chỉ lưu
-  password hash, không lưu plaintext.
+- Mat khau khach thue khong tra ve frontend. Backend chi gui thong tin dang nhap qua email va chi
+  luu password hash, khong luu plaintext.
 
 Quy tac tai khoan tenant hien tai: username duoc tao tu ho ten khong dau + ma phong, vi du
-`Ly Quang Hau` + phong `101` -> `lyquanghau101`; mat khau ban dau la so dien thoai.
-Backend gui thong tin dang nhap qua email khach thue neu SMTP da cau hinh.
+`Ly Quang Hau` + phong `101` -> `lyquanghau101`; mat khau ban dau duoc sinh ngau nhien.
+Backend chi gui thong tin dang nhap qua email khach thue va khong tra mat khau ve frontend.
 
 ### PUT /contracts/:id
 
