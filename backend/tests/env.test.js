@@ -23,6 +23,12 @@ const ENV_KEYS = [
   'SEPAY_MOCK_MODE',
   'SEPAY_WEBHOOK_SECRET',
   'SMART_RENTAL_SKIP_DOTENV',
+  'SMTP_FROM',
+  'SMTP_HOST',
+  'SMTP_PASSWORD',
+  'SMTP_PORT',
+  'SMTP_SECURE',
+  'SMTP_USER',
 ];
 
 let importCounter = 0;

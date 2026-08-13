@@ -1,16 +1,14 @@
 import { existsSync } from 'node:fs';
 import bcrypt from 'bcryptjs';
 import PDFDocument from 'pdfkit';
-import {
-  generateTemporaryPassword,
-  getTemporaryPasswordExpiresAt,
-} from './authController.js';
 import { Contract } from '../models/Contract.js';
 import { Room } from '../models/Room.js';
 import { Tenant } from '../models/Tenant.js';
 import { User } from '../models/User.js';
 import { createHttpError } from '../utils/httpError.js';
 import { getTenantIdForUser, ownerFilter } from '../utils/ownership.js';
+import { sendTenantCredentialsEmail } from '../utils/mailService.js';
+import { buildTenantRoomUsername } from '../utils/tenantAccount.js';
 
 const contractPopulate = [
   { path: 'room', select: 'name floor price maxOccupants status' },
@@ -58,6 +56,123 @@ function formatStatus(status) {
 
 function formatContractCode(contract) {
   return `SR-${String(contract._id).slice(-8).toUpperCase()}`;
+}
+
+function normalizeOccupants(value = []) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((occupant) => ({
+      fullName: occupant.fullName?.trim(),
+      phone: occupant.phone?.trim() || '',
+      identityNumber: occupant.identityNumber?.trim() || '',
+      note: occupant.note?.trim() || '',
+    }))
+    .filter((occupant) => occupant.fullName);
+}
+
+async function findOrCreateTenantForContract(body, ownerId, roomId) {
+  if (body.tenant) {
+    const tenant = await Tenant.findOne({
+      _id: body.tenant,
+      owner: ownerId,
+      deletedAt: null,
+    });
+
+    if (!tenant) {
+      throw createHttpError(400, 'Khách thuê không tồn tại', {
+        tenant: 'Khách thuê không tồn tại',
+      });
+    }
+
+    if (String(tenant.room || '') !== String(roomId)) {
+      tenant.room = roomId;
+      await tenant.save();
+    }
+
+    await Room.updateOne(
+      {
+        _id: roomId,
+        owner: ownerId,
+        deletedAt: null,
+        status: { $ne: 'maintenance' },
+      },
+      { status: 'occupied' },
+    );
+
+    return tenant;
+  }
+
+  const tenantInfo = body.tenantInfo || {};
+  const payload = {
+    owner: ownerId,
+    fullName: tenantInfo.fullName?.trim(),
+    phone: tenantInfo.phone?.trim(),
+    email: tenantInfo.email?.trim()?.toLowerCase() || null,
+    identityNumber: tenantInfo.identityNumber?.trim() || null,
+    room: roomId,
+  };
+
+  if (!payload.fullName) {
+    throw createHttpError(400, 'Họ tên khách thuê là bắt buộc', {
+      tenantInfo: 'Họ tên khách thuê là bắt buộc',
+    });
+  }
+
+  if (!payload.phone) {
+    throw createHttpError(400, 'Số điện thoại khách thuê là bắt buộc', {
+      tenantInfo: 'Số điện thoại khách thuê là bắt buộc',
+    });
+  }
+
+  if (!payload.email) {
+    throw createHttpError(
+      400,
+      'Email khách thuê là bắt buộc để tạo tài khoản',
+      {
+        tenantInfo: 'Email khách thuê là bắt buộc để tạo tài khoản',
+      },
+    );
+  }
+
+  const existingTenant = await Tenant.findOne({
+    owner: ownerId,
+    deletedAt: null,
+    $or: [{ phone: payload.phone }, { email: payload.email }],
+  });
+
+  if (existingTenant) {
+    if (String(existingTenant.room || '') !== String(roomId)) {
+      existingTenant.room = roomId;
+      await existingTenant.save();
+    }
+
+    await Room.updateOne(
+      {
+        _id: roomId,
+        owner: ownerId,
+        deletedAt: null,
+        status: { $ne: 'maintenance' },
+      },
+      { status: 'occupied' },
+    );
+
+    return existingTenant;
+  }
+
+  const tenant = await Tenant.create(payload);
+
+  await Room.updateOne(
+    {
+      _id: roomId,
+      owner: ownerId,
+      deletedAt: null,
+      status: { $ne: 'maintenance' },
+    },
+    { status: 'occupied' },
+  );
+
+  return tenant;
 }
 
 function addSectionTitle(document, title, y = document.y) {
@@ -116,18 +231,14 @@ function addClause(document, index, text) {
   document.moveDown(0.45);
 }
 
-function buildTenantUsername(tenant) {
-  const phone = tenant.phone.replace(/\D/g, '') || 'tenant';
-  return `${phone}-${String(tenant._id).slice(-6)}`.toLowerCase();
-}
-
-function buildTenantEmail(tenant) {
-  return `${String(tenant._id)}@tenant.smartrental.local`;
-}
-
-async function ensureTenantAccount(tenantId, ownerId) {
+async function ensureTenantAccount(tenantId, ownerId, roomId) {
   const tenant = await Tenant.findOne({
     _id: tenantId,
+    owner: ownerId,
+    deletedAt: null,
+  });
+  const room = await Room.findOne({
+    _id: roomId,
     owner: ownerId,
     deletedAt: null,
   });
@@ -138,36 +249,59 @@ async function ensureTenantAccount(tenantId, ownerId) {
     });
   }
 
+  if (!room) {
+    throw createHttpError(400, 'Phong khong ton tai', {
+      room: 'Phong khong ton tai',
+    });
+  }
+
+  if (!tenant.email) {
+    throw createHttpError(
+      400,
+      'Can email khach thue de tao tai khoan dang nhap',
+      {
+        email: 'Email la bat buoc khi gan khach vao phong',
+      },
+    );
+  }
+
   if (tenant.user) {
     return null;
   }
 
-  const username = buildTenantUsername(tenant);
-  const email = buildTenantEmail(tenant);
+  const username = buildTenantRoomUsername(tenant, room);
+  const email = tenant.email.trim().toLowerCase();
   const existingUser = await User.findOne({
     $or: [{ email }, { username }],
   });
 
   if (existingUser) {
-    tenant.user = existingUser._id;
-    await tenant.save();
-    return null;
+    throw createHttpError(409, 'Email hoac ten dang nhap da ton tai', {
+      email: 'Email hoac ten dang nhap da duoc dung cho tai khoan khac',
+      username,
+    });
   }
 
-  const temporaryPassword = generateTemporaryPassword();
+  const password = tenant.phone.trim();
   const user = await User.create({
     fullName: tenant.fullName,
     email,
     username,
-    passwordHash: await bcrypt.hash(temporaryPassword, 10),
+    passwordHash: await bcrypt.hash(password, 10),
     role: 'tenant',
     isActive: true,
-    mustChangePassword: true,
-    temporaryPasswordExpiresAt: getTemporaryPasswordExpiresAt(),
+    mustChangePassword: false,
+    temporaryPasswordExpiresAt: null,
   });
 
   tenant.user = user._id;
   await tenant.save();
+  const emailDelivery = await sendTenantCredentialsEmail({
+    password,
+    tenantEmail: email,
+    tenantName: tenant.fullName,
+    username,
+  });
 
   return {
     user: {
@@ -179,7 +313,9 @@ async function ensureTenantAccount(tenantId, ownerId) {
       mustChangePassword: user.mustChangePassword,
       temporaryPasswordExpiresAt: user.temporaryPasswordExpiresAt,
     },
-    temporaryPassword,
+    emailDelivery,
+    password,
+    temporaryPassword: password,
   };
 }
 
@@ -413,11 +549,11 @@ async function normalizeContractPayload(
   currentContractId = null,
 ) {
   const room = body.room;
-  const tenant = body.tenant;
   const startDate = parseOptionalDate(body.startDate);
   const endDate = parseOptionalDate(body.endDate);
   const monthlyPrice = Number(body.monthlyPrice);
   const deposit = body.deposit === undefined ? 0 : Number(body.deposit);
+  const occupants = normalizeOccupants(body.occupants);
 
   if (!startDate) {
     throw createHttpError(400, 'Ngày bắt đầu không hợp lệ', {
@@ -437,16 +573,49 @@ async function normalizeContractPayload(
     });
   }
 
-  const [existingRoom, existingTenant] = await Promise.all([
-    Room.findOne({ _id: room, owner: ownerId, deletedAt: null }),
-    Tenant.findOne({ _id: tenant, owner: ownerId, deletedAt: null }),
-  ]);
+  const existingRoom = await Room.findOne({
+    _id: room,
+    owner: ownerId,
+    deletedAt: null,
+  });
 
   if (!existingRoom) {
     throw createHttpError(400, 'Phòng không tồn tại', {
       room: 'Phòng không tồn tại',
     });
   }
+
+  if (occupants.length + 1 > (existingRoom.maxOccupants || 1)) {
+    throw createHttpError(400, 'So nguoi o vuot qua suc chua phong', {
+      occupants: 'So nguoi o vuot qua suc chua phong',
+    });
+  }
+
+  if ((body.status || 'active') === 'active') {
+    const activeContractFilters = {
+      owner: ownerId,
+      room,
+      status: 'active',
+    };
+
+    if (currentContractId) {
+      activeContractFilters._id = { $ne: currentContractId };
+    }
+
+    const activeContract = await Contract.findOne(activeContractFilters);
+
+    if (activeContract) {
+      throw createHttpError(400, 'Phong da co hop dong dang hieu luc', {
+        room: 'Phong da co hop dong dang hieu luc',
+      });
+    }
+  }
+
+  const existingTenant = await findOrCreateTenantForContract(
+    body,
+    ownerId,
+    room,
+  );
 
   if (!existingTenant) {
     throw createHttpError(400, 'Khách thuê không tồn tại', {
@@ -476,13 +645,14 @@ async function normalizeContractPayload(
 
   return {
     room,
-    tenant,
+    tenant: existingTenant._id,
     owner: ownerId,
     startDate,
     endDate,
     monthlyPrice,
     deposit,
     status: body.status || 'active',
+    occupants,
   };
 }
 
@@ -581,7 +751,7 @@ export async function createContract(req, res, next) {
     const contract = await Contract.create(payload);
     const temporaryAccount =
       payload.status === 'active'
-        ? await ensureTenantAccount(payload.tenant, req.user._id)
+        ? await ensureTenantAccount(payload.tenant, req.user._id, payload.room)
         : null;
     const populatedContract = await contract.populate(contractPopulate);
 

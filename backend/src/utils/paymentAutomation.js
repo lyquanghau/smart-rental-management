@@ -1,7 +1,7 @@
 import { Invoice } from '../models/Invoice.js';
 import { Notification } from '../models/Notification.js';
 import { Payment } from '../models/Payment.js';
-import { env } from '../config/env.js';
+import { sendDiscordMessage } from './discordNotifier.js';
 import { createHttpError } from './httpError.js';
 
 const paidStatuses = new Set(['paid']);
@@ -12,28 +12,20 @@ function formatInvoiceLabel(invoice) {
 }
 
 function notifyDiscordPaymentSuccess(invoice) {
-  if (!env.discordWebhookUrl) return;
-
   const roomName = invoice.room?.name || 'N/A';
   const tenantName = invoice.tenant?.fullName || 'N/A';
   const amount = Number(invoice.totalAmount).toLocaleString('vi-VN');
 
-  fetch(env.discordWebhookUrl, {
-    body: JSON.stringify({
-      content: [
-        '**Smart Rental - Hoa don da thanh toan**',
-        `Phong: ${roomName}`,
-        `Khach thue: ${tenantName}`,
-        `So tien: ${amount} VND`,
-        `Ky hoa don: ${invoice.month}/${invoice.year}`,
-        `Ma giao dich: ${invoice.paymentOrderId || invoice.paidReference || 'N/A'}`,
-      ].join('\n'),
-    }),
-    headers: { 'Content-Type': 'application/json' },
-    method: 'POST',
-  }).catch((error) => {
-    console.error('Discord payment notification failed:', error.message);
-  });
+  sendDiscordMessage(
+    [
+      '**Smart Rental - Hoa don da thanh toan**',
+      `Phong: ${roomName}`,
+      `Khach thue: ${tenantName}`,
+      `So tien: ${amount} VND`,
+      `Ky hoa don: ${invoice.month}/${invoice.year}`,
+      `Ma giao dich: ${invoice.paymentOrderId || invoice.paidReference || 'N/A'}`,
+    ].join('\n'),
+  );
 }
 
 export async function markInvoicePaidFromGateway({

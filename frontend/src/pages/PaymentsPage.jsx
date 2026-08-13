@@ -5,6 +5,7 @@ import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { getContracts } from '../services/contractService.js';
 import { formatCurrency } from '../services/preferences.js';
+import { formatMoneyInput, parseMoneyInput } from '../utils/moneyInput.js';
 import {
   cancelPayment,
   createPayment,
@@ -422,11 +423,12 @@ export function PaymentsPage() {
           <label>
             {text.amount}
             <input
-              min="0"
+              inputMode="numeric"
               required
-              type="number"
-              value={formData.amount}
-              onChange={(event) => updateField('amount', event.target.value)}
+              value={formatMoneyInput(formData.amount)}
+              onChange={(event) =>
+                updateField('amount', parseMoneyInput(event.target.value))
+              }
             />
           </label>
 

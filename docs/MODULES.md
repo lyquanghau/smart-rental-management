@@ -52,6 +52,11 @@ Endpoint nền:
 - `PUT /api/tenants/:id`
 - `DELETE /api/tenants/:id`
 
+Tenant account rule: khi landlord them khach va gan phong, backend tu dong tao tai khoan tenant.
+Username = ho ten khong dau + ma phong, vi du `Ly Quang Hau` phong `101` thanh `lyquanghau101`;
+mat khau ban dau la so dien thoai. Neu SMTP da cau hinh, backend gui username/mat khau vao email
+khach thue.
+
 ## Contracts
 
 Quản lý hợp đồng giữa khách thuê và phòng. Module đã có model, seed data, API CRUD cơ bản và giao diện quản lý hợp đồng trong frontend.
@@ -80,6 +85,10 @@ Endpoint nền:
 - `PUT /api/payments/:id`
 - `PATCH /api/payments/:id/mark-paid`
 - `PATCH /api/payments/:id/cancel`
+
+Khi landlord/tenant doc danh sach payment hoac dashboard/tenant portal, backend tu dong chuyen
+khoan thu `pending` co `dueDate` truoc ngay hien tai sang `overdue`. Cac khoan `paid` va
+`cancelled` khong bi thay doi.
 
 ## Services & Invoices
 
@@ -125,6 +134,10 @@ Endpoint nền:
 Frontend trang `Dich vu` hien cho chu tro xem chi tiet breakdown hoa don, dong bo trang thai
 `paid`/`cancelled` qua API hoa don va payment lien quan.
 
+Backend tu dong chuyen hoa don `issued` co `dueDate` truoc ngay hien tai sang `overdue` khi doc
+danh sach hoa don, dashboard hoac cong khach thue. Viec nay giup dashboard va cong no dung theo
+thoi gian that ma chua can cron job rieng trong MVP.
+
 ## Dashboard
 
 Hiển thị số liệu tổng quan từ dữ liệu thật trong MongoDB. Module đã có API thống
@@ -145,7 +158,8 @@ SePay la huong uu tien cho san pham dung that vi phu hop luong chu tro nhan tien
   doi soat theo ma thanh toan va so tien.
 - `POST /api/invoices/:id/sepay-mock-success` dung cho dev/demo khi chua cau hinh webhook that.
 - Khi giao dich thanh cong, backend tu dong chuyen `Invoice` va `Payment` lien quan sang `paid`,
-  method/provider `sepay`, va tao notification cho landlord.
+  method/provider `sepay`, tao notification cho landlord va gui Discord webhook neu da cau hinh
+  `DISCORD_WEBHOOK_URL`.
 
 Bo sung luong MoMo-ready cho MVP:
 

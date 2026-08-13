@@ -34,6 +34,14 @@ export const env = {
   rateLimitWindowMs: parseNumber(process.env.RATE_LIMIT_WINDOW_MS, 900000),
   rateLimitMax: parseNumber(process.env.RATE_LIMIT_MAX, 300),
   discordWebhookUrl: process.env.DISCORD_WEBHOOK_URL || '',
+  mail: {
+    from: process.env.SMTP_FROM || '',
+    host: process.env.SMTP_HOST || '',
+    password: process.env.SMTP_PASSWORD || '',
+    port: parseNumber(process.env.SMTP_PORT, 587),
+    secure: process.env.SMTP_SECURE === 'true',
+    user: process.env.SMTP_USER || '',
+  },
   momo: {
     accessKey: process.env.MOMO_ACCESS_KEY || '',
     endpoint:

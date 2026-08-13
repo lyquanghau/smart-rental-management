@@ -378,6 +378,17 @@ Request:
 }
 ```
 
+Ghi chu tai khoan khach thue:
+
+- Neu landlord them khach va gan phong ngay luc tao, backend tu dong tao tai khoan tenant.
+- `username` duoc tao tu ho ten khong dau + ma phong. Vi du `Ly Quang Hau` o phong `101`
+  se co username `lyquanghau101`.
+- Mat khau ban dau la so dien thoai khach thue da nhap.
+- Email khach thue la bat buoc khi gan phong, vi backend se gui username/mat khau qua email neu
+  SMTP da duoc cau hinh.
+- Neu chua cau hinh SMTP, backend van tao tai khoan va tra `loginAccount.emailDelivery.skipped=true`
+  de landlord gui thong tin thu cong.
+
 ### PUT /tenants/:id
 
 Request:
@@ -456,6 +467,10 @@ Ghi chú:
 - `temporaryAccount.temporaryPassword` chỉ trả về một lần trong response tạo hợp đồng; backend chỉ lưu
   password hash, không lưu plaintext.
 
+Quy tac tai khoan tenant hien tai: username duoc tao tu ho ten khong dau + ma phong, vi du
+`Ly Quang Hau` + phong `101` -> `lyquanghau101`; mat khau ban dau la so dien thoai.
+Backend gui thong tin dang nhap qua email khach thue neu SMTP da cau hinh.
+
 ### PUT /contracts/:id
 
 Request:
@@ -521,6 +536,10 @@ limit=20
 Response trả danh sách khoản thu kèm hợp đồng, phòng và khách thuê.
 
 ### GET /payments/:id
+
+Ghi chu auto overdue: khi doc danh sach/chi tiet payment, backend tu dong chuyen cac khoan thu
+`pending` co `dueDate` truoc ngay hien tai sang `overdue`. Cac khoan `paid` va `cancelled`
+khong bi doi.
 
 Trả về chi tiết khoản thu kèm hợp đồng, phòng và khách thuê.
 
@@ -684,6 +703,10 @@ contract=<contractId>
 ```
 
 ### GET /invoices/:id
+
+Ghi chu auto overdue: khi doc danh sach/chi tiet invoice, backend tu dong chuyen cac hoa don
+`issued` co `dueDate` truoc ngay hien tai sang `overdue`. Cac hoa don `paid` va `cancelled`
+khong bi doi.
 
 Trả chi tiết hóa đơn gồm tiền phòng, tiền dịch vụ và từng dòng chi phí.
 
@@ -930,6 +953,8 @@ Backend xu ly:
 - Tim ma `SRINV...` tu `code` hoac `content`.
 - Kiem tra `transferAmount` khop `Invoice.totalAmount`.
 - Cap nhat invoice/payment sang `paid` va tao notification.
+- Gui message Discord neu backend da cau hinh `DISCORD_WEBHOOK_URL`; loi Discord khong lam fail
+  giao dich da doi soat thanh cong.
 - Dedupe bang `sourceEventKey=sepay:<id>`.
 
 Production nen dung:

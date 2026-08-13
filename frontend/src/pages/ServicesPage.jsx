@@ -23,6 +23,7 @@ import {
   markInvoicePaid,
 } from '../services/invoiceService.js';
 import { formatCurrency } from '../services/preferences.js';
+import { formatMoneyInput, parseMoneyInput } from '../utils/moneyInput.js';
 import {
   getServiceSetting,
   updateServiceSetting,
@@ -765,55 +766,62 @@ export function ServicesPage() {
           <label>
             {text.electricityUnitPrice}
             <input
-              min="0"
-              type="number"
-              value={settingForm.electricityUnitPrice}
+              inputMode="numeric"
+              value={formatMoneyInput(settingForm.electricityUnitPrice)}
               onChange={(event) =>
-                updateSetting('electricityUnitPrice', event.target.value)
+                updateSetting(
+                  'electricityUnitPrice',
+                  parseMoneyInput(event.target.value),
+                )
               }
             />
           </label>
           <label>
             {text.waterUnitPrice}
             <input
-              min="0"
-              type="number"
-              value={settingForm.waterUnitPrice}
+              inputMode="numeric"
+              value={formatMoneyInput(settingForm.waterUnitPrice)}
               onChange={(event) =>
-                updateSetting('waterUnitPrice', event.target.value)
+                updateSetting(
+                  'waterUnitPrice',
+                  parseMoneyInput(event.target.value),
+                )
               }
             />
           </label>
           <label>
             {text.internetFee}
             <input
-              min="0"
-              type="number"
-              value={settingForm.internetFee}
+              inputMode="numeric"
+              value={formatMoneyInput(settingForm.internetFee)}
               onChange={(event) =>
-                updateSetting('internetFee', event.target.value)
+                updateSetting(
+                  'internetFee',
+                  parseMoneyInput(event.target.value),
+                )
               }
             />
           </label>
           <label>
             {text.trashFee}
             <input
-              min="0"
-              type="number"
-              value={settingForm.trashFee}
+              inputMode="numeric"
+              value={formatMoneyInput(settingForm.trashFee)}
               onChange={(event) =>
-                updateSetting('trashFee', event.target.value)
+                updateSetting('trashFee', parseMoneyInput(event.target.value))
               }
             />
           </label>
           <label>
             {text.parkingFeePerVehicle}
             <input
-              min="0"
-              type="number"
-              value={settingForm.parkingFeePerVehicle}
+              inputMode="numeric"
+              value={formatMoneyInput(settingForm.parkingFeePerVehicle)}
               onChange={(event) =>
-                updateSetting('parkingFeePerVehicle', event.target.value)
+                updateSetting(
+                  'parkingFeePerVehicle',
+                  parseMoneyInput(event.target.value),
+                )
               }
             />
           </label>
@@ -959,22 +967,26 @@ export function ServicesPage() {
           <label>
             {text.internetFee}
             <input
-              min="0"
-              type="number"
-              value={readingForm.internetAmount}
+              inputMode="numeric"
+              value={formatMoneyInput(readingForm.internetAmount)}
               onChange={(event) =>
-                updateReading('internetAmount', event.target.value)
+                updateReading(
+                  'internetAmount',
+                  parseMoneyInput(event.target.value),
+                )
               }
             />
           </label>
           <label>
             {text.trashFee}
             <input
-              min="0"
-              type="number"
-              value={readingForm.trashAmount}
+              inputMode="numeric"
+              value={formatMoneyInput(readingForm.trashAmount)}
               onChange={(event) =>
-                updateReading('trashAmount', event.target.value)
+                updateReading(
+                  'trashAmount',
+                  parseMoneyInput(event.target.value),
+                )
               }
             />
           </label>

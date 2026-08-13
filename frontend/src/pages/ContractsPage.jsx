@@ -21,10 +21,17 @@ import { usePreferences } from '../hooks/usePreferences.js';
 import { formatCurrency } from '../services/preferences.js';
 import { getRooms } from '../services/roomService.js';
 import { getTenants } from '../services/tenantService.js';
+import { formatMoneyInput, parseMoneyInput } from '../utils/moneyInput.js';
 
 const emptyForm = {
   room: '',
   tenant: '',
+  tenantFullName: '',
+  tenantPhone: '',
+  tenantEmail: '',
+  tenantIdentityNumber: '',
+  occupantCount: '1',
+  occupants: [],
   startDate: '',
   durationMonths: '12',
   endDate: '',
@@ -77,6 +84,17 @@ const copy = {
     username: 'Username',
     selectRoom: 'Select room',
     selectTenant: 'Select tenant',
+    tenantEmail: 'Tenant email',
+    tenantFullName: 'Representative full name',
+    tenantIdentityNumber: 'ID number',
+    tenantPhone: 'Tenant phone',
+    occupantCount: 'Number of occupants',
+    occupantIdentityNumber: 'ID number',
+    occupantName: 'Full name',
+    occupantNote: 'Note',
+    occupantPhone: 'Phone',
+    occupants: 'Additional occupants',
+    useExistingTenant: 'Use existing tenant',
     startDate: 'Start date',
     status: 'Status',
     tenant: 'Tenant',
@@ -148,6 +166,17 @@ const copy = {
     username: 'Tên đăng nhập',
     selectRoom: 'Chọn phòng',
     selectTenant: 'Chọn khách thuê',
+    tenantEmail: 'Email khách thuê',
+    tenantFullName: 'Họ tên người đại diện',
+    tenantIdentityNumber: 'CCCD/CMND',
+    tenantPhone: 'Số điện thoại khách thuê',
+    occupantCount: 'Số người ở',
+    occupantIdentityNumber: 'CCCD/CMND',
+    occupantName: 'Họ tên',
+    occupantNote: 'Ghi chú',
+    occupantPhone: 'Số điện thoại',
+    occupants: 'Người ở cùng',
+    useExistingTenant: 'Dùng khách thuê đã có',
     startDate: 'Ngày bắt đầu',
     status: 'Trạng thái',
     tenant: 'Khách thuê',
@@ -253,6 +282,12 @@ function toFormData(contract) {
   return {
     room: contract.room?._id || contract.room || '',
     tenant: contract.tenant?._id || contract.tenant || '',
+    tenantFullName: contract.tenant?.fullName || '',
+    tenantPhone: contract.tenant?.phone || '',
+    tenantEmail: contract.tenant?.email || '',
+    tenantIdentityNumber: contract.tenant?.identityNumber || '',
+    occupantCount: String((contract.occupants?.length || 0) + 1),
+    occupants: contract.occupants || [],
     startDate,
     durationMonths: getDurationMonths(startDate, endDate),
     endDate,
@@ -264,10 +299,27 @@ function toFormData(contract) {
 
 function toPayload(formData) {
   const monthlyPrice = Number(formData.monthlyPrice);
+  const occupants = formData.occupants
+    .slice(0, Math.max(Number(formData.occupantCount || 1) - 1, 0))
+    .filter((occupant) => occupant.fullName?.trim())
+    .map((occupant) => ({
+      fullName: occupant.fullName.trim(),
+      phone: occupant.phone?.trim() || '',
+      identityNumber: occupant.identityNumber?.trim() || '',
+      note: occupant.note?.trim() || '',
+    }));
 
   return {
     room: formData.room,
-    tenant: formData.tenant,
+    tenant: formData.tenant || undefined,
+    tenantInfo: formData.tenant
+      ? undefined
+      : {
+          fullName: formData.tenantFullName.trim(),
+          phone: formData.tenantPhone.trim(),
+          email: formData.tenantEmail.trim(),
+          identityNumber: formData.tenantIdentityNumber.trim(),
+        },
     startDate: formData.startDate,
     endDate:
       formData.endDate ||
@@ -275,6 +327,7 @@ function toPayload(formData) {
     monthlyPrice,
     deposit: monthlyPrice * Number(formData.depositMonths || 1),
     status: formData.status,
+    occupants,
   };
 }
 
@@ -367,6 +420,39 @@ export function ContractsPage() {
       ...current,
       room: roomId,
       monthlyPrice: room ? String(room.price) : current.monthlyPrice,
+      occupantCount:
+        room && Number(current.occupantCount) > (room.maxOccupants || 1)
+          ? String(room.maxOccupants || 1)
+          : current.occupantCount,
+    }));
+  }
+
+  function updateOccupantCount(value) {
+    const count = Math.max(Number(value) || 1, 1);
+
+    setFormData((current) => ({
+      ...current,
+      occupantCount: String(count),
+      occupants: Array.from({ length: Math.max(count - 1, 0) }, (_, index) => ({
+        fullName: current.occupants[index]?.fullName || '',
+        phone: current.occupants[index]?.phone || '',
+        identityNumber: current.occupants[index]?.identityNumber || '',
+        note: current.occupants[index]?.note || '',
+      })),
+    }));
+  }
+
+  function updateOccupant(index, field, value) {
+    setFormData((current) => ({
+      ...current,
+      occupants: current.occupants.map((occupant, occupantIndex) =>
+        occupantIndex === index
+          ? {
+              ...occupant,
+              [field]: value,
+            }
+          : occupant,
+      ),
     }));
   }
 
@@ -632,10 +718,9 @@ export function ContractsPage() {
           </label>
 
           <label>
-            {text.tenant}
+            {text.useExistingTenant}
             <select
               disabled={isViewing}
-              required
               value={formData.tenant}
               onChange={(event) => updateField('tenant', event.target.value)}
             >
@@ -647,6 +732,131 @@ export function ContractsPage() {
               ))}
             </select>
           </label>
+
+          {!formData.tenant ? (
+            <>
+              <label>
+                {text.tenantFullName}
+                <input
+                  disabled={isViewing}
+                  required
+                  value={formData.tenantFullName}
+                  onChange={(event) =>
+                    updateField('tenantFullName', event.target.value)
+                  }
+                />
+              </label>
+
+              <label>
+                {text.tenantPhone}
+                <input
+                  disabled={isViewing}
+                  required
+                  value={formData.tenantPhone}
+                  onChange={(event) =>
+                    updateField('tenantPhone', event.target.value)
+                  }
+                />
+              </label>
+
+              <label>
+                {text.tenantEmail}
+                <input
+                  disabled={isViewing}
+                  required
+                  type="email"
+                  value={formData.tenantEmail}
+                  onChange={(event) =>
+                    updateField('tenantEmail', event.target.value)
+                  }
+                />
+              </label>
+
+              <label>
+                {text.tenantIdentityNumber}
+                <input
+                  disabled={isViewing}
+                  value={formData.tenantIdentityNumber}
+                  onChange={(event) =>
+                    updateField('tenantIdentityNumber', event.target.value)
+                  }
+                />
+              </label>
+            </>
+          ) : null}
+
+          <label>
+            {text.occupantCount}
+            <select
+              disabled={isViewing || !selectedRoom}
+              value={formData.occupantCount}
+              onChange={(event) => updateOccupantCount(event.target.value)}
+            >
+              {Array.from(
+                { length: selectedRoom?.maxOccupants || 1 },
+                (_, index) => String(index + 1),
+              ).map((count) => (
+                <option key={count} value={count}>
+                  {count}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {Number(formData.occupantCount) > 1 ? (
+            <div className="contract-occupants-panel">
+              <strong>{text.occupants}</strong>
+              {formData.occupants.map((occupant, index) => (
+                <div className="contract-occupant-grid" key={index}>
+                  <label>
+                    {text.occupantName}
+                    <input
+                      disabled={isViewing}
+                      required
+                      value={occupant.fullName}
+                      onChange={(event) =>
+                        updateOccupant(index, 'fullName', event.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    {text.occupantPhone}
+                    <input
+                      disabled={isViewing}
+                      value={occupant.phone}
+                      onChange={(event) =>
+                        updateOccupant(index, 'phone', event.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    {text.occupantIdentityNumber}
+                    <input
+                      disabled={isViewing}
+                      value={occupant.identityNumber}
+                      onChange={(event) =>
+                        updateOccupant(
+                          index,
+                          'identityNumber',
+                          event.target.value,
+                        )
+                      }
+                    />
+                  </label>
+                  <label>
+                    {text.occupantNote}
+                    <input
+                      disabled={isViewing}
+                      value={occupant.note}
+                      onChange={(event) =>
+                        updateOccupant(index, 'note', event.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <label>
             {text.startDate}
@@ -685,12 +895,11 @@ export function ContractsPage() {
             {text.monthlyRent}
             <input
               disabled={isViewing}
-              min="0"
+              inputMode="numeric"
               required
-              type="number"
-              value={formData.monthlyPrice}
+              value={formatMoneyInput(formData.monthlyPrice)}
               onChange={(event) =>
-                updateField('monthlyPrice', event.target.value)
+                updateField('monthlyPrice', parseMoneyInput(event.target.value))
               }
             />
             <span className="field-help">

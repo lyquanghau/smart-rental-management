@@ -136,3 +136,24 @@ Ghi chú: VNPay/MoMo hiện ở mức phương thức ghi nhận/mock. Nếu san
   dat `SEPAY_MOCK_MODE=false`, `SEPAY_AUTH_MODE=hmac`.
 - Chuyen khoan so tien dung bang hoa don va noi dung chua ma `SRINV...`; kiem tra SePay delivery log
   tra success va invoice tu dong sang `paid`.
+
+## 13. Auto overdue va Discord webhook
+
+- Neu can du lieu test va cac buoc chi tiet, doc `docs/PAYMENT_TEST_GUIDE.md`.
+- Tao hoa don `issued` co `dueDate` truoc ngay hien tai, sau do mo trang Dashboard/Dich vu/Cong khach thue
+  va kiem tra hoa don tu dong chuyen sang `overdue`.
+- Tao payment `pending` co `dueDate` truoc ngay hien tai, sau do mo trang Thanh toan/Dashboard
+  va kiem tra payment tu dong chuyen sang `overdue`.
+- Kiem tra payment/hoa don `paid` hoac `cancelled` khong bi chuyen ve `overdue`.
+- Cau hinh `DISCORD_WEBHOOK_URL`, thanh toan thanh cong qua SePay webhook/mock va kiem tra Discord nhan message.
+- Tat hoac cau hinh sai Discord webhook, kiem tra giao dich SePay van duoc ghi nhan `paid` va API khong fail.
+
+## 14. Reset data va tai khoan khach thue theo phong
+
+- Chay `npm run seed:reset` va kiem tra database chi con admin + 30 phong.
+- Kiem tra danh sach phong gom `101-110`, `201-210`, `301-310`; tat ca o trang thai `available`.
+- Them khach co email, so dien thoai va gan phong `101`.
+- Neu ten khach la `Ly Quang Hau`, kiem tra tai khoan tenant co username `lyquanghau101`.
+- Kiem tra mat khau ban dau dang duoc luu theo so dien thoai khach da nhap.
+- Neu SMTP da cau hinh, kiem tra email khach nhan username va mat khau.
+- Neu SMTP chua cau hinh, kiem tra UI hien thong bao can gui thong tin dang nhap thu cong.

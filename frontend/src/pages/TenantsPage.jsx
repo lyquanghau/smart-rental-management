@@ -100,6 +100,9 @@ const accountCopy = {
     passwordDeadline: 'Password change deadline',
     resetPassword: 'Reset password',
     resetPasswordSuccess: 'Temporary password generated.',
+    emailSent: 'Credentials email sent.',
+    emailSkipped: 'SMTP is not configured, send the credentials manually.',
+    emailFailed: 'Credentials email failed. Send the credentials manually.',
     tempPassword: 'Temporary password',
     username: 'Username',
   },
@@ -117,6 +120,9 @@ const accountCopy = {
     passwordDeadline: 'Han doi mat khau',
     resetPassword: 'Cap lai mat khau',
     resetPasswordSuccess: 'Da tao mat khau tam.',
+    emailSent: 'Da gui email thong tin dang nhap.',
+    emailSkipped: 'Chua cau hinh SMTP, hay gui thong tin dang nhap thu cong.',
+    emailFailed: 'Gui email that bai. Hay gui thong tin dang nhap thu cong.',
     tempPassword: 'Mat khau tam',
     username: 'Ten dang nhap',
   },
@@ -244,10 +250,21 @@ export function TenantsPage() {
     setError('');
 
     try {
+      let savedTenant;
+
       if (isEditing) {
-        await updateTenant(editingTenantId, toPayload(formData));
+        savedTenant = await updateTenant(editingTenantId, toPayload(formData));
       } else {
-        await createTenant(toPayload(formData));
+        savedTenant = await createTenant(toPayload(formData));
+      }
+
+      if (savedTenant?.loginAccount) {
+        setCredential({
+          emailDelivery: savedTenant.loginAccount.emailDelivery,
+          tenantName: savedTenant.fullName,
+          temporaryPassword: savedTenant.loginAccount.password,
+          user: savedTenant.loginAccount.user,
+        });
       }
 
       resetForm();
@@ -344,10 +361,21 @@ export function TenantsPage() {
           <span>
             {text.tempPassword}: {credential.temporaryPassword}
           </span>
-          <span>
-            {text.passwordDeadline}:{' '}
-            {formatDate(credential.user.temporaryPasswordExpiresAt, text)}
-          </span>
+          {credential.user.temporaryPasswordExpiresAt ? (
+            <span>
+              {text.passwordDeadline}:{' '}
+              {formatDate(credential.user.temporaryPasswordExpiresAt, text)}
+            </span>
+          ) : null}
+          {credential.emailDelivery ? (
+            <small>
+              {credential.emailDelivery.sent
+                ? text.emailSent
+                : credential.emailDelivery.skipped
+                  ? text.emailSkipped
+                  : text.emailFailed}
+            </small>
+          ) : null}
           <small>{text.credentialNote}</small>
         </div>
       ) : null}
@@ -381,6 +409,7 @@ export function TenantsPage() {
           <label>
             Email
             <input
+              required={Boolean(formData.room)}
               type="email"
               value={formData.email}
               onChange={(event) => updateField('email', event.target.value)}

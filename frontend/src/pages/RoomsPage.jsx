@@ -5,6 +5,7 @@ import { RoomStatusBadge } from '../components/RoomStatusBadge.jsx';
 import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { formatCurrency } from '../services/preferences.js';
+import { formatMoneyInput, parseMoneyInput } from '../utils/moneyInput.js';
 import {
   createRoom,
   deleteRoom,
@@ -348,11 +349,12 @@ export function RoomsPage() {
           <label>
             {text.fieldPrice}
             <input
-              min="0"
+              inputMode="numeric"
               required
-              type="number"
-              value={formData.price}
-              onChange={(event) => updateField('price', event.target.value)}
+              value={formatMoneyInput(formData.price)}
+              onChange={(event) =>
+                updateField('price', parseMoneyInput(event.target.value))
+              }
             />
           </label>
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { usePreferences } from '../hooks/usePreferences.js';
 
@@ -12,7 +13,7 @@ export function Modal({
   const { language } = usePreferences();
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       aria-labelledby="modal-title"
       aria-modal="true"
@@ -33,6 +34,7 @@ export function Modal({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -19,7 +19,6 @@ const router = Router();
 
 const contractRules = {
   room: [required('Phòng')],
-  tenant: [required('Khách thuê')],
   startDate: [required('Ngày bắt đầu')],
   monthlyPrice: [
     required('Giá thuê hằng tháng'),

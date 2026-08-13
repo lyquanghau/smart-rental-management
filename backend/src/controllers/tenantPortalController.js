@@ -3,6 +3,7 @@ import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
 import { ServiceSetting } from '../models/ServiceSetting.js';
 import { Tenant } from '../models/Tenant.js';
+import { syncOverdueBillingStatuses } from '../utils/billingStatus.js';
 import { createHttpError } from '../utils/httpError.js';
 
 const contractPopulate = [
@@ -89,6 +90,12 @@ export async function getTenantPortalSummary(req, res, next) {
       .populate(contractPopulate)
       .sort({ status: 1, startDate: -1, createdAt: -1 });
     const contractIds = contracts.map((contract) => contract._id);
+
+    await syncOverdueBillingStatuses({
+      contractIds,
+      tenant: tenant._id,
+    });
+
     const [invoices, payments] = await Promise.all([
       Invoice.find({ tenant: tenant._id })
         .populate(invoicePopulate)

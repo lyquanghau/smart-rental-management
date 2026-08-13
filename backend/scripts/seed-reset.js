@@ -3,6 +3,7 @@ import { connectDatabase } from '../src/config/database.js';
 import { validateEnv } from '../src/config/env.js';
 import { Contract } from '../src/models/Contract.js';
 import { Invoice } from '../src/models/Invoice.js';
+import { Notification } from '../src/models/Notification.js';
 import { Payment } from '../src/models/Payment.js';
 import { Room } from '../src/models/Room.js';
 import { ServiceSetting } from '../src/models/ServiceSetting.js';
@@ -26,6 +27,7 @@ async function resetSeed() {
 
   await Promise.all([
     Invoice.deleteMany({}),
+    Notification.deleteMany({}),
     Payment.deleteMany({}),
     UtilityReading.deleteMany({}),
     ServiceSetting.deleteMany({}),

@@ -3,6 +3,7 @@ import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
 import { Room } from '../models/Room.js';
 import { Tenant } from '../models/Tenant.js';
+import { syncOverdueBillingStatuses } from '../utils/billingStatus.js';
 
 function mapStatusCounts(rows) {
   return rows.reduce((result, row) => {
@@ -92,6 +93,8 @@ export async function getDashboardSummary(req, res, next) {
     const lastMonthRange = previousMonthRange();
     const contractRange = expiringContractRange();
     const paymentReminderRange = dueSoonRange();
+
+    await syncOverdueBillingStatuses({ owner });
 
     const [
       roomStatusRows,

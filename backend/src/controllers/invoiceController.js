@@ -5,6 +5,7 @@ import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
 import { ServiceSetting } from '../models/ServiceSetting.js';
 import { UtilityReading } from '../models/UtilityReading.js';
+import { syncOverdueBillingStatuses } from '../utils/billingStatus.js';
 import { createHttpError } from '../utils/httpError.js';
 import { getTenantIdForUser, ownerFilter } from '../utils/ownership.js';
 
@@ -339,7 +340,11 @@ export async function listInvoices(req, res, next) {
     if (status) filters.status = status;
 
     if (req.user.role === 'tenant') {
-      filters.tenant = await getTenantIdForUser(req.user._id);
+      const tenantId = await getTenantIdForUser(req.user._id);
+      await syncOverdueBillingStatuses({ tenant: tenantId });
+      filters.tenant = tenantId;
+    } else {
+      await syncOverdueBillingStatuses({ owner: req.user._id });
     }
 
     if (month || year) {
@@ -366,7 +371,11 @@ export async function getInvoice(req, res, next) {
         : { _id: req.params.id };
 
     if (req.user.role === 'tenant') {
-      filters.tenant = await getTenantIdForUser(req.user._id);
+      const tenantId = await getTenantIdForUser(req.user._id);
+      await syncOverdueBillingStatuses({ tenant: tenantId });
+      filters.tenant = tenantId;
+    } else {
+      await syncOverdueBillingStatuses({ owner: req.user._id });
     }
 
     const invoice = await Invoice.findOne(filters).populate(invoicePopulate);

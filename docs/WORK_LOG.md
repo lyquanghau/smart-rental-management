@@ -1260,3 +1260,115 @@ PATCH /api/payments/:id/cancel
 - Trang `Dich vu` co them truong `Ma ngan hang VietQR`, vi du `MBBank` hoac ma BIN ngan hang.
 - Them tuy chon `DISCORD_WEBHOOK_URL`; khi SePay webhook xac nhan thanh toan thanh cong, backend tao
   notification noi bo va gui them message Discord neu bien moi truong nay duoc cau hinh.
+
+## 2026-08-13
+
+### Hoan thien auto payment status va Discord notification
+
+- Kiem tra dau phien:
+  - Dang o nhanh `main`, dong bo voi `origin/main`.
+  - `dev`, `origin/dev`, `main`, `origin/main` cung commit `4bb2832`.
+  - Khong co nhanh local/remote nao con commit chua merge vao `main`.
+  - File phu tro/untracked tiep tuc giu ngoai commit: `chuyen_de_2.xlsx`, `code.txt`,
+    `docs/PROMPT_TEMPLATE.md`, `docs/image/`.
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1669 modules.
+- Doi chieu tien do:
+  - MVP da vuot ke hoach trong `chuyen_de_2.xlsx`: da co auth, phong, khach thue, hop dong,
+    PDF, hoa don dich vu, tenant portal, dashboard, SePay/VietQR webhook, notification noi bo
+    va Discord webhook.
+  - Khoang trong chinh de thanh san pham that van la test giao dich SePay production sau khi
+    co webhook secret that, deploy/domain/E2E production va monitoring/backup tu dong.
+- Implement:
+  - Them helper `syncOverdueBillingStatuses` de tu dong chuyen `Invoice.status` tu `issued`
+    sang `overdue` khi `dueDate` truoc ngay hien tai.
+  - Helper dong thoi chuyen `Payment.status` tu `pending` sang `overdue` khi qua han.
+  - Khong thay doi cac trang thai cuoi `paid` va `cancelled`.
+  - Goi helper truoc khi doc danh sach hoa don, danh sach thanh toan, dashboard va cong khach thue.
+  - Dashboard aggregate sau khi da dong bo qua han, nen so lieu cong no va canh bao dung hon.
+  - Tach Discord webhook sender thanh `discordNotifier`, co timeout ngan va fail-soft de loi Discord
+    khong lam fail luong SePay/MoMo da doi soat thanh cong.
+  - Bo sung test unit cho logic auto overdue va filter scope theo owner/tenant/contracts.
+  - Them script `npm run seed:payment-test` de tao du lieu test thanh toan khong reset database:
+    landlord/tenant test, phong test, hoa don qua han va hoa don SePay dang mo.
+  - Them script `npm run dev:safe` de chay local khong dung `nodemon`, tranh loi `spawn EPERM`
+    tren Windows.
+- Tai lieu:
+  - Cap nhat `docs/API.md` cho auto overdue khi doc invoice/payment va Discord trong SePay webhook.
+  - Cap nhat `docs/MODULES.md` ve auto overdue va Discord webhook.
+  - Cap nhat `docs/TEST_CHECKLIST.md` them muc auto overdue va Discord webhook.
+  - Them `docs/PAYMENT_TEST_GUIDE.md` huong dan test local, SePay mock, Discord va webhook production.
+- Kiem tra:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run test`: loi `spawn EPERM` trong sandbox Windows cua Node test runner.
+  - `npm run test` ngoai sandbox: pass 24 test, skip 1 integration test theo guard.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1669 modules.
+
+### Reset data phong tro va tai khoan tenant theo phong
+
+- Theo yeu cau moi, reset database dev hien tai bang `npm run seed:reset`.
+- Du lieu sau reset:
+  - 1 tai khoan landlord mau: `admin@smartrental.local` / `Admin@123456`.
+  - 30 phong trong 3 tang: `101-110`, `201-210`, `301-310`.
+  - 0 khach thue, 0 hop dong, 0 hoa don, 0 payment.
+- Cap nhat seed data mac dinh de khong con tao khach/hop dong/payment demo cu.
+- Them logic tao tai khoan tenant khi landlord them khach va gan phong:
+  - Username = ho ten khong dau + ma phong, vi du `Ly Quang Hau` + `101` -> `lyquanghau101`.
+  - Mat khau ban dau = so dien thoai khach thue.
+  - Email la bat buoc neu khach duoc gan phong, vi backend can gui thong tin dang nhap.
+- Them SMTP mail service bang `nodemailer`:
+  - Cau hinh qua `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`.
+  - Neu SMTP chua cau hinh, backend van tao tai khoan va tra trang thai `emailDelivery.skipped=true`
+    de landlord gui thong tin thu cong.
+- Cap nhat frontend trang `Khach thue`:
+  - Email bat buoc khi chon phong.
+  - Sau khi tao khach co phong, UI hien username/password va trang thai gui mail.
+- Them test unit cho username tenant: `Ly Quang Hau` + phong `101` -> `lyquanghau101`.
+
+### Chuyen luong tao hop dong thanh luong tao khach thue chinh
+
+- Dieu chinh nghiep vu theo huong san pham that:
+  - Khi tao hop dong co the nhap thong tin khach dai dien moi ngay trong form hop dong.
+  - Backend tu tao `Tenant`, gan vao phong va tao tai khoan dang nhap tenant khi hop dong active.
+  - Van giu tuy chon dung khach thue da co de khong pha luong cu.
+  - Them danh sach `occupants` trong `Contract` de luu nguoi o cung, khong tao account cho nguoi o cung.
+- Frontend trang `Hop dong`:
+  - Them cac truong ho ten, so dien thoai, email, CCCD/CMND cho nguoi dai dien.
+  - Them truong `So nguoi o`; neu lon hon 1 thi hien form nhap nguoi o cung.
+  - Gioi han so nguoi o theo `maxOccupants` cua phong.
+  - Input tien hop dong tiep tuc hien thi co dau cham hang nghin.
+- Backend:
+  - Them schema `occupants` vao `Contract`.
+  - `POST /contracts` khong con bat buoc `tenant` neu payload co `tenantInfo`.
+  - Kiem tra suc chua phong truoc khi tao hop dong.
+  - Kiem tra phong co hop dong active truoc khi tao tenant moi de tranh du lieu rac.
+  - Gan tenant dai dien vao phong va cap nhat trang thai phong sang `occupied` neu phong khong bao tri.
+- Kiem tra:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run test`: loi `spawn EPERM` trong sandbox Windows cua Node test runner.
+  - `npm run test` ngoai sandbox: pass 26 test, skip 1 integration test.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass.
+
+### Ghi chu ton dong cuoi ngay
+
+- Test thuc te tao hop dong co 2 nguoi o:
+  - Trang `Khach thue` hien moi khach dai dien, chua hien nguoi o cung.
+  - Can quyet dinh UI/du lieu cho nguoi o cung: hien trong chi tiet khach dai dien, chi tiet hop dong,
+    chi tiet phong, hoac tao module/section rieng `Nguoi o cung`.
+- Chua nhan duoc email tai khoan va mat khau cua khach dai dien:
+  - Can kiem tra cau hinh SMTP trong `.env`.
+  - Can kiem tra backend response `temporaryAccount.emailDelivery` / `loginAccount.emailDelivery`.
+  - Can kiem tra log backend khi tao hop dong de phan biet SMTP chua cau hinh, gui mail fail, hay mail vao spam.
+- Trang `Phong`:
+  - Trang thai `Da thue` dang cung mau/gan nhu kho phan biet voi phong `Trong`.
+  - Can chinh badge/status color de `Da thue` noi bat khac voi `Trong`.
+- Viec can lam tiep:
+  - Bo sung hien thi nguoi o cung sau khi tao hop dong.
+  - Kiem tra va sua luong gui mail tai khoan tenant khi tao hop dong.
+  - Chinh mau status phong `Da thue`.

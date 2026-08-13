@@ -2,6 +2,7 @@ import { Room } from '../models/Room.js';
 import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
 import { ownerFilter } from '../utils/ownership.js';
+import { ensureTenantAccountForRoom } from '../utils/tenantAccount.js';
 
 async function normalizeTenantPayload(body, ownerId) {
   const room = body.room || null;
@@ -23,6 +24,16 @@ async function normalizeTenantPayload(body, ownerId) {
 
     if (!existingRoom) {
       throw createHttpError(400, 'Phòng không tồn tại');
+    }
+
+    if (!payload.email) {
+      throw createHttpError(
+        400,
+        'Can email khach thue de tao tai khoan dang nhap',
+        {
+          email: 'Email la bat buoc khi gan khach vao phong',
+        },
+      );
     }
   }
 
@@ -131,11 +142,25 @@ export async function createTenant(req, res, next) {
     const tenant = await Tenant.create(
       await normalizeTenantPayload(req.body, req.user._id),
     );
+    const room = tenant.room
+      ? await Room.findOne({
+          _id: tenant.room,
+          owner: req.user._id,
+          deletedAt: null,
+        })
+      : null;
+    const loginAccount = room
+      ? await ensureTenantAccountForRoom({ room, tenant })
+      : null;
+
     await syncRelatedRoomStatuses(req.user._id, tenant.room);
     const populatedTenant = await tenant.populate(tenantPopulate);
 
     res.status(201).json({
-      data: populatedTenant,
+      data: {
+        ...populatedTenant.toObject(),
+        loginAccount,
+      },
       message: 'Tạo khách thuê thành công',
     });
   } catch (error) {
@@ -163,15 +188,32 @@ export async function updateTenant(req, res, next) {
         runValidators: true,
       },
     ).populate(tenantPopulate);
+    const room = tenant.room
+      ? await Room.findOne({
+          _id: tenant.room?._id || tenant.room,
+          owner: req.user._id,
+          deletedAt: null,
+        })
+      : null;
+    const loginAccount =
+      room && !tenant.user
+        ? await ensureTenantAccountForRoom({ room, tenant })
+        : null;
+    const populatedTenant = await Tenant.findById(tenant._id).populate(
+      tenantPopulate,
+    );
 
     await syncRelatedRoomStatuses(
       req.user._id,
       currentTenant.room,
-      tenant.room,
+      tenant.room?._id || tenant.room,
     );
 
     res.json({
-      data: tenant,
+      data: {
+        ...populatedTenant.toObject(),
+        loginAccount,
+      },
       message: 'Cập nhật khách thuê thành công',
     });
   } catch (error) {

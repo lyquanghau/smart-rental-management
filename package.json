@@ -13,7 +13,9 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev:safe": "concurrently \"npm run dev:safe -w backend\" \"npm run dev -w frontend -- --host 127.0.0.1 --port 5173\"",
     "dev:backend": "npm run dev -w backend",
+    "dev:backend:safe": "npm run dev:safe -w backend",
     "dev:frontend": "npm run dev -w frontend",
     "build": "npm run build -w frontend",
     "lint": "eslint .",
@@ -21,6 +23,7 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "seed": "npm run seed -w backend",
+    "seed:payment-test": "npm run seed:payment-test -w backend",
     "seed:reset": "npm run seed:reset -w backend"
   },
   "devDependencies": {

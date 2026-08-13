@@ -1,6 +1,7 @@
 import { Contract } from '../models/Contract.js';
 import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
+import { syncOverdueBillingStatuses } from '../utils/billingStatus.js';
 import { createHttpError } from '../utils/httpError.js';
 import { getTenantForUser, ownerFilter } from '../utils/ownership.js';
 
@@ -147,9 +148,11 @@ export async function listPayments(req, res, next) {
     if (status) filters.status = status;
 
     if (req.user.role === 'tenant') {
-      filters.contract = {
-        $in: await getTenantContractIdsForUser(req.user._id),
-      };
+      const contractIds = await getTenantContractIdsForUser(req.user._id);
+      await syncOverdueBillingStatuses({ contractIds });
+      filters.contract = { $in: contractIds };
+    } else {
+      await syncOverdueBillingStatuses({ owner: req.user._id });
     }
 
     const dueDateRange = monthDateRange(month, year);
@@ -185,9 +188,11 @@ export async function getPayment(req, res, next) {
         : { _id: req.params.id };
 
     if (req.user.role === 'tenant') {
-      filters.contract = {
-        $in: await getTenantContractIdsForUser(req.user._id),
-      };
+      const contractIds = await getTenantContractIdsForUser(req.user._id);
+      await syncOverdueBillingStatuses({ contractIds });
+      filters.contract = { $in: contractIds };
+    } else {
+      await syncOverdueBillingStatuses({ owner: req.user._id });
     }
 
     const payment = await Payment.findOne(filters).populate(populateOptions);

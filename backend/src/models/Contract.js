@@ -40,6 +40,27 @@ const contractSchema = new mongoose.Schema(
       enum: ['active', 'ended', 'cancelled'],
       default: 'active',
     },
+    occupants: [
+      {
+        fullName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        phone: {
+          type: String,
+          trim: true,
+        },
+        identityNumber: {
+          type: String,
+          trim: true,
+        },
+        note: {
+          type: String,
+          trim: true,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
