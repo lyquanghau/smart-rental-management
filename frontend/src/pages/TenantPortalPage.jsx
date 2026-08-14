@@ -1,13 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Bell,
-  CheckCircle2,
-  Copy,
-  Download,
-  QrCode,
-  RefreshCw,
-} from 'lucide-react';
+import { Copy, Download, History, QrCode, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { Modal } from '../components/Modal.jsx';
 import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { downloadContractPdf } from '../services/contractService.js';
@@ -57,6 +51,8 @@ const copy = {
     dueDate: 'Due date',
     emptyContract: 'No contract data yet.',
     emptyInvoice: 'No invoices yet.',
+    emptyPaidInvoice: 'No paid invoices yet.',
+    emptyUnpaidInvoice: 'No unpaid invoices.',
     emptyPayment: 'No payment records yet.',
     invoicePdfDownloaded: 'Invoice PDF downloaded.',
     items: 'items',
@@ -66,14 +62,6 @@ const copy = {
       'MoMo returned a successful result. Waiting for IPN confirmation.',
     paymentAmount: 'Amount',
     paymentCode: 'Payment content',
-    paymentNotification: 'Payment updates',
-    paymentNotificationEmpty: 'No payment updates yet.',
-    paymentNotificationPaid: (amount, code) =>
-      `Payment confirmed for ${amount}${code ? ` with content ${code}` : ''}.`,
-    paymentNotificationPending: (amount, code) =>
-      `Payment pending for ${amount}${code ? ` with content ${code}` : ''}.`,
-    paymentNotificationOverdue: (amount, date) =>
-      `Payment overdue: ${amount}${date ? `, due ${date}` : ''}.`,
     scanToPay: 'Scan this QR to pay',
     sepayPay: 'Show payment QR',
     sepayCode: 'Payment code',
@@ -109,6 +97,8 @@ const copy = {
     rent: 'Rent',
     services: 'Services',
     status: 'Status',
+    showContractHistory: 'View contracts',
+    showPaidInvoices: 'Paid invoices',
     subtitle: 'View your room, contract, invoices, and payment history.',
     term: 'Term',
     tenant: 'Tenant',
@@ -128,6 +118,8 @@ const copy = {
     dueDate: 'Hạn thanh toán',
     emptyContract: 'Chưa có dữ liệu hợp đồng.',
     emptyInvoice: 'Chưa có hóa đơn.',
+    emptyPaidInvoice: 'Chưa có hóa đơn đã thanh toán.',
+    emptyUnpaidInvoice: 'Không có hóa đơn cần thanh toán.',
     emptyPayment: 'Chưa có lịch sử thanh toán.',
     invoicePdfDownloaded: 'Đã tải PDF hóa đơn.',
     items: 'mục',
@@ -137,14 +129,6 @@ const copy = {
       'MoMo trả về kết quả thành công. Đang chờ IPN xác nhận.',
     paymentAmount: 'Số tiền',
     paymentCode: 'Nội dung thanh toán',
-    paymentNotification: 'Thông báo giao dịch',
-    paymentNotificationEmpty: 'Chưa có thông báo giao dịch.',
-    paymentNotificationPaid: (amount, code) =>
-      `Đã xác nhận thanh toán ${amount}${code ? ` với nội dung ${code}` : ''}.`,
-    paymentNotificationPending: (amount, code) =>
-      `Đang chờ thanh toán ${amount}${code ? ` với nội dung ${code}` : ''}.`,
-    paymentNotificationOverdue: (amount, date) =>
-      `Khoản thanh toán quá hạn: ${amount}${date ? `, hạn ${date}` : ''}.`,
     scanToPay: 'Quét QR này để thanh toán',
     sepayPay: 'Hiện QR thanh toán',
     sepayCode: 'Mã thanh toán',
@@ -179,6 +163,8 @@ const copy = {
     rent: 'Tiền phòng',
     services: 'Dịch vụ',
     status: 'Trạng thái',
+    showContractHistory: 'Xem hợp đồng',
+    showPaidInvoices: 'Hóa đơn đã thanh toán',
     subtitle: 'Xem phòng, hợp đồng, hóa đơn và lịch sử thanh toán của bạn.',
     term: 'Thời hạn',
     tenant: 'Khách thuê',
@@ -256,6 +242,8 @@ export function TenantPortalPage() {
   const [error, setError] = useState('');
   const [downloadingContractId, setDownloadingContractId] = useState('');
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState('');
+  const [isContractHistoryOpen, setIsContractHistoryOpen] = useState(false);
+  const [isPaidInvoiceOpen, setIsPaidInvoiceOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [paymentActionId, setPaymentActionId] = useState('');
   const [sepayPayment, setSepayPayment] = useState(null);
@@ -354,12 +342,27 @@ export function TenantPortalPage() {
 
   const room = summary.room;
   const activeContract = summary.activeContract;
-  const openInvoice = useMemo(
+  const activeContracts = useMemo(
     () =>
-      summary.invoices.find((invoice) =>
+      summary.contracts.filter(
+        (contract) => contract.status === 'active' && !contract.deletedAt,
+      ),
+    [summary.contracts],
+  );
+  const unpaidInvoices = useMemo(
+    () =>
+      summary.invoices.filter((invoice) =>
         ['draft', 'issued', 'overdue'].includes(invoice.status),
-      ) || null,
+      ),
     [summary.invoices],
+  );
+  const paidInvoices = useMemo(
+    () => summary.invoices.filter((invoice) => invoice.status === 'paid'),
+    [summary.invoices],
+  );
+  const openInvoice = useMemo(
+    () => unpaidInvoices[0] || null,
+    [unpaidInvoices],
   );
   const paymentInstructions = summary.paymentInstructions;
   const hasPaymentTarget = Boolean(openInvoice);
@@ -370,39 +373,6 @@ export function TenantPortalPage() {
   );
   const payableTransferContent = sepayPayment?.paymentCode || transferContent;
   const paymentQrUrl = sepayPayment?.qrCodeUrl || sepayQrImage;
-  const tenantNotifications = useMemo(
-    () =>
-      summary.payments
-        .filter((payment) =>
-          ['paid', 'pending', 'overdue'].includes(payment.status),
-        )
-        .slice(0, 5)
-        .map((payment) => {
-          const reference = getPaymentReference(payment);
-          const amount = formatMoney(payment.amount);
-          const invoiceCode = payment.invoice
-            ? formatInvoiceCode(payment.invoice)
-            : payment.note || text.invoice;
-          const message =
-            payment.status === 'paid'
-              ? text.paymentNotificationPaid(amount, reference)
-              : payment.status === 'overdue'
-                ? text.paymentNotificationOverdue(
-                    amount,
-                    formatDate(payment.dueDate),
-                  )
-                : text.paymentNotificationPending(amount, reference);
-
-          return {
-            id: payment._id,
-            invoiceCode,
-            message,
-            status: payment.status,
-          };
-        }),
-    [summary.payments, text],
-  );
-
   async function handleCopyTransferContent() {
     if (!payableTransferContent) return;
 
@@ -457,6 +427,142 @@ export function TenantPortalPage() {
       {error ? <p className="error-message">{error}</p> : null}
       {isLoading ? <p className="loading-note">{text.loadingData}</p> : null}
 
+      <Modal
+        isOpen={isContractHistoryOpen}
+        panelClassName="tenant-history-modal"
+        title={text.contractHistory}
+        onClose={() => setIsContractHistoryOpen(false)}
+      >
+        <div className="table-panel compact-data-table modal-table-panel">
+          {summary.contracts.length === 0 ? <p>{text.emptyContract}</p> : null}
+
+          {summary.contracts.length > 0 ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>{text.myRoom}</th>
+                  <th>{text.term}</th>
+                  <th>{text.monthlyRent}</th>
+                  <th>{text.status}</th>
+                  <th>{text.downloadPdf}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.contracts.map((contract) => (
+                  <tr key={contract._id}>
+                    <td>
+                      <strong>{contract.room?.name || text.noRoom}</strong>
+                      <span>
+                        {contract.room
+                          ? `${text.floor} ${contract.room.floor}`
+                          : text.noRoom}
+                      </span>
+                    </td>
+                    <td>
+                      <strong>{formatDate(contract.startDate)}</strong>
+                      <span>
+                        {text.to} {formatDate(contract.endDate)}
+                      </span>
+                    </td>
+                    <td>
+                      <strong>{formatMoney(contract.monthlyPrice)}</strong>
+                    </td>
+                    <td>
+                      <strong>{getStatusLabel(contract.status, text)}</strong>
+                    </td>
+                    <td>
+                      <button
+                        className="secondary-button"
+                        disabled={downloadingContractId === contract._id}
+                        type="button"
+                        onClick={() => handleDownloadPdf(contract)}
+                      >
+                        <Download
+                          className="button-icon"
+                          size={16}
+                          strokeWidth={2.5}
+                        />
+                        {downloadingContractId === contract._id
+                          ? text.loading
+                          : text.downloadPdf}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isPaidInvoiceOpen}
+        panelClassName="tenant-history-modal"
+        title={text.showPaidInvoices}
+        onClose={() => setIsPaidInvoiceOpen(false)}
+      >
+        <div className="table-panel compact-data-table modal-table-panel">
+          {paidInvoices.length === 0 ? <p>{text.emptyPaidInvoice}</p> : null}
+
+          {paidInvoices.length > 0 ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>{text.invoice}</th>
+                  <th>{text.dueDate}</th>
+                  <th>{text.invoiceTotal}</th>
+                  <th>{text.status}</th>
+                  <th>{text.downloadPdf}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paidInvoices.map((invoice) => (
+                  <tr key={invoice._id}>
+                    <td>
+                      <strong>
+                        {text.invoice} {formatInvoiceCode(invoice)}
+                      </strong>
+                      <span>
+                        {invoice.room?.name || room?.name || text.noRoom}
+                      </span>
+                    </td>
+                    <td>
+                      <strong>{formatDate(invoice.dueDate)}</strong>
+                      <span>
+                        {text.paidAt}: {formatDate(invoice.paidAt, '-')}
+                      </span>
+                    </td>
+                    <td>
+                      <strong>{formatMoney(invoice.totalAmount)}</strong>
+                    </td>
+                    <td>
+                      <strong>{getStatusLabel(invoice.status, text)}</strong>
+                    </td>
+                    <td>
+                      <button
+                        className="secondary-button"
+                        disabled={downloadingInvoiceId === invoice._id}
+                        type="button"
+                        onClick={() => handleDownloadInvoicePdf(invoice)}
+                      >
+                        <Download
+                          className="button-icon"
+                          size={16}
+                          strokeWidth={2.5}
+                        />
+                        {downloadingInvoiceId === invoice._id
+                          ? text.loading
+                          : text.downloadPdf}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
+        </div>
+      </Modal>
+
       <div className="dashboard-grid">
         <article className="metric-card metric-card-primary">
           <span>{text.myRoom}</span>
@@ -488,49 +594,27 @@ export function TenantPortalPage() {
         </article>
       </div>
 
-      <section className="tenant-notification-panel">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow">{text.billing}</span>
-            <h2>
-              <Bell className="button-icon" size={18} strokeWidth={2.5} />
-              {text.paymentNotification}
-            </h2>
-          </div>
-        </div>
-        {tenantNotifications.length === 0 ? (
-          <p className="empty-note">{text.paymentNotificationEmpty}</p>
-        ) : (
-          <div className="tenant-notification-list">
-            {tenantNotifications.map((notification) => (
-              <article
-                className={`tenant-notification-item status-${notification.status}`}
-                key={notification.id}
-              >
-                <CheckCircle2 size={18} strokeWidth={2.5} />
-                <div>
-                  <strong>{notification.invoiceCode}</strong>
-                  <span>{notification.message}</span>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
       <div className="work-queue-grid">
         <section className="dashboard-panel">
           <div className="panel-heading">
             <div>
               <span className="eyebrow">{text.activeContract}</span>
-              <h2>{text.contractHistory}</h2>
+              <h2>{text.activeContract}</h2>
             </div>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => setIsContractHistoryOpen(true)}
+            >
+              <History className="button-icon" size={16} strokeWidth={2.5} />
+              {text.showContractHistory} ({summary.contracts.length})
+            </button>
           </div>
-          {summary.contracts.length === 0 ? (
+          {activeContracts.length === 0 ? (
             <p className="empty-note">{text.emptyContract}</p>
           ) : (
             <div className="alert-list">
-              {summary.contracts.map((contract) => (
+              {activeContracts.map((contract) => (
                 <article className="alert-item" key={contract._id}>
                   <strong>{contract.room?.name || text.noRoom}</strong>
                   <span>
@@ -567,12 +651,20 @@ export function TenantPortalPage() {
               <span className="eyebrow">{text.billing}</span>
               <h2>{text.invoice}</h2>
             </div>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => setIsPaidInvoiceOpen(true)}
+            >
+              <History className="button-icon" size={16} strokeWidth={2.5} />
+              {text.showPaidInvoices} ({paidInvoices.length})
+            </button>
           </div>
-          {summary.invoices.length === 0 ? (
-            <p className="empty-note">{text.emptyInvoice}</p>
+          {unpaidInvoices.length === 0 ? (
+            <p className="empty-note">{text.emptyUnpaidInvoice}</p>
           ) : (
             <div className="alert-list">
-              {summary.invoices.map((invoice) => (
+              {unpaidInvoices.map((invoice) => (
                 <article className="alert-item" key={invoice._id}>
                   <strong>
                     {text.invoice} {formatInvoiceCode(invoice)}

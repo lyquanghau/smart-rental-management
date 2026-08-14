@@ -50,9 +50,10 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const canUseNotifications = ['landlord', 'tenant'].includes(user?.role);
 
   async function loadNotifications() {
-    if (user?.role !== 'landlord') return;
+    if (!canUseNotifications) return;
 
     try {
       const result = await getNotifications({ limit: 8 });
@@ -67,11 +68,11 @@ export function Header() {
   useEffect(() => {
     loadNotifications();
 
-    if (user?.role !== 'landlord') return undefined;
+    if (!canUseNotifications) return undefined;
 
     const intervalId = window.setInterval(loadNotifications, 30000);
     return () => window.clearInterval(intervalId);
-  }, [user?.role]);
+  }, [canUseNotifications]);
 
   async function handleMarkRead(notification) {
     if (notification.readAt) return;
@@ -92,7 +93,7 @@ export function Header() {
           <strong>{text.title}</strong>
         </div>
       </div>
-      {user?.role === 'landlord' ? (
+      {canUseNotifications ? (
         <div className="notification-menu">
           <button
             aria-expanded={isOpen}

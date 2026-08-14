@@ -1642,3 +1642,60 @@ PATCH /api/payments/:id/cancel
     dich vu/hoa don, dashboard va thanh toan.
   - Map trang thai hop dong/hoa don/thanh toan va phuong thuc thanh toan sang nhan theo ngon ngu,
     tranh hien truc tiep `active`, `issued`, `pending`, `cash` tren UI.
+
+### Dong bo thong bao khach thue len header
+
+- Yeu cau:
+  - Phan thong bao ben khach thue dung giong chuong thong bao cua admin.
+  - Khong hien them khoi thong bao giao dich o phan duoi trang cong khach thue.
+- Implement:
+  - Mo API `GET /api/notifications`, `PATCH /api/notifications/:id/read`,
+    `PATCH /api/notifications/read-all` cho ca tai khoan `tenant` da dang nhap.
+  - Tenant chi lay thong bao `invoice` theo cac hoa don thuoc ho so khach thue cua chinh tai khoan do.
+  - Header frontend hien chuong thong bao cho ca `landlord` va `tenant`, tu dong refresh moi 30 giay.
+  - Go bo panel `Thong bao giao dich` rieng trong `TenantPortalPage` va CSS lien quan.
+- Ghi chu:
+  - Model `Notification` hien chi co mot truong `readAt`, nen trang thai da doc dang duoc chia se theo ban ghi
+    thong bao. Neu can tach unread rieng cho chu tro va tung khach thue, can bo sung bang/collection recipient sau MVP.
+
+### Gon giao dien hoa don va hop dong khach thue
+
+- Yeu cau:
+  - Trang khach thue chi hien hoa don chua thanh toan.
+  - Hoa don da thanh toan duoc an khoi danh sach chinh va xem lai bang nut rieng.
+  - Hop dong chi hien hop dong dang hieu luc, lich su hop dong xem bang modal rieng giong luong
+    `Khach hang da xoa`.
+- Implement:
+  - Tach `unpaidInvoices`, `paidInvoices`, `activeContracts` trong `TenantPortalPage`.
+  - Panel hoa don chinh chi render hoa don `draft`, `issued`, `overdue`.
+  - Them modal `Hoa don da thanh toan` de xem lai hoa don paid va tai PDF khi can.
+  - Them modal `Lich su hop dong` de xem lai tat ca hop dong va tai PDF.
+  - Them style `tenant-history-modal` dung layout bang cuon tuong tu modal khach thue da xoa.
+
+### Chuan hoa font PDF va lam lai hoa don thang
+
+- Yeu cau:
+  - PDF hop dong len deploy bi loi phong so voi local.
+  - PDF hoa don hang thang can nhin gon hon va gom ma phong, tien phong, so luong nguoi o,
+    cac muc trong don gia dich vu va tong tien.
+- Implement:
+  - Font PDF hop dong va hoa don uu tien font bundle `backend/src/assets/fonts/NotoSans-*.ttf`
+    neu co, sau do fallback sang Arial/DejaVu/Liberation tren Windows/Linux.
+  - Hoa don PDF doi sang mau `Hoa don tien phong hang thang`.
+  - Dau hoa don hien ma hoa don, ma phong, khach thue, so nguoi o, han thanh toan va trang thai.
+  - Bang chi tiet gom `Tien phong`, `Dien`, `Nuoc`, `Internet`, `Rac`, `Gui xe` va `Chi phi khac`
+    neu co; moi dong co don gia, so luong/chi so va thanh tien.
+  - Cuoi hoa don hien tong tien, bang chu va noi dung chuyen khoan.
+
+### Sua loi reload route frontend tren Vercel
+
+- Yeu cau:
+  - Khi vao truc tiep `/login`, reload trang hoac bam lui/tien tren domain Vercel thi bi
+    `404: NOT_FOUND`.
+- Nguyen nhan:
+  - Frontend dung React Router `BrowserRouter`, cac route nhu `/login` chi ton tai o client.
+  - Vercel mac dinh tim file/path that tren server nen route con tra 404 neu khong rewrite ve
+    `index.html`.
+- Implement:
+  - Them `frontend/vercel.json` voi rewrite `/(.*)` ve `/index.html`.
+  - Phu hop cau hinh Vercel dang dung `Root Directory = frontend`.

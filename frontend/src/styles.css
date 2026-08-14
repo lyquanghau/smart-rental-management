@@ -4212,71 +4212,6 @@ html {
   min-width: 560px;
 }
 
-.tenant-notification-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-sm);
-  display: grid;
-  gap: var(--space-4);
-  margin-bottom: var(--space-5);
-  padding: var(--space-5);
-}
-
-.tenant-notification-list {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.tenant-notification-item {
-  align-items: flex-start;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: var(--radius-md);
-  color: var(--color-text);
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: auto minmax(0, 1fr);
-  padding: var(--space-3);
-}
-
-.tenant-notification-item svg {
-  color: #0284c7;
-  margin-top: 2px;
-}
-
-.tenant-notification-item strong,
-.tenant-notification-item span {
-  display: block;
-}
-
-.tenant-notification-item strong {
-  font-size: 0.92rem;
-}
-
-.tenant-notification-item span {
-  color: var(--color-muted);
-  font-size: 0.84rem;
-}
-
-.tenant-notification-item.status-paid {
-  background: #ecfdf5;
-  border-color: #86efac;
-}
-
-.tenant-notification-item.status-paid svg {
-  color: #16a34a;
-}
-
-.tenant-notification-item.status-overdue {
-  background: #fef2f2;
-  border-color: #fecaca;
-}
-
-.tenant-notification-item.status-overdue svg {
-  color: #dc2626;
-}
-
 .payment-instruction-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -4389,7 +4324,6 @@ html {
 [data-theme='dark'] .service-settings-panel,
 [data-theme='dark'] .service-reading-panel,
 [data-theme='dark'] .service-summary-card,
-[data-theme='dark'] .tenant-notification-panel,
 [data-theme='dark'] .payment-instruction-panel {
   background: #111c31;
   border-color: #254468;
@@ -4426,21 +4360,6 @@ html {
 
 [data-theme='dark'] .notification-item.is-unread {
   background: #082f49;
-}
-
-[data-theme='dark'] .tenant-notification-item {
-  background: #0f172a;
-  border-color: #254468;
-}
-
-[data-theme='dark'] .tenant-notification-item.status-paid {
-  background: #052e1b;
-  border-color: #15803d;
-}
-
-[data-theme='dark'] .tenant-notification-item.status-overdue {
-  background: #450a0a;
-  border-color: #991b1b;
 }
 
 [data-theme='dark'] .service-summary-card.highlight {
@@ -4891,6 +4810,21 @@ html {
   min-width: 760px;
 }
 
+.tenant-history-modal {
+  min-height: min(680px, calc(100dvh - 40px));
+  max-height: calc(100dvh - 32px);
+  max-width: 1120px;
+  width: min(1120px, calc(100vw - 40px));
+}
+
+.tenant-history-modal .modal-table-panel {
+  overflow: auto;
+}
+
+.tenant-history-modal table {
+  min-width: 820px;
+}
+
 [data-theme='dark'] .contract-occupants-panel {
   background: #0b1426;
   border-color: #2b4f76;
@@ -4915,6 +4849,12 @@ html {
   }
 
   .deleted-tenants-modal {
+    max-height: calc(100dvh - 20px);
+    min-height: calc(100dvh - 20px);
+    width: calc(100vw - 20px);
+  }
+
+  .tenant-history-modal {
     max-height: calc(100dvh - 20px);
     min-height: calc(100dvh - 20px);
     width: calc(100vw - 20px);

@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import PDFDocument from 'pdfkit';
 import { Contract } from '../models/Contract.js';
 import { Invoice } from '../models/Invoice.js';
@@ -14,19 +15,64 @@ const invoicePopulate = [
   { path: 'tenant', select: 'fullName phone email identityNumber' },
   {
     path: 'contract',
-    select: 'room tenant startDate endDate monthlyPrice status',
+    select: 'room tenant startDate endDate monthlyPrice status occupants',
   },
   { path: 'utilityReading' },
 ];
 
-const vietnameseFontPaths = [
-  'C:/Windows/Fonts/arial.ttf',
-  '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-  '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-];
+const bundledFontPaths = {
+  bold: fileURLToPath(
+    new URL('../assets/fonts/NotoSans-Bold.ttf', import.meta.url),
+  ),
+  regular: fileURLToPath(
+    new URL('../assets/fonts/NotoSans-Regular.ttf', import.meta.url),
+  ),
+};
 
-function getVietnameseFontPath() {
-  return vietnameseFontPaths.find((fontPath) => existsSync(fontPath));
+const vietnameseFontPaths = {
+  bold: [
+    bundledFontPaths.bold,
+    'C:/Windows/Fonts/arialbd.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+  ],
+  regular: [
+    bundledFontPaths.regular,
+    'C:/Windows/Fonts/arial.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+  ],
+};
+
+function getVietnameseFontPaths() {
+  return {
+    bold: vietnameseFontPaths.bold.find((fontPath) => existsSync(fontPath)),
+    regular: vietnameseFontPaths.regular.find((fontPath) =>
+      existsSync(fontPath),
+    ),
+  };
+}
+
+function registerPdfFonts(document) {
+  const fontPaths = getVietnameseFontPaths();
+  const fonts = {
+    bold: 'Helvetica-Bold',
+    regular: 'Helvetica',
+  };
+
+  if (fontPaths.regular) {
+    document.registerFont('VietnameseRegular', fontPaths.regular);
+    fonts.regular = 'VietnameseRegular';
+  }
+
+  if (fontPaths.bold) {
+    document.registerFont('VietnameseBold', fontPaths.bold);
+    fonts.bold = 'VietnameseBold';
+  }
+
+  return fonts;
 }
 
 function normalizeMonthYear(month, year) {
@@ -117,6 +163,18 @@ function formatDate(value) {
 
 function formatMoney(value) {
   return `${Number(value || 0).toLocaleString('vi-VN')} VND`;
+}
+
+function formatInvoiceStatus(status) {
+  const labels = {
+    cancelled: 'Đã hủy',
+    draft: 'Bản nháp',
+    issued: 'Đã phát hành',
+    overdue: 'Quá hạn',
+    paid: 'Đã thanh toán',
+  };
+
+  return labels[status] || 'Chờ thanh toán';
 }
 
 function formatInvoiceCode(invoice) {
@@ -218,52 +276,99 @@ function getInvoiceItemAmount(invoice, keywords) {
   return Number(item?.amount || 0);
 }
 
-function buildInvoiceCostRows(invoice) {
+function getOccupantCount(invoice) {
+  return 1 + (invoice.contract?.occupants?.length || 0);
+}
+
+function buildMonthlyInvoiceRows(invoice, setting) {
+  const reading = invoice.utilityReading;
+  const electricityUsage = Number(reading?.electricityUsage || 0);
+  const waterUsage = Number(reading?.waterUsage || 0);
+  const parkingVehicleCount = Number(reading?.parkingVehicleCount || 0);
+  const internetAmount =
+    reading?.internetAmount || getInvoiceItemAmount(invoice, ['internet']);
+  const trashAmount =
+    reading?.trashAmount || getInvoiceItemAmount(invoice, ['rac', 'rác']);
+  const parkingAmount =
+    reading?.parkingAmount ||
+    getInvoiceItemAmount(invoice, ['gui xe', 'gửi xe']);
   const electricityAmount =
-    invoice.utilityReading?.electricityAmount ||
+    reading?.electricityAmount ||
     getInvoiceItemAmount(invoice, ['dien', 'điện']);
   const waterAmount =
-    invoice.utilityReading?.waterAmount ||
-    getInvoiceItemAmount(invoice, ['nuoc', 'nước']);
+    reading?.waterAmount || getInvoiceItemAmount(invoice, ['nuoc', 'nước']);
+  const knownServiceAmount =
+    Number(electricityAmount || 0) +
+    Number(waterAmount || 0) +
+    Number(internetAmount || 0) +
+    Number(trashAmount || 0) +
+    Number(parkingAmount || 0);
   const otherAmount = Math.max(
-    Number(invoice.serviceAmount || 0) -
-      Number(electricityAmount || 0) -
-      Number(waterAmount || 0),
+    Number(invoice.serviceAmount || 0) - knownServiceAmount,
     0,
   );
 
   const rows = [
     {
       amount: invoice.rentAmount,
-      label: 'Tien tro co ban',
-      note: `Phong ${invoice.room?.name || 'N/A'}`,
+      label: 'Tiền phòng',
+      quantity: '1 tháng',
+      unitPrice: invoice.rentAmount,
     },
   ];
 
-  if (invoice.utilityReading) {
-    rows.push(
-      {
-        amount: electricityAmount,
-        label: 'Tien dien',
-        note: `${invoice.utilityReading.electricityPrevious || 0} -> ${invoice.utilityReading.electricityCurrent || 0} (${invoice.utilityReading.electricityUsage || 0} kWh)`,
-      },
-      {
-        amount: waterAmount,
-        label: 'Tien nuoc',
-        note: `${invoice.utilityReading.waterPrevious || 0} -> ${invoice.utilityReading.waterCurrent || 0} (${invoice.utilityReading.waterUsage || 0} m3)`,
-      },
-    );
-  } else {
-    if (electricityAmount > 0) {
-      rows.push({ amount: electricityAmount, label: 'Tien dien', note: '-' });
-    }
-    if (waterAmount > 0) {
-      rows.push({ amount: waterAmount, label: 'Tien nuoc', note: '-' });
-    }
-  }
+  rows.push({
+    amount: electricityAmount,
+    label: 'Điện',
+    quantity: reading
+      ? `${reading.electricityPrevious || 0} -> ${reading.electricityCurrent || 0} (${electricityUsage} kWh)`
+      : `${electricityUsage} kWh`,
+    unitPrice:
+      setting?.electricityUnitPrice ||
+      (electricityUsage > 0 ? electricityAmount / electricityUsage : 0),
+  });
+
+  rows.push({
+    amount: waterAmount,
+    label: 'Nước',
+    quantity: reading
+      ? `${reading.waterPrevious || 0} -> ${reading.waterCurrent || 0} (${waterUsage} m3)`
+      : `${waterUsage} m3`,
+    unitPrice:
+      setting?.waterUnitPrice ||
+      (waterUsage > 0 ? waterAmount / waterUsage : 0),
+  });
+
+  rows.push({
+    amount: internetAmount,
+    label: 'Internet',
+    quantity: '1 tháng',
+    unitPrice: setting?.internetFee || internetAmount,
+  });
+
+  rows.push({
+    amount: trashAmount,
+    label: 'Rác',
+    quantity: '1 tháng',
+    unitPrice: setting?.trashFee || trashAmount,
+  });
+
+  rows.push({
+    amount: parkingAmount,
+    label: 'Gửi xe',
+    quantity: `${parkingVehicleCount} xe`,
+    unitPrice:
+      setting?.parkingFeePerVehicle ||
+      (parkingVehicleCount > 0 ? parkingAmount / parkingVehicleCount : 0),
+  });
 
   if (otherAmount > 0) {
-    rows.push({ amount: otherAmount, label: 'Chi phi khac', note: '-' });
+    rows.push({
+      amount: otherAmount,
+      label: 'Chi phí khác',
+      quantity: '-',
+      unitPrice: otherAmount,
+    });
   }
 
   return rows;
@@ -290,104 +395,167 @@ async function getInvoiceForUser(req) {
 
 function buildInvoicePdf(invoice, setting, res) {
   const document = new PDFDocument({
-    margin: 48,
+    margin: 44,
     size: 'A4',
     info: {
       Title: `Hoa don ${formatInvoiceCode(invoice)}`,
       Author: 'Smart Rental',
     },
   });
-  const vietnameseFontPath = getVietnameseFontPath();
 
   document.pipe(res);
+  const fonts = registerPdfFonts(document);
+  const pageWidth =
+    document.page.width -
+    document.page.margins.left -
+    document.page.margins.right;
+  const left = document.page.margins.left;
+  const right = document.page.width - document.page.margins.right;
+  const roomName = invoice.room?.name || 'N/A';
+  const occupantCount = getOccupantCount(invoice);
 
-  if (vietnameseFontPath) {
-    document.registerFont('Vietnamese', vietnameseFontPath);
-    document.font('Vietnamese');
-  }
-
-  document.fillColor('#111827').fontSize(18).text('PHIEU THU TIEN THUE NHA', {
-    align: 'center',
-  });
-  document.moveDown(0.7);
   document
-    .fontSize(12)
-    .text(`Thoi gian: ${invoice.month}/${invoice.year}`, { align: 'center' });
-  document.moveDown(1.2);
+    .font(fonts.bold)
+    .fillColor('#111827')
+    .fontSize(17)
+    .text('HÓA ĐƠN TIỀN PHÒNG HÀNG THÁNG', { align: 'center' });
+  document
+    .font(fonts.regular)
+    .fontSize(10.5)
+    .fillColor('#4b5563')
+    .text(`Kỳ hóa đơn: tháng ${invoice.month}/${invoice.year}`, {
+      align: 'center',
+    });
+  document.moveDown(1);
 
-  const address =
-    setting?.rentalAddress ||
-    setting?.bankAccountName ||
-    '........................................................';
-  document.fontSize(11.5);
-  document.text(`Dia chi nha cho thue: ${address}`);
-  document.moveDown(0.6);
-  document.text(`So phong: ${invoice.room?.name || 'N/A'}`);
-  document.moveDown(0.6);
-  document.text(`Ho va ten nguoi thue: ${invoice.tenant?.fullName || 'N/A'}`);
-  document.moveDown(0.6);
-  document.text(
-    `Noi dung: Thanh toan tien thue nha thang ${invoice.month} nam ${invoice.year}`,
-  );
-  document.moveDown(0.8);
+  const summaryTop = document.y;
+  document
+    .roundedRect(left, summaryTop, pageWidth, 96, 8)
+    .fillAndStroke('#f8fafc', '#dbeafe');
 
-  const rows = buildInvoiceCostRows(invoice);
-  const tableTop = document.y;
-  document.rect(48, tableTop, 499, 26).stroke('#111827');
-  document.text('Khoan thu', 58, tableTop + 8, { width: 190 });
-  document.text('Thong tin', 250, tableTop + 8, { width: 150 });
-  document.text('Thanh tien', 410, tableTop + 8, {
-    align: 'right',
-    width: 120,
-  });
+  const summaryRows = [
+    ['Mã hóa đơn', formatInvoiceCode(invoice), 'Mã phòng', roomName],
+    [
+      'Khách thuê',
+      invoice.tenant?.fullName || 'N/A',
+      'Số người ở',
+      occupantCount,
+    ],
+    [
+      'Hạn thanh toán',
+      formatDate(invoice.dueDate),
+      'Trạng thái',
+      formatInvoiceStatus(invoice.status),
+    ],
+  ];
 
-  let rowY = tableTop + 26;
-  for (const row of rows) {
-    document.rect(48, rowY, 499, 28).stroke('#d1d5db');
-    document.text(row.label, 58, rowY + 8, { width: 180 });
-    document.text(row.note, 250, rowY + 8, { width: 150 });
-    document.text(formatMoney(row.amount), 410, rowY + 8, {
-      align: 'right',
+  let summaryY = summaryTop + 15;
+  for (const [leftLabel, leftValue, rightLabel, rightValue] of summaryRows) {
+    document.font(fonts.regular).fontSize(9.5).fillColor('#64748b');
+    document.text(leftLabel, left + 16, summaryY, { width: 92 });
+    document.text(rightLabel, left + 302, summaryY, { width: 92 });
+    document.font(fonts.bold).fontSize(10.5).fillColor('#111827');
+    document.text(String(leftValue || '-'), left + 108, summaryY, {
+      width: 180,
+    });
+    document.text(String(rightValue || '-'), left + 394, summaryY, {
       width: 120,
     });
-    rowY += 28;
+    summaryY += 25;
   }
 
-  rowY += 12;
-  document.fontSize(12).text(`So tien: ${formatMoney(invoice.totalAmount)}`, {
-    continued: false,
-  });
+  document.y = summaryTop + 118;
+  document.font(fonts.bold).fontSize(12).fillColor('#111827');
+  document.text('Chi tiết tiền phòng và dịch vụ');
   document.moveDown(0.5);
+
+  const rows = buildMonthlyInvoiceRows(invoice, setting);
+  const columns = [
+    { key: 'label', label: 'Khoản thu', width: 130, x: left },
+    { key: 'unitPrice', label: 'Đơn giá', width: 110, x: left + 130 },
+    { key: 'quantity', label: 'SL / Chỉ số', width: 180, x: left + 240 },
+    { key: 'amount', label: 'Thành tiền', width: 87, x: left + 420 },
+  ];
+  const tableTop = document.y;
+  const rowHeight = 31;
+
   document
-    .fontSize(11.5)
-    .text(`Bang chu: ${formatMoneyInWords(invoice.totalAmount)}`);
-  document.moveDown(0.5);
-  document.text(`Ma hoa don: ${formatInvoiceCode(invoice)}`);
-  document.text(`Han thanh toan: ${formatDate(invoice.dueDate)}`);
-  if (invoice.paymentOrderId) {
-    document.text(`Noi dung chuyen khoan: ${invoice.paymentOrderId}`);
-  } else if (setting) {
-    document.text(
-      `Noi dung chuyen khoan: ${buildTransferContent(setting, invoice)}`,
-    );
+    .rect(left, tableTop, pageWidth, 28)
+    .fillAndStroke('#e0f2fe', '#93c5fd');
+  document.font(fonts.bold).fontSize(9.5).fillColor('#0f172a');
+  for (const column of columns) {
+    document.text(column.label, column.x + 8, tableTop + 9, {
+      align: column.key === 'amount' ? 'right' : 'left',
+      width: column.width - 14,
+    });
   }
 
-  document.moveDown(3);
-  const signatureY = document.y;
-  document.fontSize(12);
-  document.text('DAI DIEN BEN THUE', 70, signatureY, {
+  let rowY = tableTop + 28;
+  for (const [index, row] of rows.entries()) {
+    const background = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+    document
+      .rect(left, rowY, pageWidth, rowHeight)
+      .fillAndStroke(background, '#e5e7eb');
+    document.font(fonts.regular).fontSize(9.5).fillColor('#111827');
+    document.text(row.label, columns[0].x + 8, rowY + 10, {
+      width: columns[0].width - 14,
+    });
+    document.text(formatMoney(row.unitPrice), columns[1].x + 8, rowY + 10, {
+      align: 'right',
+      width: columns[1].width - 14,
+    });
+    document.text(row.quantity, columns[2].x + 8, rowY + 10, {
+      width: columns[2].width - 14,
+    });
+    document
+      .font(fonts.bold)
+      .text(formatMoney(row.amount), columns[3].x + 8, rowY + 10, {
+        align: 'right',
+        width: columns[3].width - 14,
+      });
+    rowY += rowHeight;
+  }
+
+  document
+    .rect(left + 300, rowY + 8, pageWidth - 300, 44)
+    .fillAndStroke('#ecfdf5', '#86efac');
+  document.font(fonts.regular).fontSize(10).fillColor('#065f46');
+  document.text('Tổng tiền cần thanh toán', left + 314, rowY + 17, {
+    width: 120,
+  });
+  document.font(fonts.bold).fontSize(13).fillColor('#064e3b');
+  document.text(formatMoney(invoice.totalAmount), left + 430, rowY + 15, {
+    align: 'right',
+    width: 105,
+  });
+
+  document.y = rowY + 70;
+  document.font(fonts.regular).fontSize(10.5).fillColor('#111827');
+  document.text(`Bằng chữ: ${formatMoneyInWords(invoice.totalAmount)}`);
+  document.moveDown(0.4);
+  document.text(
+    `Nội dung chuyển khoản: ${
+      invoice.paymentOrderId || buildTransferContent(setting, invoice)
+    }`,
+  );
+
+  document.moveDown(2.4);
+  const signatureY = Math.max(document.y, 670);
+  document.font(fonts.bold).fontSize(10.5).fillColor('#111827');
+  document.text('ĐẠI DIỆN BÊN THUÊ', left + 28, signatureY, {
     align: 'center',
     width: 180,
   });
-  document.fontSize(10).text('(ki, ghi ro ho va ten)', 70, signatureY + 20, {
+  document.text('ĐẠI DIỆN BÊN CHO THUÊ', right - 208, signatureY, {
     align: 'center',
     width: 180,
   });
-  document.fontSize(12).text('DAI DIEN BEN CHO THUE', 345, signatureY, {
+  document.font(fonts.regular).fontSize(9).fillColor('#4b5563');
+  document.text('(Ký và ghi rõ họ tên)', left + 28, signatureY + 18, {
     align: 'center',
     width: 180,
   });
-  document.fontSize(10).text('(ki, ghi ro ho va ten)', 345, signatureY + 20, {
+  document.text('(Ký và ghi rõ họ tên)', right - 208, signatureY + 18, {
     align: 'center',
     width: 180,
   });

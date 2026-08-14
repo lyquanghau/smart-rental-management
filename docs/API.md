@@ -950,7 +950,10 @@ toan. Payment co invoice lien ket se tra them ma/noi dung thanh toan nhu `paymen
 
 ## Notifications
 
-Cac API thong bao yeu cau role `landlord`.
+Cac API thong bao yeu cau user da dang nhap.
+
+- `landlord`: xem thong bao thuoc owner hien tai.
+- `tenant`: xem thong bao thanh toan cua cac hoa don thuoc ho so khach thue dang dang nhap.
 
 ### GET /notifications
 
@@ -989,7 +992,7 @@ Danh dau mot thong bao da doc.
 
 ### PATCH /notifications/read-all
 
-Danh dau tat ca thong bao cua landlord hien tai da doc.
+Danh dau tat ca thong bao trong pham vi user hien tai da doc.
 
 ## Webhooks
 

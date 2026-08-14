@@ -4,22 +4,12 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../controllers/notificationController.js';
-import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
+import { requireAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-router.get('/', requireAuth, requireRole('landlord'), listNotifications);
-router.patch(
-  '/read-all',
-  requireAuth,
-  requireRole('landlord'),
-  markAllNotificationsRead,
-);
-router.patch(
-  '/:id/read',
-  requireAuth,
-  requireRole('landlord'),
-  markNotificationRead,
-);
+router.get('/', requireAuth, listNotifications);
+router.patch('/read-all', requireAuth, markAllNotificationsRead);
+router.patch('/:id/read', requireAuth, markNotificationRead);
 
 export default router;

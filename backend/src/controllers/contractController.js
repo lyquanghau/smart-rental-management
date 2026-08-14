@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcryptjs';
 import PDFDocument from 'pdfkit';
 import { Contract } from '../models/Contract.js';
@@ -34,15 +35,30 @@ const landlordContractProfile = {
     '158/25 Phạm Văn Chiêu, phường Thông Tây Hội, thành phố Hồ Chí Minh',
 };
 
+const bundledFontPaths = {
+  bold: fileURLToPath(
+    new URL('../assets/fonts/NotoSans-Bold.ttf', import.meta.url),
+  ),
+  regular: fileURLToPath(
+    new URL('../assets/fonts/NotoSans-Regular.ttf', import.meta.url),
+  ),
+};
+
 const vietnameseFontPaths = {
   regular: [
+    bundledFontPaths.regular,
     'C:/Windows/Fonts/times.ttf',
+    'C:/Windows/Fonts/arial.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
     '/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf',
     '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf',
     '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
   ],
   bold: [
+    bundledFontPaths.bold,
     'C:/Windows/Fonts/timesbd.ttf',
+    'C:/Windows/Fonts/arialbd.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
     '/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf',
     '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf',
     '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf',
