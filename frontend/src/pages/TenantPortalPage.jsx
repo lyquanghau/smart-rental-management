@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Copy, Download, QrCode, RefreshCw } from 'lucide-react';
+import {
+  Bell,
+  CheckCircle2,
+  Copy,
+  Download,
+  QrCode,
+  RefreshCw,
+} from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
@@ -58,6 +65,15 @@ const copy = {
     momoPaymentReturned:
       'MoMo returned a successful result. Waiting for IPN confirmation.',
     paymentAmount: 'Amount',
+    paymentCode: 'Payment content',
+    paymentNotification: 'Payment updates',
+    paymentNotificationEmpty: 'No payment updates yet.',
+    paymentNotificationPaid: (amount, code) =>
+      `Payment confirmed for ${amount}${code ? ` with content ${code}` : ''}.`,
+    paymentNotificationPending: (amount, code) =>
+      `Payment pending for ${amount}${code ? ` with content ${code}` : ''}.`,
+    paymentNotificationOverdue: (amount, date) =>
+      `Payment overdue: ${amount}${date ? `, due ${date}` : ''}.`,
     scanToPay: 'Scan this QR to pay',
     sepayPay: 'Show payment QR',
     sepayCode: 'Payment code',
@@ -120,6 +136,15 @@ const copy = {
     momoPaymentReturned:
       'MoMo trả về kết quả thành công. Đang chờ IPN xác nhận.',
     paymentAmount: 'Số tiền',
+    paymentCode: 'Nội dung thanh toán',
+    paymentNotification: 'Thông báo giao dịch',
+    paymentNotificationEmpty: 'Chưa có thông báo giao dịch.',
+    paymentNotificationPaid: (amount, code) =>
+      `Đã xác nhận thanh toán ${amount}${code ? ` với nội dung ${code}` : ''}.`,
+    paymentNotificationPending: (amount, code) =>
+      `Đang chờ thanh toán ${amount}${code ? ` với nội dung ${code}` : ''}.`,
+    paymentNotificationOverdue: (amount, date) =>
+      `Khoản thanh toán quá hạn: ${amount}${date ? `, hạn ${date}` : ''}.`,
     scanToPay: 'Quét QR này để thanh toán',
     sepayPay: 'Hiện QR thanh toán',
     sepayCode: 'Mã thanh toán',
@@ -210,6 +235,16 @@ function getPaymentMethodLabel(method, text) {
   };
 
   return labels[method] || method || text.paymentMethodCash;
+}
+
+function getPaymentReference(payment) {
+  return (
+    payment.providerOrderId ||
+    payment.providerReference ||
+    payment.invoice?.paymentOrderId ||
+    payment.invoice?.paidReference ||
+    ''
+  );
 }
 
 export function TenantPortalPage() {
@@ -335,6 +370,38 @@ export function TenantPortalPage() {
   );
   const payableTransferContent = sepayPayment?.paymentCode || transferContent;
   const paymentQrUrl = sepayPayment?.qrCodeUrl || sepayQrImage;
+  const tenantNotifications = useMemo(
+    () =>
+      summary.payments
+        .filter((payment) =>
+          ['paid', 'pending', 'overdue'].includes(payment.status),
+        )
+        .slice(0, 5)
+        .map((payment) => {
+          const reference = getPaymentReference(payment);
+          const amount = formatMoney(payment.amount);
+          const invoiceCode = payment.invoice
+            ? formatInvoiceCode(payment.invoice)
+            : payment.note || text.invoice;
+          const message =
+            payment.status === 'paid'
+              ? text.paymentNotificationPaid(amount, reference)
+              : payment.status === 'overdue'
+                ? text.paymentNotificationOverdue(
+                    amount,
+                    formatDate(payment.dueDate),
+                  )
+                : text.paymentNotificationPending(amount, reference);
+
+          return {
+            id: payment._id,
+            invoiceCode,
+            message,
+            status: payment.status,
+          };
+        }),
+    [summary.payments, text],
+  );
 
   async function handleCopyTransferContent() {
     if (!payableTransferContent) return;
@@ -420,6 +487,36 @@ export function TenantPortalPage() {
           </small>
         </article>
       </div>
+
+      <section className="tenant-notification-panel">
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow">{text.billing}</span>
+            <h2>
+              <Bell className="button-icon" size={18} strokeWidth={2.5} />
+              {text.paymentNotification}
+            </h2>
+          </div>
+        </div>
+        {tenantNotifications.length === 0 ? (
+          <p className="empty-note">{text.paymentNotificationEmpty}</p>
+        ) : (
+          <div className="tenant-notification-list">
+            {tenantNotifications.map((notification) => (
+              <article
+                className={`tenant-notification-item status-${notification.status}`}
+                key={notification.id}
+              >
+                <CheckCircle2 size={18} strokeWidth={2.5} />
+                <div>
+                  <strong>{notification.invoiceCode}</strong>
+                  <span>{notification.message}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="work-queue-grid">
         <section className="dashboard-panel">
@@ -519,35 +616,6 @@ export function TenantPortalPage() {
                         ? text.loading
                         : text.sepayPay}
                     </button>
-                  ) : null}
-                  {sepayPayment?.invoiceId === invoice._id ? (
-                    <div className="invoice-payment-qr">
-                      <div className="payment-qr-box">
-                        <span>{text.scanToPay}</span>
-                        <img
-                          alt={`${text.paymentQr} ${paymentInstructions.bankAccountName || text.invoice}`}
-                          src={paymentQrUrl}
-                        />
-                      </div>
-                      <div className="invoice-payment-details">
-                        <span>{text.paymentAmount}</span>
-                        <strong>{formatMoney(sepayPayment.amount)}</strong>
-                        <span>{text.transferContent}</span>
-                        <strong>{sepayPayment.paymentCode}</strong>
-                        <button
-                          className="secondary-button"
-                          type="button"
-                          onClick={handleCopyTransferContent}
-                        >
-                          <Copy
-                            className="button-icon"
-                            size={16}
-                            strokeWidth={2.5}
-                          />
-                          {text.copyTransferContent}
-                        </button>
-                      </div>
-                    </div>
                   ) : null}
                 </article>
               ))}
@@ -658,6 +726,11 @@ export function TenantPortalPage() {
                   </td>
                   <td>
                     <strong>{formatMoney(payment.amount)}</strong>
+                    {getPaymentReference(payment) ? (
+                      <span>
+                        {text.paymentCode}: {getPaymentReference(payment)}
+                      </span>
+                    ) : null}
                   </td>
                   <td>
                     <strong>{getStatusLabel(payment.status, text)}</strong>

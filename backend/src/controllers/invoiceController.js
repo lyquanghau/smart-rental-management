@@ -138,6 +138,137 @@ function buildTransferContent(setting, invoice) {
     .replaceAll('{year}', String(invoice.year || ''));
 }
 
+const vietnameseNumberWords = [
+  'khong',
+  'mot',
+  'hai',
+  'ba',
+  'bon',
+  'nam',
+  'sau',
+  'bay',
+  'tam',
+  'chin',
+];
+
+function readThreeDigits(value, hasHigherGroup = false) {
+  const hundred = Math.floor(value / 100);
+  const ten = Math.floor((value % 100) / 10);
+  const unit = value % 10;
+  const parts = [];
+
+  if (hundred > 0) {
+    parts.push(`${vietnameseNumberWords[hundred]} tram`);
+  } else if (hasHigherGroup && (ten > 0 || unit > 0)) {
+    parts.push('khong tram');
+  }
+
+  if (ten > 1) {
+    parts.push(`${vietnameseNumberWords[ten]} muoi`);
+    if (unit === 1) parts.push('mot');
+    else if (unit === 5) parts.push('lam');
+    else if (unit > 0) parts.push(vietnameseNumberWords[unit]);
+  } else if (ten === 1) {
+    parts.push('muoi');
+    if (unit === 5) parts.push('lam');
+    else if (unit > 0) parts.push(vietnameseNumberWords[unit]);
+  } else if (unit > 0) {
+    if (hasHigherGroup && hundred > 0) parts.push('le');
+    parts.push(vietnameseNumberWords[unit]);
+  }
+
+  return parts.join(' ');
+}
+
+function formatMoneyInWords(value) {
+  const amount = Math.round(Number(value || 0));
+  if (amount === 0) return 'Khong dong';
+
+  const units = ['', 'nghin', 'trieu', 'ty'];
+  const groups = [];
+  let remaining = amount;
+
+  while (remaining > 0) {
+    groups.push(remaining % 1000);
+    remaining = Math.floor(remaining / 1000);
+  }
+
+  const words = [];
+  for (let index = groups.length - 1; index >= 0; index -= 1) {
+    const group = groups[index];
+    if (group === 0) continue;
+    const text = readThreeDigits(group, index < groups.length - 1);
+    words.push(`${text}${units[index] ? ` ${units[index]}` : ''}`);
+  }
+
+  const result = words.join(' ').trim();
+  return `${result.charAt(0).toUpperCase()}${result.slice(1)} dong`;
+}
+
+function getInvoiceItemAmount(invoice, keywords) {
+  const normalizedKeywords = keywords.map((keyword) => keyword.toLowerCase());
+  const item = (invoice.items || []).find((current) =>
+    normalizedKeywords.some((keyword) =>
+      String(current.name || '')
+        .toLowerCase()
+        .includes(keyword),
+    ),
+  );
+
+  return Number(item?.amount || 0);
+}
+
+function buildInvoiceCostRows(invoice) {
+  const electricityAmount =
+    invoice.utilityReading?.electricityAmount ||
+    getInvoiceItemAmount(invoice, ['dien', 'điện']);
+  const waterAmount =
+    invoice.utilityReading?.waterAmount ||
+    getInvoiceItemAmount(invoice, ['nuoc', 'nước']);
+  const otherAmount = Math.max(
+    Number(invoice.serviceAmount || 0) -
+      Number(electricityAmount || 0) -
+      Number(waterAmount || 0),
+    0,
+  );
+
+  const rows = [
+    {
+      amount: invoice.rentAmount,
+      label: 'Tien tro co ban',
+      note: `Phong ${invoice.room?.name || 'N/A'}`,
+    },
+  ];
+
+  if (invoice.utilityReading) {
+    rows.push(
+      {
+        amount: electricityAmount,
+        label: 'Tien dien',
+        note: `${invoice.utilityReading.electricityPrevious || 0} -> ${invoice.utilityReading.electricityCurrent || 0} (${invoice.utilityReading.electricityUsage || 0} kWh)`,
+      },
+      {
+        amount: waterAmount,
+        label: 'Tien nuoc',
+        note: `${invoice.utilityReading.waterPrevious || 0} -> ${invoice.utilityReading.waterCurrent || 0} (${invoice.utilityReading.waterUsage || 0} m3)`,
+      },
+    );
+  } else {
+    if (electricityAmount > 0) {
+      rows.push({ amount: electricityAmount, label: 'Tien dien', note: '-' });
+    }
+    if (waterAmount > 0) {
+      rows.push({ amount: waterAmount, label: 'Tien nuoc', note: '-' });
+    }
+  }
+
+  if (otherAmount > 0) {
+    rows.push({ amount: otherAmount, label: 'Chi phi khac', note: '-' });
+  }
+
+  return rows;
+}
+
 async function getInvoiceForUser(req) {
   const filters =
     req.user.role === 'landlord'
@@ -175,131 +306,91 @@ function buildInvoicePdf(invoice, setting, res) {
     document.font('Vietnamese');
   }
 
-  document.rect(0, 0, 595.28, 122).fill('#e0f2fe');
-  document.rect(0, 0, 595.28, 12).fill('#0284c7');
-  document.fillColor('#075985').fontSize(18).text('SMART RENTAL', 48, 54);
-  document
-    .fillColor('#0f172a')
-    .fontSize(18)
-    .text('HOA DON TIEN PHONG', 290, 54, { align: 'right', width: 257 });
-  document
-    .fillColor('#475569')
-    .fontSize(10)
-    .text(`Ma hoa don: ${formatInvoiceCode(invoice)}`, 290, 80, {
-      align: 'right',
-      width: 257,
-    });
-
-  document.y = 148;
-  document.fillColor('#0f172a').fontSize(11);
-  document.text(`Phong: ${invoice.room?.name || 'N/A'}`, 48, document.y, {
-    width: 170,
+  document.fillColor('#111827').fontSize(18).text('PHIEU THU TIEN THUE NHA', {
+    align: 'center',
   });
-  document.text(`Khach thue: ${invoice.tenant?.fullName || 'N/A'}`, 230, 148, {
+  document.moveDown(0.7);
+  document
+    .fontSize(12)
+    .text(`Thoi gian: ${invoice.month}/${invoice.year}`, { align: 'center' });
+  document.moveDown(1.2);
+
+  const address =
+    setting?.rentalAddress ||
+    setting?.bankAccountName ||
+    '........................................................';
+  document.fontSize(11.5);
+  document.text(`Dia chi nha cho thue: ${address}`);
+  document.moveDown(0.6);
+  document.text(`So phong: ${invoice.room?.name || 'N/A'}`);
+  document.moveDown(0.6);
+  document.text(`Ho va ten nguoi thue: ${invoice.tenant?.fullName || 'N/A'}`);
+  document.moveDown(0.6);
+  document.text(
+    `Noi dung: Thanh toan tien thue nha thang ${invoice.month} nam ${invoice.year}`,
+  );
+  document.moveDown(0.8);
+
+  const rows = buildInvoiceCostRows(invoice);
+  const tableTop = document.y;
+  document.rect(48, tableTop, 499, 26).stroke('#111827');
+  document.text('Khoan thu', 58, tableTop + 8, { width: 190 });
+  document.text('Thong tin', 250, tableTop + 8, { width: 150 });
+  document.text('Thanh tien', 410, tableTop + 8, {
+    align: 'right',
+    width: 120,
+  });
+
+  let rowY = tableTop + 26;
+  for (const row of rows) {
+    document.rect(48, rowY, 499, 28).stroke('#d1d5db');
+    document.text(row.label, 58, rowY + 8, { width: 180 });
+    document.text(row.note, 250, rowY + 8, { width: 150 });
+    document.text(formatMoney(row.amount), 410, rowY + 8, {
+      align: 'right',
+      width: 120,
+    });
+    rowY += 28;
+  }
+
+  rowY += 12;
+  document.fontSize(12).text(`So tien: ${formatMoney(invoice.totalAmount)}`, {
+    continued: false,
+  });
+  document.moveDown(0.5);
+  document
+    .fontSize(11.5)
+    .text(`Bang chu: ${formatMoneyInWords(invoice.totalAmount)}`);
+  document.moveDown(0.5);
+  document.text(`Ma hoa don: ${formatInvoiceCode(invoice)}`);
+  document.text(`Han thanh toan: ${formatDate(invoice.dueDate)}`);
+  if (invoice.paymentOrderId) {
+    document.text(`Noi dung chuyen khoan: ${invoice.paymentOrderId}`);
+  } else if (setting) {
+    document.text(
+      `Noi dung chuyen khoan: ${buildTransferContent(setting, invoice)}`,
+    );
+  }
+
+  document.moveDown(3);
+  const signatureY = document.y;
+  document.fontSize(12);
+  document.text('DAI DIEN BEN THUE', 70, signatureY, {
+    align: 'center',
     width: 180,
   });
-  document.text(`Ky: ${invoice.month}/${invoice.year}`, 430, 148, {
-    align: 'right',
-    width: 117,
+  document.fontSize(10).text('(ki, ghi ro ho va ten)', 70, signatureY + 20, {
+    align: 'center',
+    width: 180,
   });
-  document.moveDown(0.8);
-  document
-    .fillColor('#475569')
-    .fontSize(10)
-    .text(`Han thanh toan: ${formatDate(invoice.dueDate)}`)
-    .text(`Trang thai: ${invoice.status}`);
-
-  const tableTop = document.y + 22;
-  document
-    .roundedRect(48, tableTop, 499, 28, 6)
-    .fillAndStroke('#f8fafc', '#dbeafe');
-  document.fillColor('#0f172a').fontSize(10);
-  document.text('Khoan muc', 60, tableTop + 9, { width: 190 });
-  document.text('So luong', 260, tableTop + 9, { align: 'right', width: 70 });
-  document.text('Don gia', 348, tableTop + 9, { align: 'right', width: 80 });
-  document.text('Thanh tien', 438, tableTop + 9, {
-    align: 'right',
-    width: 92,
+  document.fontSize(12).text('DAI DIEN BEN CHO THUE', 345, signatureY, {
+    align: 'center',
+    width: 180,
   });
-
-  let rowY = tableTop + 34;
-  for (const item of invoice.items || []) {
-    document
-      .roundedRect(48, rowY, 499, 30, 5)
-      .fillAndStroke('#ffffff', '#e0ecff');
-    document.fillColor('#0f172a').fontSize(9.5);
-    document.text(item.name, 60, rowY + 10, { width: 190 });
-    document.text(String(item.quantity), 260, rowY + 10, {
-      align: 'right',
-      width: 70,
-    });
-    document.text(formatMoney(item.unitPrice), 348, rowY + 10, {
-      align: 'right',
-      width: 80,
-    });
-    document.text(formatMoney(item.amount), 438, rowY + 10, {
-      align: 'right',
-      width: 92,
-    });
-    rowY += 34;
-  }
-
-  rowY += 8;
-  document
-    .roundedRect(330, rowY, 217, 40, 7)
-    .fillAndStroke('#e0f2fe', '#bae6fd');
-  document
-    .fillColor('#075985')
-    .fontSize(10)
-    .text('Tong thanh toan', 346, rowY + 9, { width: 90 });
-  document.fontSize(12).text(formatMoney(invoice.totalAmount), 438, rowY + 8, {
-    align: 'right',
-    width: 92,
+  document.fontSize(10).text('(ki, ghi ro ho va ten)', 345, signatureY + 20, {
+    align: 'center',
+    width: 180,
   });
-
-  rowY += 64;
-  document
-    .fillColor('#075985')
-    .fontSize(12)
-    .text('Thong tin chuyen khoan', 48, rowY);
-  rowY += 22;
-  if (
-    setting?.bankName &&
-    setting?.bankAccountNumber &&
-    setting?.bankAccountName
-  ) {
-    document.fillColor('#0f172a').fontSize(10);
-    document.text(`Ngan hang: ${setting.bankName}`, 48, rowY);
-    document.text(`So tai khoan: ${setting.bankAccountNumber}`, 48, rowY + 18);
-    document.text(`Chu tai khoan: ${setting.bankAccountName}`, 48, rowY + 36);
-    document.text(
-      `Noi dung: ${buildTransferContent(setting, invoice)}`,
-      48,
-      rowY + 54,
-      {
-        width: 499,
-      },
-    );
-    if (setting.paymentNote) {
-      document.fillColor('#475569').text(setting.paymentNote, 48, rowY + 78, {
-        lineGap: 2,
-        width: 499,
-      });
-    }
-  } else {
-    document
-      .fillColor('#475569')
-      .fontSize(10)
-      .text('Chu tro chua cau hinh thong tin chuyen khoan.', 48, rowY);
-  }
-
-  document
-    .fillColor('#94a3b8')
-    .fontSize(8)
-    .text(`Smart Rental - ${formatDate(new Date())}`, 48, 804, {
-      align: 'center',
-      width: 499,
-    });
 
   document.end();
 }

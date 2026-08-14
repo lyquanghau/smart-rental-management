@@ -30,7 +30,8 @@ const paymentPopulate = [
   },
   {
     path: 'invoice',
-    select: 'month year dueDate rentAmount serviceAmount totalAmount status',
+    select:
+      'month year dueDate rentAmount serviceAmount totalAmount status paymentOrderId paymentQrCodeUrl paidReference paidAt',
   },
 ];
 

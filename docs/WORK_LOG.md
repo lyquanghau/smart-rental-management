@@ -26,6 +26,20 @@
   - Moi thong bao hien them thoi gian tao de admin de scan.
 - Tren mobile van giu nut icon gon de khong vo header.
 
+### Bo sung thong bao tenant va mau phieu thu
+
+- Cong khach thue:
+  - Them khoi `Thong bao giao dich` de khach thay nhanh cac payment `paid`, `pending`, `overdue`.
+  - Giao dich da thanh toan hien trong lich su thanh toan kem noi dung/reference thanh toan neu co.
+  - QR thanh toan khong con hien lap lai trong tung dong hoa don; QR chi nam trong khoi huong dan
+    thanh toan cho hoa don dang mo.
+- Backend tenant portal tra them `paymentOrderId`, `paidReference`, `paidAt` cua invoice trong lich su
+  payment de frontend hien ma giao dich/thanh toan.
+- PDF hoa don doi sang mau `Phieu thu tien thue nha`:
+  - Co thoi gian, dia chi/so phong, ho ten nguoi thue.
+  - Co cac dong tien tro co ban, tien dien, tien nuoc va chi phi khac truoc tong tien.
+  - Co tong tien bang so, bang chu, ma hoa don/noi dung chuyen khoan va khu vuc ky ten hai ben.
+
 ### Rà soát tiến độ đầu phiên
 
 - Đang ở nhánh `main`, đồng bộ với `origin/main`.

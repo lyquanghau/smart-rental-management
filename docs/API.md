@@ -786,8 +786,9 @@ Trả chi tiết hóa đơn gồm tiền phòng, tiền dịch vụ và từng d
 Yeu cau JWT. Landlord chi tai duoc hoa don thuoc owner cua minh; tenant chi tai duoc hoa don
 cua ho so tenant dang dang nhap.
 
-Tra ve file PDF hoa don gom thong tin phong, khach thue, ky hoa don, bang ke chi phi,
-tong thanh toan va thong tin chuyen khoan neu chu tro da cau hinh.
+Tra ve file PDF dang `Phieu thu tien thue nha` gom thong tin phong, khach thue, ky hoa don,
+tien tro co ban, thong so/chi phi dien nuoc, chi phi khac, tong thanh toan, bang chu va khu vuc
+ky ten hai ben.
 
 ### POST /invoices/:id/momo-payment-link
 
@@ -915,6 +916,10 @@ Yeu cau role `tenant`.
 
 Response tra ho so khach thue hien tai, phong, hop dong, hoa don, thanh toan va
 `paymentInstructions` lay tu cau hinh cua chu tro dang quan ly hop dong.
+
+Frontend cong khach thue dung `payments` de hien thong bao trang thai giao dich va lich su thanh
+toan. Payment co invoice lien ket se tra them ma/noi dung thanh toan nhu `paymentOrderId`,
+`paidReference`, `paidAt` khi co.
 
 ```json
 {
