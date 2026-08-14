@@ -45,8 +45,26 @@ function createOrderId(invoice) {
   return `INV${String(invoice._id).slice(-18).toUpperCase()}`;
 }
 
-function createSepayCode(invoice) {
-  return `SRINV${String(invoice._id).slice(-10).toUpperCase()}`;
+function normalizeSepayRoomName(roomName) {
+  return String(roomName || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .replace(/[^A-Z0-9-]/g, '');
+}
+
+export function createSepayCode(invoice) {
+  const roomName = normalizeSepayRoomName(invoice.room?.name);
+
+  if (!roomName || !invoice.month || !invoice.year) {
+    return `SRINV${String(invoice._id).slice(-10).toUpperCase()}`;
+  }
+
+  return `P${roomName}-HD-T${invoice.month}-${invoice.year}`;
+}
+
+function isReadableSepayCode(value) {
+  return /^P[A-Z0-9-]+-HD-T\d{1,2}-\d{4}$/i.test(String(value || '').trim());
 }
 
 function buildVietQrUrl({ amount, paymentCode, setting }) {
@@ -112,7 +130,9 @@ function buildMockPayment(invoice) {
 }
 
 function buildSepayPayment(invoice) {
-  const orderId = invoice.paymentOrderId || createSepayCode(invoice);
+  const orderId = isReadableSepayCode(invoice.paymentOrderId)
+    ? invoice.paymentOrderId
+    : createSepayCode(invoice);
 
   return {
     mockMode: env.sepay.mockMode,
@@ -332,10 +352,22 @@ function normalizeSepayPayload(payload) {
   };
 }
 
-function findSepayOrderId({ code, content }) {
-  if (code.startsWith('SRINV')) return code;
+export function findSepayOrderId({ code, content }) {
+  const readableCodePattern = /P[A-Z0-9-]+-HD-T\d{1,2}-\d{4}/i;
+  const legacyCodePattern = /SRINV[A-Z0-9]+/i;
+  const normalizedCode = String(code || '')
+    .trim()
+    .toUpperCase();
 
-  const match = content.match(/SRINV[A-Z0-9]+/i);
+  if (readableCodePattern.test(normalizedCode)) {
+    return normalizedCode.match(readableCodePattern)[0].toUpperCase();
+  }
+
+  if (normalizedCode.startsWith('SRINV')) return normalizedCode;
+
+  const match =
+    String(content || '').match(readableCodePattern) ||
+    String(content || '').match(legacyCodePattern);
   return match ? match[0].toUpperCase() : '';
 }
 
@@ -424,7 +456,9 @@ export async function simulateSepaySuccess(req, res, next) {
     }
 
     const invoice = await getInvoiceForPayment(req);
-    const orderId = invoice.paymentOrderId || createSepayCode(invoice);
+    const orderId = isReadableSepayCode(invoice.paymentOrderId)
+      ? invoice.paymentOrderId
+      : createSepayCode(invoice);
 
     invoice.paymentProvider = 'sepay';
     invoice.paymentOrderId = orderId;

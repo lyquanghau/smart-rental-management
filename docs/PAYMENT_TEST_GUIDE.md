@@ -83,7 +83,7 @@ Tenant@123456
 6. Ket qua dung:
    - Hien QR/VietQR.
    - Hien so tien `2,600,000 VND`.
-   - Noi dung chuyen khoan bat dau bang `SRINV...`.
+   - Noi dung chuyen khoan co dang `P{roomName}-HD-T{month}-{year}`, vi du `P102-HD-T8-2026`.
 
 Neu trong UI co nut mock thanh toan o moi truong dev thi bam mock va kiem tra:
 
@@ -116,7 +116,7 @@ Checklist:
 
 1. Tenant bam `Hien QR thanh toan`.
 2. Chuyen khoan dung so tien.
-3. Noi dung chuyen khoan dung ma `SRINV...`.
+3. Noi dung chuyen khoan dung ma dang `P{roomName}-HD-T{month}-{year}`.
 4. Xem SePay delivery log phai tra success.
 5. Vao app kiem tra hoa don/payment sang `paid`.
 6. Kiem tra landlord notification va Discord.
@@ -125,5 +125,6 @@ Checklist:
 
 - QR khong co amount/addInfo: kiem tra `Ma ngan hang VietQR`, so tai khoan va chu tai khoan trong trang `Dich vu`.
 - SePay webhook 401: sai `SEPAY_WEBHOOK_SECRET`, sai timestamp/signature, hoac Render chua redeploy sau khi doi env.
-- Hoa don khong sang `paid`: so tien chuyen khoan khong khop `Invoice.totalAmount` hoac noi dung khong co ma `SRINV...`.
+- Hoa don khong sang `paid`: so tien chuyen khoan khong khop `Invoice.totalAmount` hoac noi dung
+  khong co ma thanh toan, vi du `P102-HD-T8-2026`.
 - Discord khong nhan message: kiem tra `DISCORD_WEBHOOK_URL`; loi Discord khong lam fail giao dich.

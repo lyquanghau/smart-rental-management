@@ -168,10 +168,12 @@ Endpoint nền:
 
 SePay la huong uu tien cho san pham dung that vi phu hop luong chu tro nhan tien qua ngan hang:
 
-- `POST /api/invoices/:id/sepay-payment-code` tao ma thanh toan dang `SRINV...`.
+- `POST /api/invoices/:id/sepay-payment-code` tao ma thanh toan de nhap tay de hon, dang
+  `P{roomName}-HD-T{month}-{year}`. Vi du: `P102-HD-T8-2026`.
 - Tenant dung ma nay lam noi dung chuyen khoan/VietQR.
 - `POST /api/webhooks/sepay` nhan giao dich tien vao tu SePay, verify HMAC/API key,
   doi soat theo ma thanh toan va so tien.
+- Webhook van nhan ma cu dang `SRINV...` de tuong thich voi hoa don da tao truoc khi doi format.
 - `POST /api/invoices/:id/sepay-mock-success` dung cho dev/demo khi chua cau hinh webhook that.
 - Khi giao dich thanh cong, backend tu dong chuyen `Invoice` va `Payment` lien quan sang `paid`,
   method/provider `sepay`, tao notification cho landlord va gui Discord webhook neu da cau hinh

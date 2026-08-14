@@ -2,6 +2,21 @@
 
 ## 2026-08-14
 
+### Doi ma SePay sang noi dung de nhap tay
+
+- Chot format ma thanh toan SePay moi: `P{roomName}-HD-T{month}-{year}`.
+  - Vi du phong `102`, hoa don thang `8/2026`: `P102-HD-T8-2026`.
+- Muc tieu: khach thue co the tu nhap/copy noi dung chuyen khoan de hon so voi ma dai dang
+  `SRINV...`, nhung backend van doi soat duoc dung hoa don.
+- Backend:
+  - `POST /api/invoices/:id/sepay-payment-code` sinh ma SePay moi theo phong + ky hoa don.
+  - Webhook SePay tim ma moi trong `code` hoac `content`.
+  - Van ho tro ma cu `SRINV...` de tuong thich voi hoa don da tao truoc do.
+  - Neu hoa don chua thanh toan da co ma cu, khi lay lai ma SePay backend se doi sang format moi.
+- Bo sung test unit cho tao ma SePay moi, normalize ten phong va parser webhook nhan ca ma moi/ma cu.
+- Tai lieu cap nhat: `docs/API.md`, `docs/MODULES.md`, `docs/PAYMENT_TEST_GUIDE.md`,
+  `docs/TEST_CHECKLIST.md`.
+
 ### Rà soát tiến độ đầu phiên
 
 - Đang ở nhánh `main`, đồng bộ với `origin/main`.

@@ -134,16 +134,17 @@ Ghi chú: VNPay/MoMo hiện ở mức phương thức ghi nhận/mock. Nếu san
 - Dat `SEPAY_MOCK_MODE=true` trong backend `.env` de test nhanh local.
 - Tao hoa don thang cho hop dong active.
 - Dang nhap bang tai khoan tenant, vao Cong khach thue.
-- Bam `Lay ma SePay`, kiem tra API tra `paymentCode` bat dau bang `SRINV`.
-- Kiem tra noi dung chuyen khoan tren cong khach thue doi sang ma `SRINV...` va copy duoc.
+- Bam `Lay ma SePay`, kiem tra API tra `paymentCode` dang `P{roomName}-HD-T{month}-{year}`.
+- Kiem tra noi dung chuyen khoan tren cong khach thue doi sang ma de doc, vi du
+  `P102-HD-T8-2026`, va copy duoc.
 - Bam `Gia lap da thanh toan`, kiem tra hoa don chuyen sang `paid`, payment lien quan chuyen sang
   `paid`, method/provider `sepay`.
 - Dang nhap landlord, kiem tra Header hien badge thong bao chua doc.
 - Khi test SePay that: tao webhook tren SePay dashboard, chon Money in, HMAC-SHA256,
   URL `https://<backend-domain>/api/webhooks/sepay`, copy Secret Key vao `SEPAY_WEBHOOK_SECRET`,
   dat `SEPAY_MOCK_MODE=false`, `SEPAY_AUTH_MODE=hmac`.
-- Chuyen khoan so tien dung bang hoa don va noi dung chua ma `SRINV...`; kiem tra SePay delivery log
-  tra success va invoice tu dong sang `paid`.
+- Chuyen khoan so tien dung bang hoa don va noi dung chua ma dang `P{roomName}-HD-T{month}-{year}`;
+  kiem tra SePay delivery log tra success va invoice tu dong sang `paid`.
 
 ## 13. Auto overdue va Discord webhook
 

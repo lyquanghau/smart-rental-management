@@ -845,6 +845,9 @@ hoa don thuoc owner cua minh.
 Tao ma thanh toan SePay/VietQR cho hoa don chua `paid`/`cancelled`. Tenant dung ma nay trong
 noi dung chuyen khoan de SePay webhook co the doi soat tu dong.
 
+Ma thanh toan moi co dang `P{roomName}-HD-T{month}-{year}`, vi du `P102-HD-T8-2026`.
+Backend van nhan ma cu dang `SRINV...` de khong lam hong cac hoa don da tao truoc do.
+
 Response:
 
 ```json
@@ -852,8 +855,8 @@ Response:
   "data": {
     "invoiceId": "...",
     "amount": 2700000,
-    "orderId": "SRINV...",
-    "paymentCode": "SRINV...",
+    "orderId": "P102-HD-T8-2026",
+    "paymentCode": "P102-HD-T8-2026",
     "mockMode": true
   },
   "message": "Da tao ma thanh toan SePay"
@@ -1008,8 +1011,8 @@ Payload SePay chinh:
   "gateway": "Vietcombank",
   "transactionDate": "2026-08-05 11:08:33",
   "accountNumber": "1017588888",
-  "code": "SRINVABC123",
-  "content": "SRINVABC123 chuyen tien",
+  "code": "P102-HD-T8-2026",
+  "content": "P102-HD-T8-2026 chuyen tien",
   "transferType": "in",
   "transferAmount": 2700000,
   "referenceCode": "FT24012345678"
@@ -1021,7 +1024,7 @@ Backend xu ly:
 - Verify webhook theo `SEPAY_AUTH_MODE`: `hmac`, `api_key`, hoac `none` chi cho dev.
 - Voi `hmac`, verify `X-SePay-Signature` va `X-SePay-Timestamp` bang `SEPAY_WEBHOOK_SECRET`.
 - Chi xu ly tien vao `transferType=in`.
-- Tim ma `SRINV...` tu `code` hoac `content`.
+- Tim ma `P{roomName}-HD-T{month}-{year}` tu `code` hoac `content`; van ho tro ma cu `SRINV...`.
 - Kiem tra `transferAmount` khop `Invoice.totalAmount`.
 - Cap nhat invoice/payment sang `paid` va tao notification.
 - Gui message Discord neu backend da cau hinh `DISCORD_WEBHOOK_URL`; loi Discord khong lam fail
