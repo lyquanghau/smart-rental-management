@@ -17,6 +17,15 @@
 - Tai lieu cap nhat: `docs/API.md`, `docs/MODULES.md`, `docs/PAYMENT_TEST_GUIDE.md`,
   `docs/TEST_CHECKLIST.md`.
 
+### Cai thien chuong thong bao admin
+
+- Chinh nut thong bao tren header cua landlord de de nhin hon:
+  - Them nhan `Thong bao` tren desktop.
+  - Tang do noi cua nen, vien va badge so thong bao chua doc.
+  - Popup thong bao rong hon, thong bao chua doc co cham trang thai va nen noi bat.
+  - Moi thong bao hien them thoi gian tao de admin de scan.
+- Tren mobile van giu nut icon gon de khong vo header.
+
 ### Rà soát tiến độ đầu phiên
 
 - Đang ở nhánh `main`, đồng bộ với `origin/main`.

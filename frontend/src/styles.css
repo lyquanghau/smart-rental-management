@@ -199,46 +199,62 @@ a {
 }
 
 .notification-trigger {
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  min-height: 42px;
-  min-width: 42px;
-  padding: 0;
+  align-items: center;
+  background: #eef6ff;
+  border: 1px solid #93c5fd;
+  box-shadow: 0 8px 18px rgba(2, 132, 199, 0.14);
+  color: #075985;
+  display: inline-flex;
+  gap: var(--space-2);
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
   position: relative;
+}
+
+.notification-trigger:hover,
+.notification-trigger[aria-expanded='true'] {
+  background: #dbeafe;
+  border-color: #38bdf8;
+  color: #0c4a6e;
+}
+
+.notification-trigger-label {
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
 .notification-badge {
   align-items: center;
   background: var(--color-red);
-  border: 2px solid var(--color-surface);
+  border: 2px solid #ffffff;
   border-radius: 999px;
   color: #ffffff;
   display: inline-flex;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 800;
   justify-content: center;
-  min-height: 20px;
-  min-width: 20px;
-  padding: 0 5px;
+  min-height: 22px;
+  min-width: 22px;
+  padding: 0 6px;
   position: absolute;
-  right: -8px;
-  top: -8px;
+  right: -9px;
+  top: -9px;
 }
 
 .notification-popover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   display: grid;
   gap: var(--space-3);
-  max-width: min(360px, calc(100vw - 32px));
-  padding: var(--space-3);
+  max-width: min(420px, calc(100vw - 32px));
+  padding: var(--space-4);
   position: absolute;
   right: 0;
   top: calc(100% + 12px);
-  width: 360px;
+  width: 420px;
   z-index: 60;
 }
 
@@ -253,6 +269,16 @@ a {
   font-size: 1rem;
 }
 
+.notification-popover-header .icon-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: var(--space-2);
+  min-width: max-content;
+  padding: 0 12px;
+  white-space: nowrap;
+  width: auto;
+}
+
 .notification-list {
   display: grid;
   gap: var(--space-2);
@@ -262,9 +288,10 @@ a {
   align-items: start;
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   color: var(--color-text);
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-2);
   justify-content: stretch;
   min-height: 0;
   padding: var(--space-3);
@@ -272,8 +299,36 @@ a {
   width: 100%;
 }
 
-.notification-item strong {
+.notification-item:hover {
+  border-color: #7dd3fc;
+  box-shadow: var(--shadow-sm);
+}
+
+.notification-item-topline {
+  align-items: center;
+  color: var(--color-text);
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.notification-item-topline strong {
   font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.notification-item-topline time {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.notification-unread-dot {
+  background: #0284c7;
+  border-radius: 999px;
+  height: 8px;
+  width: 8px;
 }
 
 .notification-item span {
@@ -284,6 +339,8 @@ a {
 
 .notification-item.is-unread {
   border-color: #38bdf8;
+  background: #e0f2fe;
+  box-shadow: inset 3px 0 0 #0284c7;
 }
 
 .eyebrow {
@@ -4289,6 +4346,22 @@ html {
   border-color: #254468;
 }
 
+[data-theme='dark'] .notification-trigger {
+  background: #0f172a;
+  border-color: #38bdf8;
+  color: #bae6fd;
+}
+
+[data-theme='dark'] .notification-trigger:hover,
+[data-theme='dark'] .notification-trigger[aria-expanded='true'] {
+  background: #172554;
+  color: #e0f2fe;
+}
+
+[data-theme='dark'] .notification-item.is-unread {
+  background: #082f49;
+}
+
 [data-theme='dark'] .service-summary-card.highlight {
   background: linear-gradient(135deg, #075985, #0f766e);
 }
@@ -4306,6 +4379,19 @@ html {
 }
 
 @media (max-width: 720px) {
+  .notification-trigger {
+    padding: 0;
+  }
+
+  .notification-trigger-label {
+    display: none;
+  }
+
+  .notification-popover {
+    right: -8px;
+    width: min(420px, calc(100vw - 24px));
+  }
+
   .sidebar,
   [data-theme='dark'] .sidebar {
     height: auto;

@@ -13,17 +13,35 @@ const labels = {
     emptyNotifications: 'No notifications yet.',
     eyebrow: 'Dashboard',
     markAllRead: 'Mark all read',
+    newNotifications: 'new',
     notifications: 'Notifications',
     title: 'Rental operations today',
+    unreadNotifications: 'Unread notifications',
   },
   vi: {
     emptyNotifications: 'Chưa có thông báo.',
     eyebrow: 'Bảng điều hành',
     markAllRead: 'Đánh dấu đã đọc',
+    newNotifications: 'mới',
     notifications: 'Thông báo',
     title: 'Vận hành khu trọ hôm nay',
+    unreadNotifications: 'Thông báo chưa đọc',
   },
 };
+
+function formatNotificationTime(value, language) {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat(language === 'en' ? 'en-US' : 'vi-VN', {
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    month: '2-digit',
+  }).format(date);
+}
 
 export function Header() {
   const { language } = usePreferences();
@@ -84,8 +102,16 @@ export function Header() {
             onClick={() => setIsOpen((current) => !current)}
           >
             <Bell size={18} strokeWidth={2.5} />
+            <span className="notification-trigger-label">
+              {text.notifications}
+            </span>
             {unreadCount > 0 ? (
-              <span className="notification-badge">{unreadCount}</span>
+              <span
+                aria-label={`${unreadCount} ${text.unreadNotifications}`}
+                className="notification-badge"
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             ) : null}
           </button>
           {isOpen ? (
@@ -115,7 +141,21 @@ export function Header() {
                       type="button"
                       onClick={() => handleMarkRead(notification)}
                     >
-                      <strong>{notification.title}</strong>
+                      <span className="notification-item-topline">
+                        {!notification.readAt ? (
+                          <span
+                            aria-hidden="true"
+                            className="notification-unread-dot"
+                          />
+                        ) : null}
+                        <strong>{notification.title}</strong>
+                        <time>
+                          {formatNotificationTime(
+                            notification.createdAt,
+                            language,
+                          )}
+                        </time>
+                      </span>
                       <span>{notification.message}</span>
                     </button>
                   ))}
