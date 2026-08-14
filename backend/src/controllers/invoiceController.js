@@ -9,6 +9,7 @@ import { UtilityReading } from '../models/UtilityReading.js';
 import { syncOverdueBillingStatuses } from '../utils/billingStatus.js';
 import { createHttpError } from '../utils/httpError.js';
 import { getTenantIdForUser, ownerFilter } from '../utils/ownership.js';
+import { createSepayCode } from './paymentGatewayController.js';
 
 const invoicePopulate = [
   { path: 'room', select: 'name floor price maxOccupants status' },
@@ -162,7 +163,7 @@ function formatDate(value) {
 }
 
 function formatMoney(value) {
-  return `${Number(value || 0).toLocaleString('vi-VN')} VND`;
+  return `${Number(value || 0).toLocaleString('vi-VN')} đồng`;
 }
 
 function formatInvoiceStatus(status) {
@@ -196,17 +197,32 @@ function buildTransferContent(setting, invoice) {
     .replaceAll('{year}', String(invoice.year || ''));
 }
 
+function isReadableSepayCode(value) {
+  return /^P[A-Z0-9-]+-HD-T\d{1,2}-\d{4}$/i.test(String(value || '').trim());
+}
+
+function getInvoiceTransferContent(setting, invoice) {
+  if (isReadableSepayCode(invoice.paymentOrderId)) {
+    return invoice.paymentOrderId;
+  }
+
+  const readableCode = createSepayCode(invoice);
+  if (isReadableSepayCode(readableCode)) return readableCode;
+
+  return buildTransferContent(setting, invoice);
+}
+
 const vietnameseNumberWords = [
-  'khong',
-  'mot',
+  'không',
+  'một',
   'hai',
   'ba',
-  'bon',
-  'nam',
-  'sau',
-  'bay',
-  'tam',
-  'chin',
+  'bốn',
+  'năm',
+  'sáu',
+  'bảy',
+  'tám',
+  'chín',
 ];
 
 function readThreeDigits(value, hasHigherGroup = false) {
@@ -216,22 +232,22 @@ function readThreeDigits(value, hasHigherGroup = false) {
   const parts = [];
 
   if (hundred > 0) {
-    parts.push(`${vietnameseNumberWords[hundred]} tram`);
+    parts.push(`${vietnameseNumberWords[hundred]} trăm`);
   } else if (hasHigherGroup && (ten > 0 || unit > 0)) {
-    parts.push('khong tram');
+    parts.push('không trăm');
   }
 
   if (ten > 1) {
-    parts.push(`${vietnameseNumberWords[ten]} muoi`);
-    if (unit === 1) parts.push('mot');
-    else if (unit === 5) parts.push('lam');
+    parts.push(`${vietnameseNumberWords[ten]} mươi`);
+    if (unit === 1) parts.push('mốt');
+    else if (unit === 5) parts.push('lăm');
     else if (unit > 0) parts.push(vietnameseNumberWords[unit]);
   } else if (ten === 1) {
-    parts.push('muoi');
-    if (unit === 5) parts.push('lam');
+    parts.push('mười');
+    if (unit === 5) parts.push('lăm');
     else if (unit > 0) parts.push(vietnameseNumberWords[unit]);
   } else if (unit > 0) {
-    if (hasHigherGroup && hundred > 0) parts.push('le');
+    if (hasHigherGroup && hundred > 0) parts.push('lẻ');
     parts.push(vietnameseNumberWords[unit]);
   }
 
@@ -240,9 +256,9 @@ function readThreeDigits(value, hasHigherGroup = false) {
 
 function formatMoneyInWords(value) {
   const amount = Math.round(Number(value || 0));
-  if (amount === 0) return 'Khong dong';
+  if (amount === 0) return 'Không đồng';
 
-  const units = ['', 'nghin', 'trieu', 'ty'];
+  const units = ['', 'nghìn', 'triệu', 'tỷ'];
   const groups = [];
   let remaining = amount;
 
@@ -260,7 +276,7 @@ function formatMoneyInWords(value) {
   }
 
   const result = words.join(' ').trim();
-  return `${result.charAt(0).toUpperCase()}${result.slice(1)} dong`;
+  return `${result.charAt(0).toUpperCase()}${result.slice(1)} đồng`;
 }
 
 function getInvoiceItemAmount(invoice, keywords) {
@@ -466,15 +482,18 @@ function buildInvoicePdf(invoice, setting, res) {
 
   document.y = summaryTop + 118;
   document.font(fonts.bold).fontSize(12).fillColor('#111827');
-  document.text('Chi tiết tiền phòng và dịch vụ');
-  document.moveDown(0.5);
+  document.text('Chi tiết tiền phòng và dịch vụ', left, document.y, {
+    align: 'left',
+    width: pageWidth,
+  });
+  document.moveDown(0.7);
 
   const rows = buildMonthlyInvoiceRows(invoice, setting);
   const columns = [
-    { key: 'label', label: 'Khoản thu', width: 130, x: left },
-    { key: 'unitPrice', label: 'Đơn giá', width: 110, x: left + 130 },
-    { key: 'quantity', label: 'SL / Chỉ số', width: 180, x: left + 240 },
-    { key: 'amount', label: 'Thành tiền', width: 87, x: left + 420 },
+    { key: 'label', label: 'Khoản thu', width: 118, x: left },
+    { key: 'unitPrice', label: 'Đơn giá', width: 112, x: left + 118 },
+    { key: 'quantity', label: 'SL / Chỉ số', width: 155, x: left + 230 },
+    { key: 'amount', label: 'Thành tiền', width: 122, x: left + 385 },
   ];
   const tableTop = document.y;
   const rowHeight = 31;
@@ -516,30 +535,48 @@ function buildInvoicePdf(invoice, setting, res) {
     rowY += rowHeight;
   }
 
+  const totalTop = rowY + 10;
   document
-    .rect(left + 300, rowY + 8, pageWidth - 300, 44)
+    .roundedRect(left, totalTop, pageWidth, 42, 6)
     .fillAndStroke('#ecfdf5', '#86efac');
-  document.font(fonts.regular).fontSize(10).fillColor('#065f46');
-  document.text('Tổng tiền cần thanh toán', left + 314, rowY + 17, {
-    width: 120,
+  document.font(fonts.bold).fontSize(10.5).fillColor('#065f46');
+  document.text('Tổng tiền cần thanh toán', left + 14, totalTop + 14, {
+    width: 230,
   });
   document.font(fonts.bold).fontSize(13).fillColor('#064e3b');
-  document.text(formatMoney(invoice.totalAmount), left + 430, rowY + 15, {
+  document.text(formatMoney(invoice.totalAmount), left + 245, totalTop + 12, {
     align: 'right',
-    width: 105,
+    width: pageWidth - 260,
   });
 
-  document.y = rowY + 70;
-  document.font(fonts.regular).fontSize(10.5).fillColor('#111827');
-  document.text(`Bằng chữ: ${formatMoneyInWords(invoice.totalAmount)}`);
-  document.moveDown(0.4);
+  const paymentTop = totalTop + 58;
+  document
+    .roundedRect(left, paymentTop, pageWidth, 68, 6)
+    .fillAndStroke('#ffffff', '#d1d5db');
+  document.font(fonts.regular).fontSize(10).fillColor('#374151');
+  document.text('Bằng chữ', left + 14, paymentTop + 13, { width: 90 });
+  document.text('Nội dung chuyển khoản', left + 14, paymentTop + 39, {
+    width: 130,
+  });
+  document.font(fonts.bold).fontSize(10.5).fillColor('#111827');
   document.text(
-    `Nội dung chuyển khoản: ${
-      invoice.paymentOrderId || buildTransferContent(setting, invoice)
-    }`,
+    formatMoneyInWords(invoice.totalAmount),
+    left + 150,
+    paymentTop + 13,
+    {
+      width: pageWidth - 164,
+    },
+  );
+  document.text(
+    getInvoiceTransferContent(setting, invoice),
+    left + 150,
+    paymentTop + 39,
+    {
+      width: pageWidth - 164,
+    },
   );
 
-  document.moveDown(2.4);
+  document.y = paymentTop + 88;
   const signatureY = Math.max(document.y, 670);
   document.font(fonts.bold).fontSize(10.5).fillColor('#111827');
   document.text('ĐẠI DIỆN BÊN THUÊ', left + 28, signatureY, {

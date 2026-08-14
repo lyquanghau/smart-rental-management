@@ -1699,3 +1699,65 @@ PATCH /api/payments/:id/cancel
 - Implement:
   - Them `frontend/vercel.json` voi rewrite `/(.*)` ve `/index.html`.
   - Phu hop cau hinh Vercel dang dung `Root Directory = frontend`.
+
+### Sua hien thi so tien tren PDF hoa don
+
+- Yeu cau:
+  - PDF hoa don con loi o phan so tien va so tien bang chu.
+- Implement:
+  - Doi format tien trong PDF hoa don tu `VND` sang `dong` co dau.
+  - Doi ham doc tien bang chu sang tieng Viet co dau: `khong, mot...` thanh
+    `không, một...`, co xu ly `mươi`, `mười`, `lẻ`, `lăm`, `mốt`, `nghìn`,
+    `triệu`, `tỷ`, `đồng`.
+  - Mo rong cot `Thanh tien` va o `Tong tien can thanh toan` de tranh bi cat chu khi so tien lon.
+  - Sua layout PDF de tieu de chi tiet khong bi lech phai, tong tien hien full-width,
+    bang chu/noi dung chuyen khoan nam trong khoi rieng de de doc.
+  - Noi dung chuyen khoan tren PDF uu tien ma SePay de nhap `P{room}-HD-T{month}-{year}`;
+    neu hoa don cu dang luu `SRINV...` thi van hien ma moi khi du thong tin phong/thang/nam.
+
+### Ke hoach tiep tuc: Trợ giúp & Hỗ trợ
+
+- Trang thai hien tai:
+  - Route `/help` da ton tai cho ca chu tro va khach thue.
+  - `HelpSupportPage.jsx` hien chi hien thi cac the ghi chu tinh ve demo, du lieu mau va ho tro ky thuat.
+  - Chua co form yeu cau ho tro, model, API, luu du lieu hoac quy trinh xu ly ticket.
+  - Mot so chuoi tieng Viet trong trang dang bi loi ma hoa, can sua trong luc nang cap.
+- Pham vi da chot cho MVP:
+  - Them FAQ dung chung cho chu tro va khach thue.
+  - Them ticket ho tro dang van ban, khong upload file o phien ban dau.
+  - Khach thue tao va xem ticket cua minh.
+  - Chu tro xem, phan hoi, doi muc do uu tien va cap nhat trang thai ticket cua khach thue.
+  - Dung chuong thong bao hien co, khong gui email.
+  - Chua them role quan tri nen tang; chu tro la nguoi tiep nhan va xu ly ticket khach thue.
+- Model `SupportRequest` du kien:
+  - `owner`, `requester`, `tenant`, `category`, `subject`, `description`.
+  - `priority`: `normal`, `urgent`.
+  - `status`: `open`, `in_progress`, `resolved`, `closed`.
+  - `landlordReply`, `resolvedAt`, `createdAt`, `updatedAt`.
+- API du kien:
+  - `GET /api/support-requests`: chu tro lay ticket thuoc minh; khach thue chi lay ticket cua minh.
+  - `GET /api/support-requests/:id`: xem chi tiet theo quyen.
+  - `POST /api/support-requests`: khach thue tao ticket.
+  - `PATCH /api/support-requests/:id`: chu tro cap nhat trang thai, uu tien va phan hoi.
+  - `PATCH /api/support-requests/:id/close`: khach thue dong ticket da xu ly.
+- Phan quyen va cach ly du lieu:
+  - Xac dinh chu tro qua `Tenant.owner` va tai khoan khach thue qua `Tenant.user`.
+  - Khach thue khong doc duoc ticket cua tai khoan khac.
+  - Chu tro khong doc duoc ticket thuoc chu tro khac.
+  - Khach thue khong duoc tu sua trang thai hoac noi dung phan hoi cua chu tro.
+- Notification:
+  - Ticket moi tao se tao thong bao cho chu tro.
+  - Chu tro phan hoi hoac doi trang thai se tao thong bao cho khach thue.
+  - Mo rong entity notification voi `support_request` va bo sung recipient neu can,
+    nhung van tuong thich voi cac notification cu dang dung `owner`.
+- Frontend du kien:
+  - Khach thue thay FAQ, nut gui yeu cau, danh sach ticket, loc trang thai va nut dong ticket.
+  - Chu tro thay FAQ, danh sach ticket khach thue, loc theo trang thai/loai/muc do va form phan hoi.
+  - Giu route `/help`, render noi dung theo role thay vi tao route moi.
+- Kiem thu sau khi implement:
+  - Validate model va cac gia tri category/status/priority khong hop le.
+  - Kiem tra tao ticket, xem ticket, cap nhat, phan hoi va dong ticket.
+  - Kiem tra tenant isolation va role authorization.
+  - Kiem tra notification hai chieu tren chuong header.
+  - Sua va kiem tra hien thi tieng Viet khong loi ma hoa.
+  - Chay `npm run lint`, `npm run format:check`, `npm run test`, `npm run build`.
