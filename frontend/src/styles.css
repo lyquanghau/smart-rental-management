@@ -1022,6 +1022,19 @@ h1 {
   color: #475046;
 }
 
+.status-deleted {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.deleted-record {
+  opacity: 0.72;
+}
+
+tr.deleted-record {
+  background: rgba(254, 226, 226, 0.28);
+}
+
 .error-message {
   background: var(--color-red-soft);
   border: 1px solid #f5b7b1;
@@ -1031,12 +1044,12 @@ h1 {
 }
 
 .toast-viewport {
-  bottom: 18px;
   display: grid;
   gap: 10px;
   pointer-events: none;
   position: fixed;
   right: 18px;
+  top: 18px;
   width: min(390px, calc(100vw - 32px));
   z-index: 1100;
 }
@@ -1053,8 +1066,10 @@ h1 {
   display: grid;
   gap: 10px;
   grid-template-columns: auto minmax(0, 1fr) auto;
+  overflow: hidden;
   padding: 12px;
   pointer-events: auto;
+  position: relative;
 }
 
 .toast-success {
@@ -1067,6 +1082,25 @@ h1 {
 
 .toast-info {
   border-left-color: var(--color-blue);
+}
+
+.toast-progress {
+  animation: toast-progress var(--toast-duration, 5000ms) linear forwards;
+  background: var(--color-primary);
+  bottom: 0;
+  height: 3px;
+  left: 0;
+  position: absolute;
+  transform-origin: left center;
+  width: 100%;
+}
+
+.toast-error .toast-progress {
+  background: var(--color-red);
+}
+
+.toast-info .toast-progress {
+  background: var(--color-blue);
 }
 
 .toast-icon {
@@ -1096,14 +1130,91 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.toast-action {
+  align-items: center;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-primary-strong);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+  justify-content: flex-start;
+  min-height: 28px;
+  padding: 2px 0 0;
+  width: fit-content;
+}
+
+.toast-action:hover {
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-primary);
+}
+
 .toast-close,
-.toast-close:hover {
+.toast-close:hover,
+.confirm-close,
+.confirm-close:hover {
   background: transparent;
   box-shadow: none;
   color: var(--color-muted);
   min-height: 28px;
   padding: 0;
   width: 28px;
+}
+
+.confirm-backdrop {
+  z-index: 1200;
+}
+
+.confirm-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+  color: var(--color-text);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  max-width: min(460px, calc(100vw - 32px));
+  padding: var(--space-5);
+  width: 100%;
+}
+
+.confirm-icon {
+  align-items: center;
+  background: var(--color-red-soft);
+  border-radius: 999px;
+  color: var(--color-red);
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.confirm-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.confirm-copy h2 {
+  font-size: 18px;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.confirm-copy p {
+  color: var(--color-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  grid-column: 2 / 4;
+  justify-content: flex-end;
 }
 
 @keyframes toast-slide-in {
@@ -1115,6 +1226,16 @@ h1 {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
   }
 }
 
@@ -4228,8 +4349,13 @@ html {
 }
 
 [data-theme='dark'] .toast-copy span,
-[data-theme='dark'] .toast-close {
+[data-theme='dark'] .toast-close,
+[data-theme='dark'] .confirm-close {
   color: #b8c7dd;
+}
+
+[data-theme='dark'] .toast-action {
+  color: #5eead4;
 }
 
 [data-theme='dark'] .login-shell {
@@ -4434,9 +4560,9 @@ html {
   }
 
   .toast-viewport {
-    bottom: 12px;
     left: 12px;
     right: 12px;
+    top: 12px;
     width: auto;
   }
 
@@ -4562,6 +4688,42 @@ html {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.inline-icon {
+  display: inline-block;
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+
+.stacked-list {
+  display: grid;
+  gap: 4px;
+}
+
+.stacked-list span {
+  display: block;
+}
+
+.modal-table-panel {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.deleted-tenants-modal {
+  min-height: min(720px, calc(100dvh - 40px));
+  max-height: calc(100dvh - 32px);
+  max-width: 1280px;
+  width: min(1280px, calc(100vw - 40px));
+}
+
+.deleted-tenants-modal .modal-table-panel {
+  overflow: auto;
+}
+
+.deleted-tenants-modal table {
+  min-width: 760px;
+}
+
 [data-theme='dark'] .contract-occupants-panel {
   background: #0b1426;
   border-color: #2b4f76;
@@ -4582,6 +4744,12 @@ html {
   .modal-panel:not(.pdf-modal-panel) {
     max-height: calc(100dvh - 20px);
     max-width: none;
+    width: calc(100vw - 20px);
+  }
+
+  .deleted-tenants-modal {
+    max-height: calc(100dvh - 20px);
+    min-height: calc(100dvh - 20px);
     width: calc(100vw - 20px);
   }
 

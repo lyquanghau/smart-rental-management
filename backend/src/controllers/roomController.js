@@ -58,12 +58,17 @@ export async function listRooms(req, res, next) {
   try {
     await syncRoomOccupancyStatuses(req.user._id);
 
-    const { status, floor, page = 1, limit = 20 } = req.query;
-    const filters = ownerFilter(req, { deletedAt: null });
+    const { includeDeleted, status, floor, page = 1, limit = 20 } = req.query;
+    const shouldIncludeDeleted = includeDeleted === 'true';
+    const filters = ownerFilter(
+      req,
+      shouldIncludeDeleted ? {} : { deletedAt: null },
+    );
     const safePage = Math.max(Number(page) || 1, 1);
     const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
-    if (status) filters.status = status;
+    if (status === 'deleted') filters.deletedAt = { $ne: null };
+    else if (status) filters.status = status;
     if (floor) filters.floor = Number(floor);
 
     const [rooms, total] = await Promise.all([
@@ -92,13 +97,14 @@ export async function getRoom(req, res, next) {
     await syncRoomOccupancyStatuses(req.user._id);
 
     const [room, currentTenants, activeContract] = await Promise.all([
-      Room.findOne(ownerFilter(req, { _id: req.params.id, deletedAt: null })),
+      Room.findOne(ownerFilter(req, { _id: req.params.id })),
       Tenant.find({
         owner: req.user._id,
         room: req.params.id,
         deletedAt: null,
       }).sort({ fullName: 1 }),
       Contract.findOne({
+        deletedAt: null,
         owner: req.user._id,
         room: req.params.id,
         status: 'active',
@@ -178,6 +184,31 @@ export async function deleteRoom(req, res, next) {
     res.json({
       data: room,
       message: 'Xóa phòng thành công',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function restoreRoom(req, res, next) {
+  try {
+    const room = await Room.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id, deletedAt: { $ne: null } }),
+      { deletedAt: null },
+      { new: true, runValidators: true },
+    );
+
+    if (!room) {
+      throw createHttpError(404, 'Khong tim thay phong da xoa');
+    }
+
+    await syncRoomOccupancyStatuses(req.user._id);
+
+    const restoredRoom = await Room.findById(room._id);
+
+    res.json({
+      data: restoredRoom,
+      message: 'Khoi phuc phong thanh cong',
     });
   } catch (error) {
     next(error);

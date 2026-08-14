@@ -3,8 +3,10 @@ import {
   createContract,
   deleteContract,
   downloadContractPdf,
+  endContract,
   getContract,
   listContracts,
+  restoreContract,
   updateContract,
 } from '../controllers/contractController.js';
 import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
@@ -30,6 +32,13 @@ const contractRules = {
 
 router.get('/', requireAuth, listContracts);
 router.get('/:id/pdf', requireAuth, downloadContractPdf);
+router.patch('/:id/end', requireAuth, requireRole('landlord'), endContract);
+router.patch(
+  '/:id/restore',
+  requireAuth,
+  requireRole('landlord'),
+  restoreContract,
+);
 router.get('/:id', requireAuth, getContract);
 router.post(
   '/',

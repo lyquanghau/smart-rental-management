@@ -41,6 +41,7 @@ async function normalizeReadingPayload(body, ownerId) {
   const { month, year } = normalizeMonthYear(body.month, body.year);
   const contract = await Contract.findOne({
     _id: body.contract,
+    deletedAt: null,
     owner: ownerId,
   });
 

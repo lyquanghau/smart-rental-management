@@ -57,7 +57,10 @@ function assertValidAmount(amount) {
 
 async function getTenantContractIdsForUser(userId) {
   const tenant = await getTenantForUser(userId);
-  const contracts = await Contract.find({ tenant: tenant._id }).select('_id');
+  const contracts = await Contract.find({
+    deletedAt: null,
+    tenant: tenant._id,
+  }).select('_id');
   return contracts.map((item) => item._id);
 }
 
@@ -82,6 +85,7 @@ async function normalizePaymentPayload(body, ownerId) {
 
   const contract = await Contract.findOne({
     _id: body.contract,
+    deletedAt: null,
     owner: ownerId,
   });
 

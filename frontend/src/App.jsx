@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { ConfirmProvider } from './components/ConfirmProvider.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { ToastProvider } from './components/ToastProvider.jsx';
 import { MainLayout } from './layouts/MainLayout.jsx';
@@ -34,27 +35,29 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route element={<ProtectedRoute />}>
-          <Route path="/change-password" element={<ChangePasswordPage />} />
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<RoleHome />} />
-            <Route element={<ProtectedRoute allowedRoles={['tenant']} />}>
-              <Route path="/tenant-portal" element={<TenantPortalPage />} />
+      <ConfirmProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/change-password" element={<ChangePasswordPage />} />
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<RoleHome />} />
+              <Route element={<ProtectedRoute allowedRoles={['tenant']} />}>
+                <Route path="/tenant-portal" element={<TenantPortalPage />} />
+              </Route>
+              <Route element={<ProtectedRoute allowedRoles={['landlord']} />}>
+                <Route path="/rooms" element={<RoomsPage />} />
+                <Route path="/tenants" element={<TenantsPage />} />
+                <Route path="/contracts" element={<ContractsPage />} />
+                <Route path="/payments" element={<PaymentsPage />} />
+                <Route path="/services" element={<ServicesPage />} />
+              </Route>
+              <Route path="/help" element={<HelpSupportPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
-            <Route element={<ProtectedRoute allowedRoles={['landlord']} />}>
-              <Route path="/rooms" element={<RoomsPage />} />
-              <Route path="/tenants" element={<TenantsPage />} />
-              <Route path="/contracts" element={<ContractsPage />} />
-              <Route path="/payments" element={<PaymentsPage />} />
-              <Route path="/services" element={<ServicesPage />} />
-            </Route>
-            <Route path="/help" element={<HelpSupportPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
           </Route>
-        </Route>
-      </Routes>
+        </Routes>
+      </ConfirmProvider>
     </ToastProvider>
   );
 }

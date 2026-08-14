@@ -1,5 +1,93 @@
 # Work Log
 
+## 2026-08-14
+
+### Rà soát tiến độ đầu phiên
+
+- Đang ở nhánh `main`, đồng bộ với `origin/main`.
+- `dev`, `origin/dev`, `main`, `origin/main` đang cùng commit `54845ae`.
+- Không có nhánh local/remote nào còn commit chưa merge vào `main`.
+- File phụ trợ/untracked tiếp tục giữ ngoài commit: `chuyen_de_2.xlsx`, `code.txt`,
+  `docs/PROMPT_TEMPLATE.md`, `docs/contract/`, `docs/image/`.
+- Đối chiếu `chuyen_de_2.xlsx`: dự án đã vượt MVP ban đầu, hiện có auth, phòng, khách thuê,
+  hợp đồng, PDF, hóa đơn dịch vụ, tenant portal, dashboard, SePay/VietQR, notification nội bộ,
+  Discord webhook, multi-tenant isolation và hardening tài khoản tenant.
+- Khoảng trống để thành sản phẩm dùng thật vẫn là SePay production thật, deploy/domain ổn định,
+  backup/monitoring, legal/compliance và test E2E frontend.
+
+### Làm lại thông báo xác nhận và toast
+
+- Thêm `ConfirmProvider` dùng chung để thay popup mặc định `window.confirm` của trình duyệt.
+- Bọc app bằng `ConfirmProvider` để các page có thể gọi confirm custom qua hook `useConfirm`.
+- Nâng cấp `ToastProvider`:
+  - Toast hiển thị ở góc trên bên phải.
+  - Thời gian mặc định ban đầu là 3 giây.
+  - Hỗ trợ nút hành động trong toast, dùng cho `Hoàn tác`.
+  - Giữ nút đóng toast thủ công.
+- Thay toàn bộ `window.confirm` trong frontend bằng confirm dialog nội bộ:
+  - Xóa phòng.
+  - Xóa khách thuê.
+  - Cấp lại mật khẩu tenant.
+  - Kết thúc hợp đồng.
+  - Xác nhận đã thu khoản thu.
+  - Hủy khoản thu.
+  - Xác nhận đã thu hóa đơn.
+  - Hủy hóa đơn.
+- Thêm undo trì hoãn 3 giây cho các thao tác phá hủy/trạng thái hủy:
+  - Xóa phòng.
+  - Xóa khách thuê.
+  - Kết thúc hợp đồng.
+  - Hủy khoản thu.
+  - Hủy hóa đơn.
+- Cách làm hiện tại: UI cập nhật tạm ngay sau xác nhận, toast hiện nút `Hoàn tác`; nếu hết 3 giây
+  mà không hoàn tác thì frontend mới gọi API. Hướng này phù hợp vì backend hiện chưa có endpoint
+  restore soft-delete.
+
+### Kiểm tra
+
+- `npm run lint`: pass.
+- `npm run format:check`: pass.
+- `npm run build`: lỗi `spawn EPERM` trong sandbox Windows của Vite/esbuild.
+- `npm run build` ngoài sandbox: pass, build 1672 modules.
+
+### Điều chỉnh toast theo phản hồi
+
+- Tăng thời gian toast mặc định từ 3 giây lên 5 giây.
+- Thêm thanh tiến trình ở mép dưới toast để biểu thị thời gian tự đóng.
+- Thanh tiến trình dùng màu theo loại toast: thành công, lỗi hoặc thông tin.
+
+### Hiển thị và khôi phục bản ghi đã xóa
+
+- Thêm luồng giữ lịch sử bản ghi đã xóa thay vì để khách/phòng/hợp đồng biến mất hoàn toàn khỏi UI.
+- Backend:
+  - `Room`, `Tenant`, `Contract` hỗ trợ list kèm bản ghi đã xóa qua `includeDeleted=true`.
+  - Thêm `PATCH /rooms/:id/restore`, `PATCH /tenants/:id/restore`, `PATCH /contracts/:id/restore`.
+  - Thêm `deletedAt` cho `Contract` để phân biệt `Đã xóa` với `Đã kết thúc`.
+  - Tách `PATCH /contracts/:id/end` khỏi `DELETE /contracts/:id`.
+  - Chặn xóa khách thuê nếu khách còn hợp đồng `active` chưa xóa.
+  - Loại hợp đồng đã xóa khỏi dashboard, tạo hóa đơn, nhập chỉ số, tạo khoản thu và tenant portal.
+- Frontend:
+  - Trang `Phòng`, `Khách thuê`, `Hợp đồng` hiển thị bản ghi đã xóa với badge `Đã xóa`.
+  - Bản ghi đã xóa bị làm mờ, không cho sửa/xóa tiếp, chỉ còn hành động `Khôi phục`.
+  - Timeout undo của các thao tác xóa/hủy/kết thúc được đồng bộ lên 5 giây để khớp toast progress.
+
+### Dieu chinh luong khach thue/hop dong sau phan hoi
+
+- Trang `Khach thue` khong tron ban ghi da xoa vao bang chinh nua; them nut mo modal lich su
+  khach da xoa va co hanh dong khoi phuc ngay trong modal.
+- Bang khach thue hien theo nhom phong/hop dong active: moi dong gom phong, khach dai dien,
+  nguoi o cung trong `Contract.occupants`, lien he, tai khoan va thao tac voi khach dai dien.
+- Xoa hop dong chi soft delete hop dong va giu lai khach thue de tra cuu/tai ky.
+- Them nut tao hop dong moi tu hop dong cu tren trang `Hop dong`, tu dien khach dai dien va
+  danh sach nguoi o cung, de dung cho luong chuyen phong/tai ky.
+- Khong cho doi phong khi sua hop dong da co; frontend khoa truong phong va backend tra loi `400`
+  neu API update hop dong gui `room` khac hop dong hien tai.
+- Phong to modal `Khach da xoa` de de doc danh sach lich su hon tren desktop/mobile.
+- Doi wording cap lai mat khau thanh luong gui mat khau tam qua email, giu nguyen backend khong
+  tra plaintext password ve frontend.
+- Sau khi khoi phuc khach da xoa, frontend chuyen sang trang `Hop dong` va mo san form ky hop
+  dong moi voi khach/phong cu da duoc dien neu con du lieu.
+
 ## 2026-06-22
 
 - Tạo cấu trúc monorepo gồm `frontend` và `backend`.

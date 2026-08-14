@@ -1,7 +1,7 @@
 import { api } from './api.js';
 
-export async function getRooms() {
-  const response = await api.get('/rooms');
+export async function getRooms(params = {}) {
+  const response = await api.get('/rooms', { params });
   return response.data.data;
 }
 
@@ -22,5 +22,10 @@ export async function updateRoom(id, payload) {
 
 export async function deleteRoom(id) {
   const response = await api.delete(`/rooms/${id}`);
+  return response.data.data;
+}
+
+export async function restoreRoom(id) {
+  const response = await api.patch(`/rooms/${id}/restore`);
   return response.data.data;
 }

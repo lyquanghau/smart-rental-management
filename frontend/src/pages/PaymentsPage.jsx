@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { Modal } from '../components/Modal.jsx';
 import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
@@ -30,6 +31,8 @@ const copy = {
     addPayment: 'Add payment',
     amount: 'Amount',
     cancel: 'Cancel',
+    confirmCancelTitle: 'Cancel payment',
+    confirmPaidTitle: 'Confirm collection',
     collected: 'Collected',
     confirmCancel: (label) => `Cancel the payment for ${label}?`,
     confirmPaid: (amount, label) =>
@@ -57,11 +60,14 @@ const copy = {
     saved: 'Payment saved.',
     markedPaid: 'Payment marked as collected.',
     cancelled: 'Payment cancelled.',
+    cancelScheduled: 'Payment will be cancelled.',
+    restored: 'Payment cancellation undone.',
     selectContract: 'Select contract',
     selectContractHelp: 'Select an active contract to create a payment.',
     status: 'Status',
     update: 'Update',
     updatePayment: 'Update payment',
+    undo: 'Undo',
     visible: 'visible payments',
     empty: 'No payments yet.',
     statusOptions: [
@@ -84,6 +90,8 @@ const copy = {
     addPayment: 'Thêm khoản thu',
     amount: 'Số tiền',
     cancel: 'Hủy',
+    confirmCancelTitle: 'Hủy khoản thu',
+    confirmPaidTitle: 'Xác nhận đã thu',
     collected: 'Đã thu',
     confirmCancel: (label) => `Hủy khoản thu của ${label}?`,
     confirmPaid: (amount, label) => `Xác nhận đã thu ${amount} cho ${label}?`,
@@ -110,11 +118,14 @@ const copy = {
     saved: 'Đã lưu khoản thu.',
     markedPaid: 'Đã ghi nhận khoản thu.',
     cancelled: 'Đã hủy khoản thu.',
+    cancelScheduled: 'Khoản thu sẽ được hủy.',
+    restored: 'Đã hoàn tác hủy khoản thu.',
     selectContract: 'Chọn hợp đồng',
     selectContractHelp: 'Chọn hợp đồng đang hiệu lực để tạo khoản thu.',
     status: 'Trạng thái',
     update: 'Cập nhật',
     updatePayment: 'Cập nhật khoản thu',
+    undo: 'Hoàn tác',
     visible: 'khoản thu đang hiển thị',
     empty: 'Chưa có khoản thu nào.',
     statusOptions: [
@@ -191,7 +202,8 @@ function toPayload(formData) {
 
 export function PaymentsPage() {
   const { language } = usePreferences();
-  const { showError, showSuccess } = useToast();
+  const { confirm } = useConfirm();
+  const { showError, showSuccess, showToast } = useToast();
   const text = copy[language] || copy.vi;
   const [payments, setPayments] = useState([]);
   const [contracts, setContracts] = useState([]);
@@ -305,12 +317,15 @@ export function PaymentsPage() {
   async function handleMarkPaid(payment) {
     if (payment.status === 'paid' || payment.status === 'cancelled') return;
 
-    const confirmed = window.confirm(
-      text.confirmPaid(
+    const confirmed = await confirm({
+      confirmLabel: text.collected,
+      message: text.confirmPaid(
         formatMoney(payment.amount),
         getContractLabel(payment.contract, text),
       ),
-    );
+      title: text.confirmPaidTitle,
+      tone: 'default',
+    });
 
     if (!confirmed) return;
 
@@ -333,23 +348,49 @@ export function PaymentsPage() {
   async function handleCancel(payment) {
     if (payment.status === 'paid' || payment.status === 'cancelled') return;
 
-    const confirmed = window.confirm(
-      text.confirmCancel(getContractLabel(payment.contract, text)),
-    );
+    const confirmed = await confirm({
+      confirmLabel: text.cancel,
+      message: text.confirmCancel(getContractLabel(payment.contract, text)),
+      title: text.confirmCancelTitle,
+    });
 
     if (!confirmed) return;
 
+    let isUndone = false;
     setError('');
+    setPayments((currentPayments) =>
+      currentPayments.map((currentPayment) =>
+        currentPayment._id === payment._id
+          ? { ...currentPayment, status: 'cancelled' }
+          : currentPayment,
+      ),
+    );
+    if (editingPaymentId === payment._id) resetForm();
 
-    try {
-      await cancelPayment(payment._id, { note: payment.note });
-      if (editingPaymentId === payment._id) resetForm();
-      await loadData();
-      showSuccess(text.cancelled);
-    } catch (err) {
-      setError(err.message);
-      showError(err.message);
-    }
+    showToast({
+      actionLabel: text.undo,
+      message: text.confirmCancel(getContractLabel(payment.contract, text)),
+      onAction: () => {
+        isUndone = true;
+        loadData();
+        showSuccess(text.restored);
+      },
+      title: text.cancelScheduled,
+      type: 'info',
+    });
+
+    window.setTimeout(async () => {
+      if (isUndone) return;
+
+      try {
+        await cancelPayment(payment._id, { note: payment.note });
+        await loadData();
+      } catch (err) {
+        setError(err.message);
+        showError(err.message);
+        await loadData();
+      }
+    }, 5000);
   }
 
   return (

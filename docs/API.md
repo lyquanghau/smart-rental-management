@@ -188,6 +188,7 @@ status=available
 floor=1
 page=1
 limit=20
+includeDeleted=true
 ```
 
 Response:
@@ -299,6 +300,12 @@ Yêu cầu role `landlord`.
 
 Phòng được soft delete bằng `deletedAt`, không xóa cứng khỏi database.
 
+### PATCH /rooms/:id/restore
+
+Yêu cầu role `landlord`.
+
+Khôi phục phòng đã xóa mềm bằng cách đặt `deletedAt=null`.
+
 ## Tenants
 
 API khách thuê yêu cầu đăng nhập bằng JWT. Các thao tác tạo, sửa, xóa yêu cầu role
@@ -312,6 +319,7 @@ Query optional:
 room=<roomId>
 page=1
 limit=20
+includeDeleted=true
 ```
 
 Response:
@@ -435,6 +443,14 @@ Request:
 ### DELETE /tenants/:id
 
 Khách thuê được soft delete bằng `deletedAt`, không xóa cứng khỏi database.
+Nếu khách thuê còn hợp đồng `active`, API trả lỗi `400`; chủ trọ phải kết thúc hoặc xóa hợp đồng
+trước khi xóa khách thuê.
+
+### PATCH /tenants/:id/restore
+
+Yêu cầu role `landlord`.
+
+Khôi phục khách thuê đã xóa mềm bằng cách đặt `deletedAt=null` và đồng bộ lại trạng thái phòng.
 
 ## Contracts
 
@@ -457,6 +473,7 @@ tenant=<tenantId>
 status=active
 page=1
 limit=20
+includeDeleted=true
 ```
 
 ### GET /contracts/:id
@@ -528,9 +545,27 @@ Ghi chú:
 - Khi cập nhật sang trạng thái `active`, hệ thống cũng kiểm tra trùng hợp đồng
   active theo phòng.
 
+Ghi chu nghiep vu: khong doi `room` truc tiep tren hop dong da co. Neu khach chuyen phong,
+tao hop dong moi tu hop dong cu de giu lich su phong va gia thue.
+
 ### DELETE /contracts/:id
 
-Hợp đồng không bị xóa cứng. API này chuyển `status` của hợp đồng sang `ended`.
+Hợp đồng không bị xóa cứng. API này soft delete hợp đồng bằng `deletedAt`.
+
+Khach thue cua hop dong da xoa van duoc giu lai de tra cuu lich su hoac tai ky hop dong moi.
+
+### PATCH /contracts/:id/end
+
+Yêu cầu role `landlord`.
+
+Kết thúc hợp đồng bằng cách chuyển `status` sang `ended`, không xóa hợp đồng khỏi lịch sử.
+
+### PATCH /contracts/:id/restore
+
+Yêu cầu role `landlord`.
+
+Khôi phục hợp đồng đã xóa mềm bằng cách đặt `deletedAt=null`. Nếu hợp đồng được khôi phục đang là
+`active` nhưng phòng đã có hợp đồng active khác, API trả lỗi `400`.
 
 ## Payments
 

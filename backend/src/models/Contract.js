@@ -61,12 +61,17 @@ const contractSchema = new mongoose.Schema(
         },
       },
     ],
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
   },
 );
 
+contractSchema.index({ owner: 1, deletedAt: 1, status: 1 });
 contractSchema.index({ owner: 1, room: 1, status: 1 });
 contractSchema.index({ owner: 1, tenant: 1, status: 1 });
 contractSchema.index({ owner: 1, status: 1, endDate: 1 });

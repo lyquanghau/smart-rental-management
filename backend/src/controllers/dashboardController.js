@@ -118,7 +118,7 @@ export async function getDashboardSummary(req, res, next) {
       Room.countDocuments({ owner, deletedAt: null }),
       Tenant.countDocuments({ owner, deletedAt: null }),
       Contract.aggregate([
-        { $match: { owner } },
+        { $match: { owner, deletedAt: null } },
         { $group: { _id: '$status', count: { $sum: 1 } } },
       ]),
       Invoice.aggregate([
@@ -266,6 +266,7 @@ export async function getDashboardSummary(req, res, next) {
         },
       ]),
       Contract.find({
+        deletedAt: null,
         owner,
         status: 'active',
         endDate: { $gte: contractRange.today, $lte: contractRange.end },

@@ -4,6 +4,7 @@ import {
   deleteTenant,
   getTenant,
   listTenants,
+  restoreTenant,
   updateTenant,
 } from '../controllers/tenantController.js';
 import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
@@ -17,6 +18,12 @@ const tenantRules = {
 };
 
 router.get('/', requireAuth, listTenants);
+router.patch(
+  '/:id/restore',
+  requireAuth,
+  requireRole('landlord'),
+  restoreTenant,
+);
 router.get('/:id', requireAuth, getTenant);
 router.post(
   '/',

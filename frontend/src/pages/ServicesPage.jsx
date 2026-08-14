@@ -11,6 +11,7 @@ import {
   Trash2,
   Zap,
 } from 'lucide-react';
+import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { Modal } from '../components/Modal.jsx';
 import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
@@ -72,9 +73,12 @@ const copy = {
     calculator: 'Monthly service calculator',
     cancel: 'Cancel invoice',
     cancelled: 'Invoice cancelled.',
+    cancelScheduled: 'Invoice will be cancelled.',
     close: 'Close',
     confirmCancel: (label) => `Cancel invoice ${label}?`,
+    confirmCancelTitle: 'Cancel invoice',
     confirmPaid: (label) => `Mark invoice ${label} as collected?`,
+    confirmPaidTitle: 'Confirm collection',
     dueDate: 'Invoice due date',
     electricity: 'Electricity',
     electricityCurrent: 'Current electricity index',
@@ -119,6 +123,8 @@ const copy = {
     trashFee: 'Trash fee',
     unitPrice: 'Unit price',
     view: 'View detail',
+    restored: 'Invoice cancellation undone.',
+    undo: 'Undo',
     visibleInvoices: 'visible invoices',
     water: 'Water',
     waterCurrent: 'Current water index',
@@ -183,9 +189,12 @@ const invoiceCopy = {
     actions: 'Actions',
     cancel: 'Cancel invoice',
     cancelled: 'Invoice cancelled.',
+    cancelScheduled: 'Invoice will be cancelled.',
     close: 'Close',
     confirmCancel: (label) => `Cancel invoice ${label}?`,
+    confirmCancelTitle: 'Cancel invoice',
     confirmPaid: (label) => `Mark invoice ${label} as collected?`,
+    confirmPaidTitle: 'Confirm collection',
     invoiceDetail: 'Invoice detail',
     invoiceItems: 'Cost breakdown',
     invoiceMarkedPaid: 'Invoice marked as collected.',
@@ -195,14 +204,19 @@ const invoiceCopy = {
     status: 'Status',
     unitPrice: 'Unit price',
     view: 'View detail',
+    restored: 'Invoice cancellation undone.',
+    undo: 'Undo',
   },
   vi: {
     actions: 'Thao tác',
     cancel: 'Hủy hóa đơn',
     cancelled: 'Đã hủy hóa đơn.',
+    cancelScheduled: 'Hóa đơn sẽ được hủy.',
     close: 'Đóng',
     confirmCancel: (label) => `Hủy hóa đơn ${label}?`,
+    confirmCancelTitle: 'Hủy hóa đơn',
     confirmPaid: (label) => `Xác nhận đã thu hóa đơn ${label}?`,
+    confirmPaidTitle: 'Xác nhận đã thu',
     invoiceDetail: 'Chi tiết hóa đơn',
     invoiceItems: 'Bảng kê chi phí',
     invoiceMarkedPaid: 'Đã ghi nhận hóa đơn đã thu.',
@@ -211,6 +225,8 @@ const invoiceCopy = {
     status: 'Trạng thái',
     unitPrice: 'Đơn giá',
     view: 'Xem chi tiết',
+    restored: 'Đã hoàn tác hủy hóa đơn.',
+    undo: 'Hoàn tác',
   },
 };
 
@@ -315,7 +331,8 @@ function getStatusLabel(status, language) {
 
 export function ServicesPage() {
   const { language } = usePreferences();
-  const { showError, showSuccess } = useToast();
+  const { confirm } = useConfirm();
+  const { showError, showSuccess, showToast } = useToast();
   const text = {
     ...(invoiceCopy[language] || invoiceCopy.vi),
     ...(copy[language] || copy.vi),
@@ -499,9 +516,12 @@ export function ServicesPage() {
   }
 
   async function handleMarkInvoicePaid(invoice) {
-    const confirmed = window.confirm(
-      text.confirmPaid(formatInvoiceCode(invoice)),
-    );
+    const confirmed = await confirm({
+      confirmLabel: text.markPaid,
+      message: text.confirmPaid(formatInvoiceCode(invoice)),
+      title: text.confirmPaidTitle,
+      tone: 'default',
+    });
 
     if (!confirmed) return;
 
@@ -522,28 +542,60 @@ export function ServicesPage() {
   }
 
   async function handleCancelInvoice(invoice) {
-    const confirmed = window.confirm(
-      text.confirmCancel(formatInvoiceCode(invoice)),
-    );
+    const confirmed = await confirm({
+      confirmLabel: text.cancel,
+      message: text.confirmCancel(formatInvoiceCode(invoice)),
+      title: text.confirmCancelTitle,
+    });
 
     if (!confirmed) return;
 
+    let isUndone = false;
     setInvoiceActionId(invoice._id);
     setError('');
-
-    try {
-      const updatedInvoice = await cancelInvoice(invoice._id, {
-        note: invoice.note,
-      });
-      setSelectedInvoice(updatedInvoice);
-      await loadData();
-      showSuccess(text.cancelled);
-    } catch (err) {
-      setError(err.message);
-      showError(err.message);
-    } finally {
-      setInvoiceActionId('');
+    setInvoices((currentInvoices) =>
+      currentInvoices.map((currentInvoice) =>
+        currentInvoice._id === invoice._id
+          ? { ...currentInvoice, status: 'cancelled' }
+          : currentInvoice,
+      ),
+    );
+    if (selectedInvoice?._id === invoice._id) {
+      setSelectedInvoice({ ...invoice, status: 'cancelled' });
     }
+
+    showToast({
+      actionLabel: text.undo,
+      message: text.confirmCancel(formatInvoiceCode(invoice)),
+      onAction: () => {
+        isUndone = true;
+        loadData();
+        showSuccess(text.restored);
+      },
+      title: text.cancelScheduled,
+      type: 'info',
+    });
+
+    window.setTimeout(async () => {
+      if (isUndone) {
+        setInvoiceActionId('');
+        return;
+      }
+
+      try {
+        const updatedInvoice = await cancelInvoice(invoice._id, {
+          note: invoice.note,
+        });
+        setSelectedInvoice(updatedInvoice);
+        await loadData();
+      } catch (err) {
+        setError(err.message);
+        showError(err.message);
+        await loadData();
+      } finally {
+        setInvoiceActionId('');
+      }
+    }, 5000);
   }
 
   async function handleDownloadInvoicePdf(invoice) {

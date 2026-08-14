@@ -6,15 +6,20 @@ import {
   FilePlus2,
   RefreshCw,
   StopCircle,
+  Trash2,
   X,
 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { Modal } from '../components/Modal.jsx';
 import { useToast } from '../components/ToastProvider.jsx';
 import {
   createContract,
   deleteContract,
   downloadContractPdf,
+  endContract,
   getContracts,
+  restoreContract,
   updateContract,
 } from '../services/contractService.js';
 import { usePreferences } from '../hooks/usePreferences.js';
@@ -47,9 +52,14 @@ const copy = {
     activeHelp: 'Active: in use. Ended/cancelled: view only.',
     add: 'Add',
     addContract: 'Add contract',
+    addContractFromExisting: 'Create new contract',
     actions: 'Actions',
     cancel: 'Cancel',
     capacityHelp: 'Select a room to view capacity.',
+    confirmDeleteTitle: 'Delete contract',
+    confirmDelete: (name) =>
+      `Delete the contract for ${name || 'this tenant'}?`,
+    confirmEndTitle: 'End contract',
     confirmEnd: (name) => `End the contract for ${name || 'this tenant'}?`,
     contract: 'Contract',
     contracts: 'Contracts',
@@ -78,6 +88,13 @@ const copy = {
     saving: 'Saving...',
     saved: 'Contract saved.',
     ended: 'Contract ended.',
+    deleted: 'Contract deleted.',
+    deletedStatus: 'Deleted',
+    deleteScheduled: 'Contract will be deleted.',
+    endScheduled: 'Contract will be ended.',
+    restored: 'Contract end undone.',
+    restore: 'Restore',
+    restoredRecord: 'Contract restored.',
     pdfReady: 'Contract PDF preview is ready.',
     pdfDownloaded: 'PDF download started.',
     tempAccountTitle: 'New tenant account created',
@@ -102,6 +119,8 @@ const copy = {
     occupantPhone: 'Phone',
     occupants: 'Additional occupants',
     useExistingTenant: 'Use existing tenant',
+    roomChangeHelp:
+      'To move a tenant to another room, create a new contract from this contract.',
     startDate: 'Start date',
     status: 'Status',
     tenant: 'Tenant',
@@ -109,6 +128,8 @@ const copy = {
     to: 'To',
     update: 'Update',
     updateContract: 'Update contract',
+    delete: 'Delete',
+    undo: 'Undo',
     upTo: 'Up to',
     view: 'View',
     viewContract: 'View contract',
@@ -128,6 +149,7 @@ const copy = {
       { value: 'active', label: 'Active' },
       { value: 'ended', label: 'Ended' },
       { value: 'cancelled', label: 'Cancelled' },
+      { value: 'deleted', label: 'Deleted' },
     ],
   },
   vi: {
@@ -137,6 +159,9 @@ const copy = {
     actions: 'Thao tác',
     cancel: 'Hủy',
     capacityHelp: 'Chọn phòng để xem sức chứa.',
+    confirmDeleteTitle: 'Xóa hợp đồng',
+    confirmDelete: (name) => `Xóa hợp đồng của ${name || 'khách thuê này'}?`,
+    confirmEndTitle: 'Kết thúc hợp đồng',
     confirmEnd: (name) => `Kết thúc hợp đồng của ${name || 'khách thuê này'}?`,
     contract: 'Hợp đồng',
     contracts: 'Hợp đồng',
@@ -165,6 +190,13 @@ const copy = {
     saving: 'Đang lưu...',
     saved: 'Đã lưu hợp đồng.',
     ended: 'Đã kết thúc hợp đồng.',
+    deleted: 'Đã xóa hợp đồng.',
+    deletedStatus: 'Đã xóa',
+    deleteScheduled: 'Hợp đồng sẽ được xóa.',
+    endScheduled: 'Hợp đồng sẽ được kết thúc.',
+    restored: 'Đã hoàn tác kết thúc hợp đồng.',
+    restore: 'Khôi phục',
+    restoredRecord: 'Đã khôi phục hợp đồng.',
     pdfReady: 'Đã mở bản xem trước PDF.',
     pdfDownloaded: 'Đang tải file PDF.',
     tempAccountTitle: 'Tài khoản khách thuê vừa tạo',
@@ -196,6 +228,8 @@ const copy = {
     to: 'Đến',
     update: 'Cập nhật',
     updateContract: 'Cập nhật hợp đồng',
+    delete: 'Xóa',
+    undo: 'Hoàn tác',
     upTo: 'Tối đa',
     view: 'Xem',
     viewContract: 'Xem hợp đồng',
@@ -215,6 +249,7 @@ const copy = {
       { value: 'active', label: 'Đang hiệu lực' },
       { value: 'ended', label: 'Đã kết thúc' },
       { value: 'cancelled', label: 'Đã hủy' },
+      { value: 'deleted', label: 'Đã xóa' },
     ],
   },
 };
@@ -256,6 +291,17 @@ function getStatusLabel(status, text) {
     text.statusOptions.find((option) => option.value === status)?.label ||
     status
   );
+}
+
+function getContractStatusLabel(contract, text) {
+  if (contract.deletedAt) {
+    return (
+      text.statusOptions.find((option) => option.value === 'deleted')?.label ||
+      text.deletedStatus
+    );
+  }
+
+  return getStatusLabel(contract.status, text);
 }
 
 function getContractLabel(contract, text) {
@@ -360,7 +406,10 @@ function toPayload(formData) {
 
 export function ContractsPage() {
   const { language } = usePreferences();
-  const { showError, showSuccess } = useToast();
+  const { confirm } = useConfirm();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { showError, showSuccess, showToast } = useToast();
   const text = copy[language] || copy.vi;
   const [contracts, setContracts] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -386,7 +435,9 @@ export function ContractsPage() {
   }, [pdfPreview]);
 
   const roomOptions = useMemo(() => {
-    return rooms.filter((room) => room.status !== 'maintenance');
+    return rooms.filter(
+      (room) => !room.deletedAt && room.status !== 'maintenance',
+    );
   }, [rooms]);
 
   const selectedRoom = useMemo(() => {
@@ -401,14 +452,18 @@ export function ContractsPage() {
     return Number(formData.monthlyPrice || 0) * Number(formData.depositMonths);
   }, [formData.depositMonths, formData.monthlyPrice]);
 
+  const occupantOptionLimit = useMemo(() => {
+    return selectedRoom?.maxOccupants || Number(formData.occupantCount) || 1;
+  }, [formData.occupantCount, selectedRoom]);
+
   async function loadData() {
     setIsLoading(true);
     setError('');
 
     try {
       const [contractData, roomData, tenantData] = await Promise.all([
-        getContracts(),
-        getRooms(),
+        getContracts({ includeDeleted: true }),
+        getRooms({ includeDeleted: true }),
         getTenants(),
       ]);
       setContracts(contractData);
@@ -425,6 +480,15 @@ export function ContractsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const createContractForTenant = location.state?.createContractForTenant;
+
+    if (isLoading || !createContractForTenant?.tenantId) return;
+
+    startCreateForTenant(createContractForTenant);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [isLoading, location.pathname, location.state, navigate, rooms]);
 
   function updateField(field, value) {
     setFormData((current) => ({
@@ -504,11 +568,51 @@ export function ContractsPage() {
     setIsFormOpen(true);
   }
 
+  function startCreateForTenant({ roomId = '', tenantId }) {
+    const room = rooms.find((item) => item._id === roomId);
+    const startDate = formatLocalDateInput(new Date());
+
+    setEditingContractId('');
+    setViewingContractId('');
+    setTemporaryAccount(null);
+    setFormData({
+      ...emptyForm,
+      room: room?._id || '',
+      tenant: tenantId || '',
+      startDate,
+      endDate: addMonthsToDateInput(startDate, emptyForm.durationMonths),
+      monthlyPrice: room ? String(room.price) : '',
+      occupantCount: '1',
+      status: 'active',
+    });
+    setError('');
+    setIsFormOpen(true);
+  }
+
   function startEdit(contract) {
     setEditingContractId(contract._id);
     setViewingContractId('');
     setTemporaryAccount(null);
     setFormData(toFormData(contract));
+    setError('');
+    setIsFormOpen(true);
+  }
+
+  function startCreateFromContract(contract) {
+    const copiedForm = toFormData(contract);
+
+    setEditingContractId('');
+    setViewingContractId('');
+    setTemporaryAccount(null);
+    setFormData({
+      ...copiedForm,
+      room: '',
+      startDate: '',
+      durationMonths: '12',
+      endDate: '',
+      monthlyPrice: '',
+      status: 'active',
+    });
     setError('');
     setIsFormOpen(true);
   }
@@ -570,19 +674,106 @@ export function ContractsPage() {
   async function handleDelete(contract) {
     if (contract.status !== 'active') return;
 
-    const confirmed = window.confirm(
-      text.confirmEnd(contract.tenant?.fullName),
-    );
+    const confirmed = await confirm({
+      confirmLabel: text.end,
+      message: text.confirmEnd(contract.tenant?.fullName),
+      title: text.confirmEndTitle,
+    });
 
     if (!confirmed) return;
 
+    let isUndone = false;
+    setError('');
+    setContracts((currentContracts) =>
+      currentContracts.map((currentContract) =>
+        currentContract._id === contract._id
+          ? { ...currentContract, status: 'ended' }
+          : currentContract,
+      ),
+    );
+    if (editingContractId === contract._id) resetForm();
+
+    showToast({
+      actionLabel: text.undo,
+      message: text.confirmEnd(contract.tenant?.fullName),
+      onAction: () => {
+        isUndone = true;
+        loadData();
+        showSuccess(text.restored);
+      },
+      title: text.endScheduled,
+      type: 'info',
+    });
+
+    window.setTimeout(async () => {
+      if (isUndone) return;
+
+      try {
+        await endContract(contract._id);
+        await loadData();
+      } catch (err) {
+        setError(err.message);
+        showError(err.message);
+        await loadData();
+      }
+    }, 5000);
+  }
+
+  async function handleSoftDelete(contract) {
+    if (contract.deletedAt) return;
+
+    const confirmed = await confirm({
+      confirmLabel: text.delete,
+      message: text.confirmDelete(contract.tenant?.fullName),
+      title: text.confirmDeleteTitle,
+    });
+
+    if (!confirmed) return;
+
+    let isUndone = false;
+    setError('');
+    setContracts((currentContracts) =>
+      currentContracts.map((currentContract) =>
+        currentContract._id === contract._id
+          ? { ...currentContract, deletedAt: new Date().toISOString() }
+          : currentContract,
+      ),
+    );
+    if (editingContractId === contract._id) resetForm();
+
+    showToast({
+      actionLabel: text.undo,
+      message: text.confirmDelete(contract.tenant?.fullName),
+      onAction: () => {
+        isUndone = true;
+        loadData();
+        showSuccess(text.restoredRecord);
+      },
+      title: text.deleteScheduled,
+      type: 'info',
+    });
+
+    window.setTimeout(async () => {
+      if (isUndone) return;
+
+      try {
+        await deleteContract(contract._id);
+        await loadData();
+      } catch (err) {
+        setError(err.message);
+        showError(err.message);
+        await loadData();
+      }
+    }, 5000);
+  }
+
+  async function handleRestore(contract) {
     setError('');
 
     try {
-      await deleteContract(contract._id);
-      if (editingContractId === contract._id) resetForm();
+      await restoreContract(contract._id);
       await loadData();
-      showSuccess(text.ended);
+      showSuccess(text.restoredRecord);
     } catch (err) {
       setError(err.message);
       showError(err.message);
@@ -715,7 +906,7 @@ export function ContractsPage() {
           <label>
             {text.room}
             <select
-              disabled={isViewing}
+              disabled={isViewing || isEditing}
               required
               value={formData.room}
               onChange={(event) => updateRoom(event.target.value)}
@@ -730,9 +921,12 @@ export function ContractsPage() {
               ))}
             </select>
             <span className="field-help">
-              {selectedRoom
-                ? `${text.upTo} ${selectedRoom.maxOccupants || 2} ${text.people}.`
-                : text.capacityHelp}
+              {isEditing
+                ? text.roomChangeHelp ||
+                  'Muon doi phong, hay tao hop dong moi tu hop dong nay.'
+                : selectedRoom
+                  ? `${text.upTo} ${selectedRoom.maxOccupants || 2} ${text.people}.`
+                  : text.capacityHelp}
             </span>
           </label>
 
@@ -830,13 +1024,12 @@ export function ContractsPage() {
           <label>
             {text.occupantCount}
             <select
-              disabled={isViewing || !selectedRoom}
+              disabled={isViewing}
               value={formData.occupantCount}
               onChange={(event) => updateOccupantCount(event.target.value)}
             >
-              {Array.from(
-                { length: selectedRoom?.maxOccupants || 1 },
-                (_, index) => String(index + 1),
+              {Array.from({ length: occupantOptionLimit }, (_, index) =>
+                String(index + 1),
               ).map((count) => (
                 <option key={count} value={count}>
                   {count}
@@ -978,11 +1171,13 @@ export function ContractsPage() {
               value={formData.status}
               onChange={(event) => updateField('status', event.target.value)}
             >
-              {text.statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
+              {text.statusOptions
+                .filter((option) => option.value !== 'deleted')
+                .map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
             </select>
             <span className="field-help">{text.activeHelp}</span>
           </label>
@@ -1041,12 +1236,18 @@ export function ContractsPage() {
               </thead>
               <tbody>
                 {contracts.map((contract) => {
-                  const isActiveContract = contract.status === 'active';
+                  const isDeletedContract = Boolean(contract.deletedAt);
+                  const isActiveContract =
+                    contract.status === 'active' && !isDeletedContract;
 
                   return (
                     <tr
                       className={
-                        isActiveContract ? undefined : 'inactive-table-row'
+                        isDeletedContract
+                          ? 'deleted-record'
+                          : isActiveContract
+                            ? undefined
+                            : 'inactive-table-row'
                       }
                       key={contract._id}
                     >
@@ -1082,10 +1283,21 @@ export function ContractsPage() {
                         </span>
                       </td>
                       <td>
-                        <strong>{getStatusLabel(contract.status, text)}</strong>
+                        <strong>
+                          {getContractStatusLabel(contract, text)}
+                        </strong>
                       </td>
                       <td>
                         <div className="row-actions">
+                          {isDeletedContract ? (
+                            <button
+                              className="secondary-button"
+                              type="button"
+                              onClick={() => handleRestore(contract)}
+                            >
+                              {text.restore}
+                            </button>
+                          ) : null}
                           {isActiveContract ? (
                             <>
                               <button
@@ -1100,7 +1312,6 @@ export function ContractsPage() {
                                 {text.edit}
                               </button>
                               <button
-                                className="danger-button"
                                 type="button"
                                 onClick={() => handleDelete(contract)}
                               >
@@ -1112,6 +1323,35 @@ export function ContractsPage() {
                                 {text.end}
                               </button>
                             </>
+                          ) : null}
+                          {!isDeletedContract ? (
+                            <button
+                              className="secondary-button"
+                              type="button"
+                              onClick={() => startCreateFromContract(contract)}
+                            >
+                              <FilePlus2
+                                className="button-icon"
+                                size={16}
+                                strokeWidth={2.5}
+                              />
+                              {text.addContractFromExisting ||
+                                'Tao hop dong moi'}
+                            </button>
+                          ) : null}
+                          {!isDeletedContract ? (
+                            <button
+                              className="danger-button"
+                              type="button"
+                              onClick={() => handleSoftDelete(contract)}
+                            >
+                              <Trash2
+                                className="button-icon"
+                                size={16}
+                                strokeWidth={2.5}
+                              />
+                              {text.delete}
+                            </button>
                           ) : null}
                           <button
                             className="secondary-button"

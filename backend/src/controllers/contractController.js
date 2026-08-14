@@ -713,6 +713,7 @@ async function normalizeContractPayload(
 
   if ((body.status || 'active') === 'active') {
     const activeContractFilters = {
+      deletedAt: null,
       owner: ownerId,
       room,
       status: 'active',
@@ -745,6 +746,7 @@ async function normalizeContractPayload(
 
   if ((body.status || 'active') === 'active') {
     const activeContractFilters = {
+      deletedAt: null,
       owner: ownerId,
       room,
       status: 'active',
@@ -778,14 +780,27 @@ async function normalizeContractPayload(
 
 export async function listContracts(req, res, next) {
   try {
-    const { room, tenant, status, page = 1, limit = 20 } = req.query;
-    const filters = req.user.role === 'landlord' ? ownerFilter(req) : {};
+    const {
+      includeDeleted,
+      room,
+      tenant,
+      status,
+      page = 1,
+      limit = 20,
+    } = req.query;
+    const shouldIncludeDeleted =
+      req.user.role === 'landlord' && includeDeleted === 'true';
+    const filters =
+      req.user.role === 'landlord'
+        ? ownerFilter(req, shouldIncludeDeleted ? {} : { deletedAt: null })
+        : { deletedAt: null };
     const safePage = Math.max(Number(page) || 1, 1);
     const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
     if (room) filters.room = room;
     if (tenant) filters.tenant = tenant;
-    if (status) filters.status = status;
+    if (status === 'deleted') filters.deletedAt = { $ne: null };
+    else if (status) filters.status = status;
 
     if (req.user.role === 'tenant') {
       filters.tenant = await getTenantIdForUser(req.user._id);
@@ -818,7 +833,7 @@ export async function getContract(req, res, next) {
     const filters =
       req.user.role === 'landlord'
         ? ownerFilter(req, { _id: req.params.id })
-        : { _id: req.params.id };
+        : { _id: req.params.id, deletedAt: null };
 
     if (req.user.role === 'tenant') {
       filters.tenant = await getTenantIdForUser(req.user._id);
@@ -841,7 +856,7 @@ export async function downloadContractPdf(req, res, next) {
     const filters =
       req.user.role === 'landlord'
         ? ownerFilter(req, { _id: req.params.id })
-        : { _id: req.params.id };
+        : { _id: req.params.id, deletedAt: null };
 
     if (req.user.role === 'tenant') {
       filters.tenant = await getTenantIdForUser(req.user._id);
@@ -889,8 +904,29 @@ export async function createContract(req, res, next) {
 
 export async function updateContract(req, res, next) {
   try {
+    const currentContract = await Contract.findOne(
+      ownerFilter(req, { _id: req.params.id, deletedAt: null }),
+    );
+
+    if (!currentContract) {
+      throw createHttpError(404, 'KhÃ´ng tÃ¬m tháº¥y há»£p Ä‘á»“ng');
+    }
+
+    if (
+      req.body.room &&
+      String(req.body.room) !== String(currentContract.room)
+    ) {
+      throw createHttpError(
+        400,
+        'KhÃ´ng thá»ƒ Ä‘á»•i phÃ²ng trá»±c tiáº¿p trong há»£p Ä‘á»“ng Ä‘Ã£ cÃ³. HÃ£y táº¡o há»£p Ä‘á»“ng má»›i.',
+        {
+          room: 'KhÃ´ng thá»ƒ Ä‘á»•i phÃ²ng trá»±c tiáº¿p trong há»£p Ä‘á»“ng Ä‘Ã£ cÃ³',
+        },
+      );
+    }
+
     const contract = await Contract.findOneAndUpdate(
-      ownerFilter(req, { _id: req.params.id }),
+      ownerFilter(req, { _id: req.params.id, deletedAt: null }),
       await normalizeContractPayload(req.body, req.user._id, req.params.id),
       {
         new: true,
@@ -914,7 +950,31 @@ export async function updateContract(req, res, next) {
 export async function deleteContract(req, res, next) {
   try {
     const contract = await Contract.findOneAndUpdate(
-      ownerFilter(req, { _id: req.params.id }),
+      ownerFilter(req, { _id: req.params.id, deletedAt: null }),
+      { deletedAt: new Date() },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).populate(contractPopulate);
+
+    if (!contract) {
+      throw createHttpError(404, 'Không tìm thấy hợp đồng');
+    }
+
+    res.json({
+      data: contract,
+      message: 'Xóa hợp đồng thành công',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function endContract(req, res, next) {
+  try {
+    const contract = await Contract.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id, deletedAt: null }),
       { status: 'ended' },
       {
         new: true,
@@ -929,6 +989,48 @@ export async function deleteContract(req, res, next) {
     res.json({
       data: contract,
       message: 'Kết thúc hợp đồng thành công',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function restoreContract(req, res, next) {
+  try {
+    const currentContract = await Contract.findOne(
+      ownerFilter(req, { _id: req.params.id, deletedAt: { $ne: null } }),
+    );
+
+    if (!currentContract) {
+      throw createHttpError(404, 'Không tìm thấy hợp đồng đã xóa');
+    }
+
+    if (currentContract.status === 'active') {
+      const activeContract = await Contract.findOne({
+        owner: req.user._id,
+        room: currentContract.room,
+        status: 'active',
+        deletedAt: null,
+        _id: { $ne: currentContract._id },
+      });
+
+      if (activeContract) {
+        throw createHttpError(400, 'Phòng đã có hợp đồng đang hiệu lực', {
+          room: 'Phòng đã có hợp đồng đang hiệu lực',
+        });
+      }
+    }
+
+    currentContract.deletedAt = null;
+    await currentContract.save();
+
+    const contract = await Contract.findById(currentContract._id).populate(
+      contractPopulate,
+    );
+
+    res.json({
+      data: contract,
+      message: 'Khôi phục hợp đồng thành công',
     });
   } catch (error) {
     next(error);

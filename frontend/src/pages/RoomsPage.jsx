@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Edit3, Eye, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { Modal } from '../components/Modal.jsx';
 import { RoomStatusBadge } from '../components/RoomStatusBadge.jsx';
 import { useToast } from '../components/ToastProvider.jsx';
@@ -11,6 +12,7 @@ import {
   deleteRoom,
   getRoom,
   getRooms,
+  restoreRoom,
   updateRoom,
 } from '../services/roomService.js';
 
@@ -27,6 +29,7 @@ const copy = {
     add: 'Add',
     addRoom: 'Add room',
     cancel: 'Cancel',
+    confirmDeleteTitle: 'Delete room',
     confirmDelete: (name) =>
       `Delete room ${name}? The record will be hidden from the list.`,
     currentTenants: 'Current tenants',
@@ -60,6 +63,11 @@ const copy = {
     saving: 'Saving...',
     saved: 'Room saved.',
     deleted: 'Room deleted.',
+    deleteScheduled: 'Room will be deleted.',
+    restored: 'Room deletion undone.',
+    restore: 'Restore',
+    restoredRecord: 'Room restored.',
+    undo: 'Undo',
     update: 'Update',
     updateRoom: 'Update room',
     statusOptions: [
@@ -67,12 +75,14 @@ const copy = {
       { value: 'available', label: 'Available' },
       { value: 'occupied', label: 'Occupied' },
       { value: 'maintenance', label: 'Maintenance' },
+      { value: 'deleted', label: 'Deleted' },
     ],
   },
   vi: {
     add: 'Thêm',
     addRoom: 'Thêm phòng',
     cancel: 'Hủy',
+    confirmDeleteTitle: 'Xóa phòng',
     confirmDelete: (name) =>
       `Xóa phòng ${name}? Dữ liệu sẽ được ẩn khỏi danh sách.`,
     currentTenants: 'Khách hiện tại',
@@ -106,6 +116,11 @@ const copy = {
     saving: 'Đang lưu...',
     saved: 'Đã lưu thông tin phòng.',
     deleted: 'Đã xóa phòng.',
+    deleteScheduled: 'Phòng sẽ được xóa.',
+    restored: 'Đã hoàn tác xóa phòng.',
+    restore: 'Khôi phục',
+    restoredRecord: 'Đã khôi phục phòng.',
+    undo: 'Hoàn tác',
     update: 'Cập nhật',
     updateRoom: 'Cập nhật phòng',
     statusOptions: [
@@ -113,6 +128,7 @@ const copy = {
       { value: 'available', label: 'Trống' },
       { value: 'occupied', label: 'Đã thuê' },
       { value: 'maintenance', label: 'Bảo trì' },
+      { value: 'deleted', label: 'Đã xóa' },
     ],
   },
 };
@@ -143,7 +159,8 @@ function formatMoney(value) {
 
 export function RoomsPage() {
   const { language } = usePreferences();
-  const { showError, showSuccess } = useToast();
+  const { confirm } = useConfirm();
+  const { showError, showSuccess, showToast } = useToast();
   const text = copy[language] || copy.vi;
   const editableStatusOptions = text.statusOptions.filter(
     (option) => option.value,
@@ -167,7 +184,7 @@ export function RoomsPage() {
     setError('');
 
     try {
-      const data = await getRooms();
+      const data = await getRooms({ includeDeleted: true });
       setRooms(data);
 
       if (selectedRoom) {
@@ -190,7 +207,11 @@ export function RoomsPage() {
   }, []);
 
   const visibleRooms = statusFilter
-    ? rooms.filter((room) => room.status === statusFilter)
+    ? rooms.filter((room) =>
+        statusFilter === 'deleted'
+          ? Boolean(room.deletedAt)
+          : !room.deletedAt && room.status === statusFilter,
+      )
     : rooms;
 
   function updateField(field, value) {
@@ -268,21 +289,60 @@ export function RoomsPage() {
   }
 
   async function handleDelete(room) {
-    const confirmed = window.confirm(text.confirmDelete(room.name));
+    if (room.deletedAt) return;
+
+    const confirmed = await confirm({
+      confirmLabel: text.delete,
+      message: text.confirmDelete(room.name),
+      title: text.confirmDeleteTitle,
+    });
 
     if (!confirmed) return;
 
+    let isUndone = false;
+    setError('');
+    setRooms((currentRooms) =>
+      currentRooms.filter((currentRoom) => currentRoom._id !== room._id),
+    );
+    if (editingRoomId === room._id) resetForm();
+    if (selectedRoom?._id === room._id) {
+      setSelectedRoom(null);
+      setIsDetailOpen(false);
+    }
+
+    showToast({
+      actionLabel: text.undo,
+      message: text.confirmDelete(room.name),
+      onAction: () => {
+        isUndone = true;
+        loadRooms();
+        showSuccess(text.restored);
+      },
+      title: text.deleteScheduled,
+      type: 'info',
+    });
+
+    window.setTimeout(async () => {
+      if (isUndone) return;
+
+      try {
+        await deleteRoom(room._id);
+        await loadRooms();
+      } catch (err) {
+        setError(err.message);
+        showError(err.message);
+        await loadRooms();
+      }
+    }, 5000);
+  }
+
+  async function handleRestore(room) {
     setError('');
 
     try {
-      await deleteRoom(room._id);
-      if (editingRoomId === room._id) resetForm();
-      if (selectedRoom?._id === room._id) {
-        setSelectedRoom(null);
-        setIsDetailOpen(false);
-      }
+      await restoreRoom(room._id);
       await loadRooms();
-      showSuccess(text.deleted);
+      showSuccess(text.restoredRecord);
     } catch (err) {
       setError(err.message);
       showError(err.message);
@@ -438,7 +498,15 @@ export function RoomsPage() {
                   {selectedRoom.maxOccupants || 2} {text.people}
                 </p>
               </div>
-              <RoomStatusBadge status={selectedRoom.status} />
+              {selectedRoom.deletedAt ? (
+                <span className="status status-deleted">
+                  {text.statusOptions.find(
+                    (option) => option.value === 'deleted',
+                  )?.label || 'Deleted'}
+                </span>
+              ) : (
+                <RoomStatusBadge status={selectedRoom.status} />
+              )}
             </div>
 
             <div className="room-detail-stats">
@@ -509,18 +577,38 @@ export function RoomsPage() {
             ) : null}
 
             <div className="modal-footer-actions">
-              <button type="button" onClick={() => startEdit(selectedRoom)}>
-                <Edit3 className="button-icon" size={16} strokeWidth={2.5} />
-                {text.edit}
-              </button>
-              <button
-                className="danger-button"
-                type="button"
-                onClick={() => handleDelete(selectedRoom)}
-              >
-                <Trash2 className="button-icon" size={16} strokeWidth={2.5} />
-                {text.delete}
-              </button>
+              {selectedRoom.deletedAt ? (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => handleRestore(selectedRoom)}
+                >
+                  {text.restore}
+                </button>
+              ) : (
+                <>
+                  <button type="button" onClick={() => startEdit(selectedRoom)}>
+                    <Edit3
+                      className="button-icon"
+                      size={16}
+                      strokeWidth={2.5}
+                    />
+                    {text.edit}
+                  </button>
+                  <button
+                    className="danger-button"
+                    type="button"
+                    onClick={() => handleDelete(selectedRoom)}
+                  >
+                    <Trash2
+                      className="button-icon"
+                      size={16}
+                      strokeWidth={2.5}
+                    />
+                    {text.delete}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ) : null}
@@ -537,13 +625,24 @@ export function RoomsPage() {
           {!error && visibleRooms.length > 0 ? (
             <div className="room-grid">
               {visibleRooms.map((room) => (
-                <article className="room-card" key={room._id}>
+                <article
+                  className={`room-card ${room.deletedAt ? 'deleted-record' : ''}`}
+                  key={room._id}
+                >
                   <div className="room-card-header">
                     <div>
                       <span className="eyebrow">{text.room}</span>
                       <h2>{room.name}</h2>
                     </div>
-                    <RoomStatusBadge status={room.status} />
+                    {room.deletedAt ? (
+                      <span className="status status-deleted">
+                        {text.statusOptions.find(
+                          (option) => option.value === 'deleted',
+                        )?.label || 'Deleted'}
+                      </span>
+                    ) : (
+                      <RoomStatusBadge status={room.status} />
+                    )}
                   </div>
                   <div className="room-card-price">
                     <strong>{formatMoney(room.price)}</strong>
@@ -562,26 +661,38 @@ export function RoomsPage() {
                       />
                       {text.details}
                     </button>
-                    <button type="button" onClick={() => startEdit(room)}>
-                      <Edit3
-                        className="button-icon"
-                        size={16}
-                        strokeWidth={2.5}
-                      />
-                      {text.edit}
-                    </button>
-                    <button
-                      className="danger-button"
-                      type="button"
-                      onClick={() => handleDelete(room)}
-                    >
-                      <Trash2
-                        className="button-icon"
-                        size={16}
-                        strokeWidth={2.5}
-                      />
-                      {text.delete}
-                    </button>
+                    {room.deletedAt ? (
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={() => handleRestore(room)}
+                      >
+                        {text.restore}
+                      </button>
+                    ) : (
+                      <>
+                        <button type="button" onClick={() => startEdit(room)}>
+                          <Edit3
+                            className="button-icon"
+                            size={16}
+                            strokeWidth={2.5}
+                          />
+                          {text.edit}
+                        </button>
+                        <button
+                          className="danger-button"
+                          type="button"
+                          onClick={() => handleDelete(room)}
+                        >
+                          <Trash2
+                            className="button-icon"
+                            size={16}
+                            strokeWidth={2.5}
+                          />
+                          {text.delete}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </article>
               ))}

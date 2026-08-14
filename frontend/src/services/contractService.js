@@ -1,7 +1,7 @@
 import { api } from './api.js';
 
-export async function getContracts() {
-  const response = await api.get('/contracts');
+export async function getContracts(params = {}) {
+  const response = await api.get('/contracts', { params });
   return response.data.data;
 }
 
@@ -22,6 +22,16 @@ export async function updateContract(id, payload) {
 
 export async function deleteContract(id) {
   const response = await api.delete(`/contracts/${id}`);
+  return response.data.data;
+}
+
+export async function endContract(id) {
+  const response = await api.patch(`/contracts/${id}/end`);
+  return response.data.data;
+}
+
+export async function restoreContract(id) {
+  const response = await api.patch(`/contracts/${id}/restore`);
   return response.data.data;
 }
 

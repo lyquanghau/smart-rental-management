@@ -4,6 +4,7 @@ import {
   deleteRoom,
   getRoom,
   listRooms,
+  restoreRoom,
   updateRoom,
 } from '../controllers/roomController.js';
 import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
@@ -25,6 +26,7 @@ const roomRules = {
 };
 
 router.get('/', requireAuth, requireRole('landlord'), listRooms);
+router.patch('/:id/restore', requireAuth, requireRole('landlord'), restoreRoom);
 router.get('/:id', requireAuth, requireRole('landlord'), getRoom);
 router.post(
   '/',

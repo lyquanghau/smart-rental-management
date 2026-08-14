@@ -86,7 +86,10 @@ export async function getTenantPortalSummary(req, res, next) {
     }
 
     const tenant = await getCurrentTenant(req.user._id);
-    const contracts = await Contract.find({ tenant: tenant._id })
+    const contracts = await Contract.find({
+      deletedAt: null,
+      tenant: tenant._id,
+    })
       .populate(contractPopulate)
       .sort({ status: 1, startDate: -1, createdAt: -1 });
     const contractIds = contracts.map((contract) => contract._id);

@@ -1,14 +1,27 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Edit3, KeyRound, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import {
+  ArchiveRestore,
+  Edit3,
+  KeyRound,
+  Plus,
+  RefreshCw,
+  Trash2,
+  Users,
+  X,
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useConfirm } from '../components/ConfirmProvider.jsx';
 import { Modal } from '../components/Modal.jsx';
 import { useToast } from '../components/ToastProvider.jsx';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { unlockUser } from '../services/authService.js';
+import { getContracts } from '../services/contractService.js';
 import { getRooms } from '../services/roomService.js';
 import {
   createTenant,
   deleteTenant,
   getTenants,
+  restoreTenant,
   updateTenant,
 } from '../services/tenantService.js';
 
@@ -28,10 +41,14 @@ const copy = {
     addTenant: 'Add tenant',
     actions: 'Actions',
     cancel: 'Cancel',
+    confirmDeleteTitle: 'Delete tenant',
+    confirmResetPasswordTitle: 'Reset password',
     confirmDelete: (name) =>
       `Delete tenant ${name}? The record will be hidden from the list.`,
     contact: 'Contact',
+    close: 'Close',
     delete: 'Delete',
+    deletedTenants: 'Deleted tenants',
     edit: 'Edit',
     empty: 'No tenants yet.',
     floor: 'Floor',
@@ -43,16 +60,26 @@ const copy = {
     managed: 'managed tenants',
     noEmail: 'No email',
     noId: 'No ID number',
+    noOccupants: 'No additional occupants',
     phone: 'Phone number',
     permanentAddress: 'Permanent address',
     reload: 'Reload',
     room: 'Room',
+    roomOccupants: 'Room occupants',
     saving: 'Saving...',
     saved: 'Tenant saved.',
     deleted: 'Tenant deleted.',
+    deleteScheduled: 'Tenant will be deleted.',
+    restored: 'Tenant deletion undone.',
+    deletedStatus: 'Deleted',
+    restore: 'Restore',
+    restoredRecord: 'Tenant restored.',
+    representativeTenant: 'Representative tenant',
+    showDeletedTenants: 'Deleted tenants',
     tenant: 'Tenant',
     tenants: 'Tenants',
     unassigned: 'Unassigned',
+    undo: 'Undo',
     update: 'Update',
     updateTenant: 'Update tenant',
   },
@@ -61,6 +88,8 @@ const copy = {
     addTenant: 'Thêm khách',
     actions: 'Thao tác',
     cancel: 'Hủy',
+    confirmDeleteTitle: 'Xóa khách thuê',
+    confirmResetPasswordTitle: 'Cấp lại mật khẩu',
     confirmDelete: (name) =>
       `Xóa khách thuê ${name}? Dữ liệu sẽ được ẩn khỏi danh sách.`,
     contact: 'Liên hệ',
@@ -83,9 +112,15 @@ const copy = {
     saving: 'Đang lưu...',
     saved: 'Đã lưu thông tin khách thuê.',
     deleted: 'Đã xóa khách thuê.',
+    deleteScheduled: 'Khách thuê sẽ được xóa.',
+    restored: 'Đã hoàn tác xóa khách thuê.',
+    deletedStatus: 'Đã xóa',
+    restore: 'Khôi phục',
+    restoredRecord: 'Đã khôi phục khách thuê.',
     tenant: 'Khách thuê',
     tenants: 'Khách thuê',
     unassigned: 'Chưa gán phòng',
+    undo: 'Hoàn tác',
     update: 'Cập nhật',
     updateTenant: 'Cập nhật khách thuê',
   },
@@ -99,12 +134,12 @@ const accountCopy = {
     accountNoLogin: 'No login account',
     accountTemporary: 'Temporary password',
     confirmResetPassword: (name) =>
-      `Reset login password for ${name}? A new temporary password will be generated.`,
+      `Send a temporary login password to ${name}? The password will be emailed to the tenant.`,
     credentialNote:
       'The tenant must use the login information sent to their email.',
     newCredentialTitle: 'Login information emailed to tenant',
-    resetPassword: 'Reset password',
-    resetPasswordSuccess: 'Temporary password generated.',
+    resetPassword: 'Send temporary password',
+    resetPasswordSuccess: 'Temporary password email sent.',
     emailSent: 'Credentials email sent.',
     emailSkipped: 'SMTP is not configured. No password was sent.',
     emailFailed: 'Credentials email failed. No password was sent.',
@@ -117,11 +152,11 @@ const accountCopy = {
     accountNoLogin: 'Chưa có tài khoản',
     accountTemporary: 'Mật khẩu tạm',
     confirmResetPassword: (name) =>
-      `Cấp lại mật khẩu đăng nhập cho ${name}? Hệ thống sẽ tạo mật khẩu tạm mới.`,
+      `Gửi mật khẩu tạm cho ${name}? Mật khẩu sẽ được gửi qua email khách thuê.`,
     credentialNote: 'Khách thuê sử dụng thông tin đăng nhập đã gửi về email.',
     newCredentialTitle: 'Đã gửi thông tin đăng nhập qua email',
-    resetPassword: 'Cấp lại mật khẩu',
-    resetPasswordSuccess: 'Đã tạo mật khẩu tạm.',
+    resetPassword: 'Gửi mật khẩu tạm',
+    resetPasswordSuccess: 'Đã gửi email cấp lại mật khẩu.',
     emailSent: 'Đã gửi email thông tin đăng nhập.',
     emailSkipped: 'Chưa cấu hình SMTP. Mật khẩu chưa được gửi.',
     emailFailed: 'Gửi email thất bại. Mật khẩu chưa được gửi.',
@@ -164,13 +199,16 @@ function getAccountStatus(tenant, text) {
 
 export function TenantsPage() {
   const { language } = usePreferences();
-  const { showError, showSuccess } = useToast();
+  const { confirm } = useConfirm();
+  const navigate = useNavigate();
+  const { showError, showSuccess, showToast } = useToast();
   const text = {
     ...(copy[language] || copy.vi),
     ...(accountCopy[language] || accountCopy.vi),
   };
   const [tenants, setTenants] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [contracts, setContracts] = useState([]);
   const [formData, setFormData] = useState(emptyForm);
   const [editingTenantId, setEditingTenantId] = useState('');
   const [credential, setCredential] = useState(null);
@@ -178,33 +216,82 @@ export function TenantsPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const isEditing = Boolean(editingTenantId);
 
+  const activeTenants = useMemo(
+    () => tenants.filter((tenant) => !tenant.deletedAt),
+    [tenants],
+  );
+
+  const deletedTenants = useMemo(
+    () => tenants.filter((tenant) => tenant.deletedAt),
+    [tenants],
+  );
+
+  const tenantRows = useMemo(() => {
+    const activeTenantMap = new Map(
+      activeTenants.map((tenant) => [tenant._id, tenant]),
+    );
+    const representedTenantIds = new Set();
+    const activeContractRows = contracts
+      .filter((contract) => contract.status === 'active' && !contract.deletedAt)
+      .map((contract) => {
+        const tenantId = contract.tenant?._id || contract.tenant;
+        const representative = activeTenantMap.get(tenantId) || contract.tenant;
+
+        if (tenantId) representedTenantIds.add(tenantId);
+
+        return {
+          contract,
+          key: contract._id,
+          occupants: contract.occupants || [],
+          room: contract.room,
+          tenant: representative,
+        };
+      })
+      .filter((row) => row.tenant);
+
+    const unassignedRows = activeTenants
+      .filter((tenant) => !representedTenantIds.has(tenant._id))
+      .map((tenant) => ({
+        contract: null,
+        key: tenant._id,
+        occupants: [],
+        room: tenant.room,
+        tenant,
+      }));
+
+    return [...activeContractRows, ...unassignedRows];
+  }, [activeTenants, contracts]);
+
   const availableRoomOptions = useMemo(() => {
     return rooms.filter(
       (room) =>
-        room.status !== 'maintenance' ||
-        tenants.some(
+        (!room.deletedAt && room.status !== 'maintenance') ||
+        activeTenants.some(
           (tenant) =>
             tenant._id === editingTenantId &&
             (tenant.room?._id || tenant.room) === room._id,
         ),
     );
-  }, [editingTenantId, rooms, tenants]);
+  }, [activeTenants, editingTenantId, rooms]);
 
   async function loadData() {
     setIsLoading(true);
     setError('');
 
     try {
-      const [tenantData, roomData] = await Promise.all([
-        getTenants(),
-        getRooms(),
+      const [tenantData, roomData, contractData] = await Promise.all([
+        getTenants({ includeDeleted: true }),
+        getRooms({ includeDeleted: true }),
+        getContracts(),
       ]);
       setTenants(tenantData);
       setRooms(roomData);
+      setContracts(contractData);
     } catch (err) {
       setError(err.message);
       showError(err.message);
@@ -280,17 +367,67 @@ export function TenantsPage() {
   }
 
   async function handleDelete(tenant) {
-    const confirmed = window.confirm(text.confirmDelete(tenant.fullName));
+    if (tenant.deletedAt) return;
+
+    const confirmed = await confirm({
+      confirmLabel: text.delete,
+      message: text.confirmDelete(tenant.fullName),
+      title: text.confirmDeleteTitle,
+    });
 
     if (!confirmed) return;
 
+    let isUndone = false;
+    setError('');
+    setTenants((currentTenants) =>
+      currentTenants.filter(
+        (currentTenant) => currentTenant._id !== tenant._id,
+      ),
+    );
+    if (editingTenantId === tenant._id) resetForm();
+
+    showToast({
+      actionLabel: text.undo,
+      message: text.confirmDelete(tenant.fullName),
+      onAction: () => {
+        isUndone = true;
+        loadData();
+        showSuccess(text.restored);
+      },
+      title: text.deleteScheduled,
+      type: 'info',
+    });
+
+    window.setTimeout(async () => {
+      if (isUndone) return;
+
+      try {
+        await deleteTenant(tenant._id);
+        await loadData();
+      } catch (err) {
+        setError(err.message);
+        showError(err.message);
+        await loadData();
+      }
+    }, 5000);
+  }
+
+  async function handleRestore(tenant) {
     setError('');
 
     try {
-      await deleteTenant(tenant._id);
-      if (editingTenantId === tenant._id) resetForm();
+      const restoredTenant = await restoreTenant(tenant._id);
       await loadData();
-      showSuccess(text.deleted);
+      showSuccess(text.restoredRecord);
+      setIsDeletedModalOpen(false);
+      navigate('/contracts', {
+        state: {
+          createContractForTenant: {
+            roomId: restoredTenant.room?._id || restoredTenant.room || '',
+            tenantId: restoredTenant._id,
+          },
+        },
+      });
     } catch (err) {
       setError(err.message);
       showError(err.message);
@@ -300,9 +437,11 @@ export function TenantsPage() {
   async function handleResetPassword(tenant) {
     if (!tenant.user?._id) return;
 
-    const confirmed = window.confirm(
-      text.confirmResetPassword(tenant.fullName),
-    );
+    const confirmed = await confirm({
+      confirmLabel: text.resetPassword,
+      message: text.confirmResetPassword(tenant.fullName),
+      title: text.confirmResetPasswordTitle,
+    });
 
     if (!confirmed) return;
 
@@ -331,8 +470,21 @@ export function TenantsPage() {
         <h1>{text.tenants}</h1>
         <div className="page-actions">
           <span className="page-summary">
-            {tenants.length} {text.managed}
+            {activeTenants.length} {text.managed}
           </span>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => setIsDeletedModalOpen(true)}
+          >
+            <ArchiveRestore
+              className="button-icon"
+              size={16}
+              strokeWidth={2.5}
+            />
+            {text.showDeletedTenants || 'Khach da xoa'} ({deletedTenants.length}
+            )
+          </button>
           <button type="button" onClick={startCreate}>
             <Plus className="button-icon" size={16} strokeWidth={2.5} />
             {text.addTenant}
@@ -472,26 +624,28 @@ export function TenantsPage() {
         </form>
       </Modal>
 
-      <div className="split-layout">
-        <div className="table-panel">
-          {isLoading ? <p>{text.loadingData}</p> : null}
+      <Modal
+        isOpen={isDeletedModalOpen}
+        panelClassName="deleted-tenants-modal"
+        title={text.deletedTenants || 'Khach thue da xoa'}
+        onClose={() => setIsDeletedModalOpen(false)}
+      >
+        <div className="table-panel compact-data-table modal-table-panel">
+          {deletedTenants.length === 0 ? <p>{text.empty}</p> : null}
 
-          {!isLoading && tenants.length === 0 ? <p>{text.empty}</p> : null}
-
-          {!isLoading && tenants.length > 0 ? (
+          {deletedTenants.length > 0 ? (
             <table>
               <thead>
                 <tr>
                   <th>{text.tenant}</th>
                   <th>{text.contact}</th>
                   <th>{text.room}</th>
-                  <th>{text.account}</th>
                   <th>{text.actions}</th>
                 </tr>
               </thead>
               <tbody>
-                {tenants.map((tenant) => (
-                  <tr key={tenant._id}>
+                {deletedTenants.map((tenant) => (
+                  <tr className="deleted-record" key={tenant._id}>
                     <td>
                       <strong>{tenant.fullName}</strong>
                       <span>{tenant.identityNumber || text.noId}</span>
@@ -513,54 +667,148 @@ export function TenantsPage() {
                       )}
                     </td>
                     <td>
-                      <strong>{getAccountStatus(tenant, text)}</strong>
-                      {tenant.user ? (
-                        <span>{tenant.user.username || tenant.user.email}</span>
-                      ) : null}
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={() => handleRestore(tenant)}
+                      >
+                        {text.restore}
+                      </button>
                     </td>
-                    <td>
-                      <div className="row-actions">
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
+        </div>
+      </Modal>
+
+      <div className="split-layout">
+        <div className="table-panel">
+          {isLoading ? <p>{text.loadingData}</p> : null}
+
+          {!isLoading && tenantRows.length === 0 ? <p>{text.empty}</p> : null}
+
+          {!isLoading && tenantRows.length > 0 ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>{text.room}</th>
+                  <th>{text.representativeTenant || text.tenant}</th>
+                  <th>{text.roomOccupants || 'Nguoi trong phong'}</th>
+                  <th>{text.contact}</th>
+                  <th>{text.account}</th>
+                  <th>{text.actions}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tenantRows.map((row) => {
+                  const { contract, occupants, room, tenant } = row;
+                  const occupantTotal = occupants.length + 1;
+
+                  return (
+                    <tr key={row.key}>
+                      <td>
+                        {room ? (
+                          <>
+                            <strong>{room.name}</strong>
+                            <span>
+                              {text.floor} {room.floor}
+                            </span>
+                          </>
+                        ) : (
+                          <span>{text.unassigned}</span>
+                        )}
+                      </td>
+                      <td>
+                        <strong>{tenant.fullName}</strong>
+                        <span>{tenant.identityNumber || text.noId}</span>
+                        {contract ? (
+                          <span>
+                            <Users
+                              className="inline-icon"
+                              size={14}
+                              strokeWidth={2.5}
+                            />{' '}
+                            {occupantTotal} {text.roomOccupants || text.tenants}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td>
+                        {occupants.length > 0 ? (
+                          <div className="stacked-list">
+                            {occupants.map((occupant, index) => (
+                              <span key={`${row.key}-occupant-${index}`}>
+                                <strong>{occupant.fullName}</strong>
+                                {occupant.phone ? ` - ${occupant.phone}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span>
+                            {text.noOccupants || 'Khong co nguoi o cung'}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <strong>{tenant.phone}</strong>
+                        <span>{tenant.email || text.noEmail}</span>
+                      </td>
+                      <td>
+                        <strong>{getAccountStatus(tenant, text)}</strong>
                         {tenant.user ? (
+                          <span>
+                            {tenant.user.username || tenant.user.email}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td>
+                        <div className="row-actions">
+                          {tenant.user ? (
+                            <button
+                              className="secondary-button"
+                              disabled={resettingUserId === tenant.user._id}
+                              type="button"
+                              onClick={() => handleResetPassword(tenant)}
+                            >
+                              <KeyRound
+                                className="button-icon"
+                                size={16}
+                                strokeWidth={2.5}
+                              />
+                              {resettingUserId === tenant.user._id
+                                ? text.saving
+                                : text.resetPassword}
+                            </button>
+                          ) : null}
                           <button
-                            className="secondary-button"
-                            disabled={resettingUserId === tenant.user._id}
                             type="button"
-                            onClick={() => handleResetPassword(tenant)}
+                            onClick={() => startEdit(tenant)}
                           >
-                            <KeyRound
+                            <Edit3
                               className="button-icon"
                               size={16}
                               strokeWidth={2.5}
                             />
-                            {resettingUserId === tenant.user._id
-                              ? text.saving
-                              : text.resetPassword}
+                            {text.edit}
                           </button>
-                        ) : null}
-                        <button type="button" onClick={() => startEdit(tenant)}>
-                          <Edit3
-                            className="button-icon"
-                            size={16}
-                            strokeWidth={2.5}
-                          />
-                          {text.edit}
-                        </button>
-                        <button
-                          className="danger-button"
-                          type="button"
-                          onClick={() => handleDelete(tenant)}
-                        >
-                          <Trash2
-                            className="button-icon"
-                            size={16}
-                            strokeWidth={2.5}
-                          />
-                          {text.delete}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <button
+                            className="danger-button"
+                            type="button"
+                            onClick={() => handleDelete(tenant)}
+                          >
+                            <Trash2
+                              className="button-icon"
+                              size={16}
+                              strokeWidth={2.5}
+                            />
+                            {text.delete}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : null}

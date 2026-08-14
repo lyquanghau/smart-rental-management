@@ -31,6 +31,8 @@ Endpoint nền:
 
 Quản lý phòng trọ và trạng thái phòng. Module đã có API CRUD, frontend thêm/sửa/xóa mềm phòng,
 lọc theo trạng thái và xem chi tiết phòng kèm khách thuê hiện tại.
+Phòng đã xóa mềm vẫn có thể được hiển thị trong danh sách lịch sử khi frontend truyền
+`includeDeleted=true`, có badge `Đã xóa` và có thể khôi phục.
 
 Endpoint nền:
 
@@ -43,6 +45,8 @@ Endpoint nền:
 ## Tenants
 
 Quản lý thông tin khách thuê, thông tin liên hệ và phòng đang gán.
+Khách thuê dùng soft delete để giữ lịch sử. Khách đã xóa vẫn có thể hiển thị với badge `Đã xóa`
+và có thể khôi phục. Backend chặn xóa khách nếu khách còn hợp đồng `active` chưa xóa.
 
 Endpoint nền:
 
@@ -51,6 +55,9 @@ Endpoint nền:
 - `POST /api/tenants`
 - `PUT /api/tenants/:id`
 - `DELETE /api/tenants/:id`
+
+Frontend hien khach da xoa trong modal lich su rieng, khong tron vao bang khach dang quan ly.
+Bang khach dang quan ly nhom theo hop dong/phong active de thay du nguoi dai dien va nguoi o cung.
 
 Tenant account rule: khi landlord them khach va gan phong, backend tu dong tao tai khoan tenant.
 Username = ho ten khong dau + ma phong, vi du `Ly Quang Hau` phong `101` thanh `lyquanghau101`;
@@ -61,6 +68,9 @@ nhin thay mat khau plaintext.
 ## Contracts
 
 Quản lý hợp đồng giữa khách thuê và phòng. Module đã có model, seed data, API CRUD cơ bản và giao diện quản lý hợp đồng trong frontend.
+Hợp đồng có hai thao tác khác nhau: `end` để kết thúc hợp đồng và soft delete để đánh dấu
+`Đã xóa`. Hợp đồng đã xóa vẫn giữ lịch sử, không tham gia dashboard/tạo hóa đơn/tenant portal
+và có thể khôi phục nếu không gây trùng hợp đồng active cùng phòng.
 
 Endpoint nền:
 
@@ -70,6 +80,11 @@ Endpoint nền:
 - `POST /api/contracts`
 - `PUT /api/contracts/:id`
 - `DELETE /api/contracts/:id`
+- `PATCH /api/contracts/:id/end`
+- `PATCH /api/contracts/:id/restore`
+
+Xoa hop dong khong xoa khach thue. Neu khach chuyen phong, frontend dung nut tao hop dong moi
+tu hop dong cu va backend chan update `room` truc tiep tren hop dong da co.
 
 ## Payments
 

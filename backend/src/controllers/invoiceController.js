@@ -414,7 +414,7 @@ export async function generateMonthlyInvoices(req, res, next) {
     const { month, year } = normalizeMonthYear(req.body.month, req.body.year);
     const dueDate = parseDueDate(req.body.dueDate);
     const activeContracts = await Contract.find(
-      ownerFilter(req, { status: 'active' }),
+      ownerFilter(req, { deletedAt: null, status: 'active' }),
     );
     const results = [];
 

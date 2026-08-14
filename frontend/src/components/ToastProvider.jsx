@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, RotateCcw, X } from 'lucide-react';
 
 const ToastContext = createContext(null);
 
@@ -27,13 +27,20 @@ export function ToastProvider({ children }) {
   }, []);
 
   const showToast = useCallback(
-    ({ title, message = '', type = 'info', duration = 4200 }) => {
+    ({
+      actionLabel = '',
+      message = '',
+      onAction,
+      title,
+      type = 'info',
+      duration = 5000,
+    }) => {
       const id = `${Date.now()}-${toastIdRef.current}`;
       toastIdRef.current += 1;
 
       setToasts((currentToasts) => [
         ...currentToasts.slice(-3),
-        { duration, id, message, title, type },
+        { actionLabel, duration, id, message, onAction, title, type },
       ]);
 
       if (duration > 0) {
@@ -49,10 +56,18 @@ export function ToastProvider({ children }) {
     () => ({
       dismissToast,
       showToast,
-      showError: (message, title = 'Khong thuc hien duoc') =>
+      showError: (message, title = 'Không thực hiện được') =>
         showToast({ message, title, type: 'error', duration: 5600 }),
-      showSuccess: (message, title = 'Da cap nhat') =>
+      showSuccess: (message, title = 'Đã cập nhật') =>
         showToast({ message, title, type: 'success' }),
+      showUndo: ({ message, onUndo, title = 'Đã lên lịch xóa' }) =>
+        showToast({
+          actionLabel: 'Hoàn tác',
+          message,
+          onAction: onUndo,
+          title,
+          type: 'info',
+        }),
     }),
     [dismissToast, showToast],
   );
@@ -70,11 +85,28 @@ export function ToastProvider({ children }) {
           const ToastIcon = iconByType[toast.type] || Info;
 
           return (
-            <article className={`toast toast-${toast.type}`} key={toast.id}>
+            <article
+              className={`toast toast-${toast.type}`}
+              key={toast.id}
+              style={{ '--toast-duration': `${toast.duration}ms` }}
+            >
               <ToastIcon className="toast-icon" size={18} strokeWidth={2.5} />
               <div className="toast-copy">
                 <strong>{toast.title}</strong>
                 {toast.message ? <span>{toast.message}</span> : null}
+                {toast.actionLabel ? (
+                  <button
+                    className="toast-action"
+                    type="button"
+                    onClick={() => {
+                      toast.onAction?.();
+                      dismissToast(toast.id);
+                    }}
+                  >
+                    <RotateCcw size={14} strokeWidth={2.5} />
+                    {toast.actionLabel}
+                  </button>
+                ) : null}
               </div>
               <button
                 aria-label="Dong thong bao"
@@ -84,6 +116,9 @@ export function ToastProvider({ children }) {
               >
                 <X size={15} strokeWidth={2.5} />
               </button>
+              {toast.duration > 0 ? (
+                <span aria-hidden="true" className="toast-progress" />
+              ) : null}
             </article>
           );
         })}

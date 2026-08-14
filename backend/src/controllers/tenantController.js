@@ -1,4 +1,5 @@
 import { Room } from '../models/Room.js';
+import { Contract } from '../models/Contract.js';
 import { Tenant } from '../models/Tenant.js';
 import { createHttpError } from '../utils/httpError.js';
 import { isMailConfigured } from '../utils/mailService.js';
@@ -112,10 +113,12 @@ const tenantPopulate = [
 
 export async function listTenants(req, res, next) {
   try {
-    const { room, page = 1, limit = 20 } = req.query;
+    const { includeDeleted, room, page = 1, limit = 20 } = req.query;
+    const shouldIncludeDeleted =
+      req.user.role === 'landlord' && includeDeleted === 'true';
     const filters =
       req.user.role === 'landlord'
-        ? ownerFilter(req, { deletedAt: null })
+        ? ownerFilter(req, shouldIncludeDeleted ? {} : { deletedAt: null })
         : { deletedAt: null };
     const safePage = Math.max(Number(page) || 1, 1);
     const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
@@ -149,9 +152,9 @@ export async function getTenant(req, res, next) {
   try {
     const filters = {
       _id: req.params.id,
-      deletedAt: null,
     };
 
+    if (req.user.role !== 'landlord') filters.deletedAt = null;
     if (req.user.role === 'landlord') filters.owner = req.user._id;
     if (req.user.role === 'tenant') filters.user = req.user._id;
 
@@ -263,6 +266,24 @@ export async function deleteTenant(req, res, next) {
       throw createHttpError(404, 'Không tìm thấy khách thuê');
     }
 
+    const activeContract = await Contract.findOne({
+      owner: req.user._id,
+      tenant: req.params.id,
+      status: 'active',
+      deletedAt: null,
+    });
+
+    if (activeContract) {
+      throw createHttpError(
+        400,
+        'Khach thue dang co hop dong hieu luc. Hay ket thuc hoac xoa hop dong truoc khi xoa khach.',
+        {
+          contract:
+            'Khach thue dang co hop dong hieu luc. Hay ket thuc hoac xoa hop dong truoc khi xoa khach.',
+        },
+      );
+    }
+
     const tenant = await Tenant.findOneAndUpdate(
       ownerFilter(req, { _id: req.params.id, deletedAt: null }),
       { deletedAt: new Date() },
@@ -274,6 +295,32 @@ export async function deleteTenant(req, res, next) {
     res.json({
       data: tenant,
       message: 'Xóa khách thuê thành công',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function restoreTenant(req, res, next) {
+  try {
+    const tenant = await Tenant.findOneAndUpdate(
+      ownerFilter(req, { _id: req.params.id, deletedAt: { $ne: null } }),
+      { deletedAt: null },
+      { new: true, runValidators: true },
+    ).populate(tenantPopulate);
+
+    if (!tenant) {
+      throw createHttpError(404, 'Khong tim thay khach thue da xoa');
+    }
+
+    await syncRelatedRoomStatuses(
+      req.user._id,
+      tenant.room?._id || tenant.room,
+    );
+
+    res.json({
+      data: tenant,
+      message: 'Khoi phuc khach thue thanh cong',
     });
   } catch (error) {
     next(error);
