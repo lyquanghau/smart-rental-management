@@ -4212,6 +4212,271 @@ html {
   min-width: 560px;
 }
 
+.metric-card-icon {
+  align-items: center;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  color: #0369a1;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  justify-self: start;
+  width: 34px;
+}
+
+.tenant-billing-layout {
+  align-items: stretch;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(340px, 390px) minmax(0, 1fr);
+}
+
+.tenant-billing-summary {
+  position: sticky;
+  top: var(--space-4);
+}
+
+.tenant-billing-main {
+  display: grid;
+  gap: var(--space-4);
+  height: 100%;
+  min-width: 0;
+}
+
+.tenant-payment-history-panel {
+  margin-top: var(--space-6);
+  overflow: hidden;
+}
+
+.tenant-payment-history-panel .table-panel-header {
+  margin-bottom: 0;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+}
+
+.tenant-payment-history-panel table {
+  border-top: 1px solid var(--color-border);
+}
+
+.tenant-open-invoice-panel {
+  min-height: 100%;
+}
+
+.tenant-monthly-cost-panel {
+  min-height: 100%;
+}
+
+.monthly-cost-text {
+  color: var(--color-muted);
+  display: grid;
+  font-size: 0.92rem;
+  gap: 0.55rem;
+  line-height: 1.55;
+}
+
+.monthly-cost-text p {
+  margin: 0;
+}
+
+.monthly-cost-text strong {
+  color: var(--color-text);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.monthly-cost-total-line {
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding-top: var(--space-2);
+}
+
+.monthly-cost-total-line strong {
+  font-size: 0.96rem;
+}
+
+.tenant-invoice-payment-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 210px);
+}
+
+.tenant-qr-slot {
+  align-content: center;
+  align-items: center;
+  background: #f8fbff;
+  border: 1px dashed #93c5fd;
+  border-radius: 12px;
+  color: var(--color-muted);
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  min-height: 190px;
+  padding: var(--space-3);
+  text-align: center;
+}
+
+.tenant-qr-slot img {
+  aspect-ratio: 1;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.45rem;
+  width: min(132px, 100%);
+}
+
+.tenant-qr-slot > div {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.tenant-qr-slot span {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.tenant-qr-slot strong {
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.tenant-qr-slot small {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.tenant-qr-slot button {
+  justify-self: center;
+  margin-top: var(--space-1);
+}
+
+.tenant-overview-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tenant-info-panel {
+  align-content: start;
+}
+
+.tenant-info-list {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tenant-info-list > div,
+.utility-reading-grid > div {
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: var(--space-3);
+}
+
+.service-rate-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.service-rate-icon {
+  align-items: center;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  color: #0369a1;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+  padding: 5px;
+  width: 30px;
+}
+
+.tenant-info-list span,
+.utility-reading-grid span {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.tenant-info-list strong,
+.utility-reading-grid strong {
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.utility-reading-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: var(--space-3);
+}
+
+.utility-reading-grid small {
+  color: var(--color-muted);
+}
+
+.tenant-breakdown-table {
+  margin-top: var(--space-3);
+  overflow-x: auto;
+}
+
+.tenant-breakdown-table table {
+  min-width: 620px;
+}
+
+.tenant-inline-qr {
+  align-items: center;
+  background: #eef6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 132px minmax(0, 1fr);
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+}
+
+.tenant-inline-qr img {
+  aspect-ratio: 1;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: var(--space-2);
+  width: 100%;
+}
+
+.tenant-inline-qr > div {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.tenant-inline-qr span {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.tenant-inline-qr strong {
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.tenant-inline-qr small {
+  color: var(--color-muted);
+}
+
+.tenant-inline-qr button {
+  justify-self: start;
+  margin-top: var(--space-1);
+}
+
 .payment-instruction-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -4330,6 +4595,11 @@ html {
 }
 
 [data-theme='dark'] .payment-instruction-grid > div,
+[data-theme='dark'] .metric-card-icon,
+[data-theme='dark'] .tenant-info-list > div,
+[data-theme='dark'] .tenant-inline-qr,
+[data-theme='dark'] .tenant-qr-slot,
+[data-theme='dark'] .utility-reading-grid > div,
 [data-theme='dark'] .transfer-content-box,
 [data-theme='dark'] .invoice-payment-qr,
 [data-theme='dark'] .notification-item {
@@ -4337,7 +4607,25 @@ html {
   border-color: #254468;
 }
 
+[data-theme='dark'] .metric-card-icon {
+  color: #bae6fd;
+}
+
+[data-theme='dark'] .service-rate-icon {
+  background: #082f49;
+  border-color: #38bdf8;
+  color: #bae6fd;
+}
+
 [data-theme='dark'] .payment-qr-box img {
+  border-color: #254468;
+}
+
+[data-theme='dark'] .tenant-inline-qr img {
+  border-color: #254468;
+}
+
+[data-theme='dark'] .tenant-qr-slot img {
   border-color: #254468;
 }
 
@@ -4367,6 +4655,18 @@ html {
 }
 
 @media (max-width: 1180px) {
+  .tenant-billing-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tenant-billing-summary {
+    position: static;
+  }
+
+  .tenant-invoice-payment-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(170px, 200px);
+  }
+
   .services-summary-grid,
   .services-workspace {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4412,6 +4712,15 @@ html {
   }
 
   .invoice-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tenant-overview-grid,
+  .tenant-info-list,
+  .tenant-inline-qr,
+  .tenant-invoice-payment-grid,
+  .service-rate-list,
+  .utility-reading-grid {
     grid-template-columns: 1fr;
   }
 

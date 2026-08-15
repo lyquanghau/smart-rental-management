@@ -115,6 +115,9 @@ Bo sung pilot-ready:
   mau noi dung chuyen khoan va ghi chu thanh toan.
 - Cong khach thue hien thi huong dan chuyen khoan tu `ServiceSetting` cua chu tro,
   giup thu tien that bang chuyen khoan/manual truoc khi co VNPay/MoMo sandbox.
+- Cong khach thue hien them thong tin phong/hop dong, don gia dich vu va breakdown hoa don
+  chua thanh toan de khach tu kiem tra tien phong, dien, nuoc, internet, rac, gui xe truoc khi
+  chuyen khoan.
 
 Quản lý điện, nước và dịch vụ hằng tháng. Module này tách riêng hóa đơn phải thu
 khỏi thanh toán:

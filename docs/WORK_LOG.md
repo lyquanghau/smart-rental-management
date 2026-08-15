@@ -1,5 +1,78 @@
 # Work Log
 
+## 2026-08-15
+
+### Nang cap cong khach thue theo huong san pham that
+
+- Kiem tra dau phien:
+  - Dang o nhanh `main`, commit `d0fa7a3`, dong bo voi `origin/main`.
+  - Khong co nhanh local/remote nao con commit chua merge vao `main`.
+  - `dev` va `origin/dev` dang cham hon `main` 6 commit.
+  - File phu tro/untracked giu ngoai commit: `chuyen_de_2.xlsx`, `code.txt`,
+    `docs/PROMPT_TEMPLATE.md`, `docs/contract/`, `docs/image/`.
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1672 modules.
+- Doi chieu `chuyen_de_2.xlsx`:
+  - Du an da vuot MVP ban dau: da co auth, phong, khach thue, hop dong, hoa don dich vu,
+    PDF, dashboard, tenant portal, SePay/VietQR, notification va multi-tenant isolation.
+  - Huong hien tai van bam dung muc tieu Smart Rental, nhung can lam day hon phia tai khoan
+    khach thue de khach co the tu xem va doi soat hoa don.
+- Implement:
+  - `GET /api/tenant-portal/summary` tra them `serviceRates` lay tu `ServiceSetting`.
+  - Trang `Cong khach thue` hien them thong tin phong/hop dong: phong, tang, suc chua,
+    so nguoi o, tien coc va thoi han hop dong.
+  - Hien don gia dich vu dang ap dung: dien, nuoc, internet, rac va gui xe.
+  - Hien chi tiet hoa don chua thanh toan: ky hoa don, han thanh toan, trang thai, tong tien,
+    bang cac dong tien phong/dich vu va chi so dien nuoc neu invoice co `utilityReading`.
+- Tai lieu:
+  - Cap nhat `docs/API.md` cho `serviceRates` trong Tenant Portal summary.
+  - Cap nhat `docs/MODULES.md` ve thong tin phong/hop dong, don gia dich vu va breakdown hoa don
+    trong cong khach thue.
+- Kiem tra sau implement:
+  - `npm run format:check`: pass sau khi format rieng `frontend/src/pages/TenantPortalPage.jsx`.
+  - `npm run lint`: pass.
+  - `git diff --check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1672 modules.
+
+### Tach cong khach thue thanh 2 muc tren sidebar
+
+- Theo phan hoi, tach `Cong khach thue` thanh 2 muc rieng tren sidebar tenant de de xem va de
+  su dung hon:
+  - `Tong quan`: thong tin phong/hop dong, don gia dich vu va hop dong dang hieu luc.
+  - `Hoa don & thanh toan`: chi tiet hoa don, danh sach hoa don can thanh toan, QR/chuyen khoan
+    va lich su thanh toan.
+- Them route `/tenant-portal/billing`, route `/tenant-portal` tiep tuc la tong quan.
+- Sidebar tenant co icon rieng cho 2 muc, route tong quan dung `NavLink end` de khong active nham
+  khi dang o trang hoa don.
+- Giu icon lucide cho cac panel chinh, khong them thu vien UI moi.
+
+### Rut gon trang hoa don khach thue
+
+- Bo panel `Chi tiet hoa don` va panel `Huong dan thanh toan` rieng de trang hoa don gon hon.
+- Khi khach bam lay QR tren mot hoa don, QR hien inline ngay trong hoa don do.
+- QR inline chi hien ma thanh toan/noi dung can copy va mot dong luu y ngan: chuyen dung so tien
+  va giu nguyen noi dung chuyen khoan.
+- Bo dong loading inline `Dang tai du lieu khach thue...` trong cong khach thue de reload khong
+  day layout va cam giac chuyen trang muot hon; trang thai loading van nam tren nut tai lai.
+- Dieu chinh layout trang `Hoa don & thanh toan`:
+  - Thay 4 card tong quan lap lai bang mot panel `Chi phi trong thang` o cot trai.
+  - Panel chi phi hien ky hoa don, tien phong, chi so dien cu/moi/su dung, chi so nuoc cu/moi/su
+    dung, internet, rac, gui xe, tong dich vu va tong hoa don.
+  - Dat danh sach hoa don o cot phai, cao ngang voi panel chi phi ben trai.
+  - Chua san khoang QR ben phai trong khung hoa don; khi khach bam lay QR thi khoang nay hien QR
+    va noi dung copy.
+  - Day lich su thanh toan xuong duoi hang card + hoa don de man hinh dau gon hon.
+  - Bo sung khoang cach rieng cho `Lich su thanh toan` de khong bi cat nhan nho khi viewport hep.
+  - Doi icon panel don gia dich vu sang icon cong cu/dich vu va them icon rieng cho dien, nuoc,
+    internet, rac, gui xe de de scan hon.
+  - Them icon cho 4 card va cac khoi chinh de giao dien de scan hon.
+  - Rut gon panel `Chi phi trong thang` thanh mot o text-only, bo cac mini-card ben trong, giam
+    co chu va thu nho khoang QR de trang hoa don de doc hon.
+  - Tablet/mobile tu xep lai thanh 2 cot/1 cot de tranh vo layout.
+
 ## 2026-08-14
 
 ### Doi ma SePay sang noi dung de nhap tay

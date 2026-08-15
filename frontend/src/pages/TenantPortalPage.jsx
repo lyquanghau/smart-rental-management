@@ -1,5 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Copy, Download, History, QrCode, RefreshCw } from 'lucide-react';
+import {
+  Banknote,
+  Car,
+  Copy,
+  Download,
+  Droplets,
+  History,
+  Home,
+  QrCode,
+  ReceiptText,
+  RefreshCw,
+  Trash2,
+  Wifi,
+  Wrench,
+  Zap,
+} from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { Modal } from '../components/Modal.jsx';
 import { useToast } from '../components/ToastProvider.jsx';
@@ -28,6 +43,13 @@ const emptySummary = {
   },
   payments: [],
   room: null,
+  serviceRates: {
+    electricityUnitPrice: 0,
+    internetFee: 0,
+    parkingFeePerVehicle: 0,
+    trashFee: 0,
+    waterUnitPrice: 0,
+  },
   tenant: null,
   totals: {
     openInvoiceAmount: 0,
@@ -44,6 +66,7 @@ const copy = {
     bankAccountName: 'Account holder',
     bankAccountNumber: 'Account number',
     bankName: 'Bank',
+    contractDeposit: 'Deposit',
     contractHistory: 'Contract history',
     copiedTransferContent: 'Transfer content copied.',
     copyTransferContent: 'Copy content',
@@ -54,8 +77,15 @@ const copy = {
     emptyPaidInvoice: 'No paid invoices yet.',
     emptyUnpaidInvoice: 'No unpaid invoices.',
     emptyPayment: 'No payment records yet.',
+    electricity: 'Electricity',
+    electricityIndex: 'Electricity index',
     invoicePdfDownloaded: 'Invoice PDF downloaded.',
+    invoicePeriod: 'Period',
+    invoiceServices: 'Service details',
+    invoiceTotal: 'Invoice total',
     items: 'items',
+    internet: 'Internet',
+    maxOccupants: 'Capacity',
     sepayPaymentCreated: 'SePay payment code created.',
     momoPaymentFailed: 'MoMo payment was not completed.',
     momoPaymentReturned:
@@ -67,23 +97,31 @@ const copy = {
     sepayCode: 'Payment code',
     floor: 'Floor',
     invoice: 'Invoice',
-    invoiceTotal: 'Invoice total',
     loading: 'Loading...',
-    loadingData: 'Loading tenant data...',
     monthlyRent: 'Monthly rent',
+    monthlyCostSummary: 'Monthly costs',
     myRoom: 'My room',
+    newIndex: 'New index',
+    noBreakdown: 'No service breakdown for this invoice yet.',
+    noMonthlyCost: 'No monthly cost data yet.',
     noRoom: 'No room assigned',
+    oldIndex: 'Old index',
+    occupants: 'Occupants',
     openAmount: 'Open amount',
     paidAt: 'Paid at',
     paymentInstructions: 'Payment instructions',
     paymentInstructionsMissing:
       'Payment account information has not been configured yet.',
     paymentQr: 'Payment QR',
+    paymentQrNote:
+      'Note: Please transfer the exact amount and keep the payment content unchanged.',
     paymentHistory: 'Payment history',
     paymentMethodCash: 'Cash',
     paymentMethodBankTransfer: 'Bank transfer',
     paymentMethodMomo: 'MoMo',
     paymentMethodVnpay: 'VNPay',
+    parking: 'Parking',
+    people: 'people',
     statusActive: 'Active',
     statusCancelled: 'Cancelled',
     statusDraft: 'Draft',
@@ -95,7 +133,9 @@ const copy = {
     portalTitle: 'Tenant portal',
     reload: 'Reload',
     rent: 'Rent',
+    roomAndContract: 'Room and contract',
     services: 'Services',
+    serviceRates: 'Service rates',
     status: 'Status',
     showContractHistory: 'View contracts',
     showPaidInvoices: 'Paid invoices',
@@ -104,6 +144,10 @@ const copy = {
     tenant: 'Tenant',
     to: 'to',
     transferContent: 'Transfer content',
+    trash: 'Trash',
+    usage: 'Usage',
+    water: 'Water',
+    waterIndex: 'Water index',
   },
   vi: {
     activeContract: 'Hợp đồng đang hiệu lực',
@@ -111,6 +155,7 @@ const copy = {
     bankAccountName: 'Chủ tài khoản',
     bankAccountNumber: 'Số tài khoản',
     bankName: 'Ngân hàng',
+    contractDeposit: 'Tiền cọc',
     contractHistory: 'Lịch sử hợp đồng',
     copiedTransferContent: 'Đã sao chép nội dung chuyển khoản.',
     copyTransferContent: 'Sao chép nội dung',
@@ -121,8 +166,15 @@ const copy = {
     emptyPaidInvoice: 'Chưa có hóa đơn đã thanh toán.',
     emptyUnpaidInvoice: 'Không có hóa đơn cần thanh toán.',
     emptyPayment: 'Chưa có lịch sử thanh toán.',
+    electricity: 'Điện',
+    electricityIndex: 'Chỉ số điện',
     invoicePdfDownloaded: 'Đã tải PDF hóa đơn.',
+    invoicePeriod: 'Kỳ hóa đơn',
+    invoiceServices: 'Chi tiết dịch vụ',
+    invoiceTotal: 'Tổng hóa đơn',
     items: 'mục',
+    internet: 'Internet',
+    maxOccupants: 'Sức chứa',
     sepayPaymentCreated: 'Đã tạo mã thanh toán SePay.',
     momoPaymentFailed: 'Giao dịch MoMo chưa hoàn tất.',
     momoPaymentReturned:
@@ -134,22 +186,30 @@ const copy = {
     sepayCode: 'Mã thanh toán',
     floor: 'Tầng',
     invoice: 'Hóa đơn',
-    invoiceTotal: 'Tổng hóa đơn',
     loading: 'Đang tải...',
-    loadingData: 'Đang tải dữ liệu khách thuê...',
     monthlyRent: 'Tiền phòng mỗi tháng',
+    monthlyCostSummary: 'Chi phí trong tháng',
     myRoom: 'Phòng của tôi',
+    newIndex: 'Số mới',
+    noBreakdown: 'Hóa đơn này chưa có chi tiết dịch vụ.',
+    noMonthlyCost: 'Chưa có dữ liệu chi phí tháng.',
     noRoom: 'Chưa gán phòng',
+    oldIndex: 'Số cũ',
+    occupants: 'Người ở',
     openAmount: 'Số tiền cần thanh toán',
     paidAt: 'Ngày thu',
     paymentInstructions: 'Hướng dẫn thanh toán',
     paymentInstructionsMissing: 'Chủ trọ chưa cấu hình thông tin nhận tiền.',
     paymentQr: 'QR thanh toán',
+    paymentQrNote:
+      'Lưu ý: Vui lòng chuyển đúng số tiền và giữ nguyên nội dung chuyển khoản.',
     paymentHistory: 'Lịch sử thanh toán',
     paymentMethodCash: 'Tiền mặt',
     paymentMethodBankTransfer: 'Chuyển khoản',
     paymentMethodMomo: 'MoMo',
     paymentMethodVnpay: 'VNPay',
+    parking: 'Gửi xe',
+    people: 'người',
     statusActive: 'Đang hiệu lực',
     statusCancelled: 'Đã hủy',
     statusDraft: 'Bản nháp',
@@ -161,7 +221,9 @@ const copy = {
     portalTitle: 'Cổng khách thuê',
     reload: 'Tải lại',
     rent: 'Tiền phòng',
+    roomAndContract: 'Phòng và hợp đồng',
     services: 'Dịch vụ',
+    serviceRates: 'Đơn giá dịch vụ',
     status: 'Trạng thái',
     showContractHistory: 'Xem hợp đồng',
     showPaidInvoices: 'Hóa đơn đã thanh toán',
@@ -170,6 +232,10 @@ const copy = {
     tenant: 'Khách thuê',
     to: 'đến',
     transferContent: 'Nội dung chuyển khoản',
+    trash: 'Rác',
+    usage: 'Sử dụng',
+    water: 'Nước',
+    waterIndex: 'Chỉ số nước',
   },
 };
 
@@ -182,9 +248,17 @@ function formatMoney(value) {
   return formatCurrency(value);
 }
 
+function formatNumber(value) {
+  return new Intl.NumberFormat('vi-VN').format(Number(value || 0));
+}
+
 function formatInvoiceCode(invoice) {
   if (!invoice) return '';
   return `${invoice.month}/${invoice.year}`;
+}
+
+function getOccupantCount(contract) {
+  return contract ? 1 + (contract.occupants?.length || 0) : 0;
 }
 
 function buildTransferContent(template, room, invoice) {
@@ -233,7 +307,7 @@ function getPaymentReference(payment) {
   );
 }
 
-export function TenantPortalPage() {
+export function TenantPortalPage({ defaultTab = 'overview' }) {
   const { language } = usePreferences();
   const { showError, showSuccess } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -247,6 +321,7 @@ export function TenantPortalPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [paymentActionId, setPaymentActionId] = useState('');
   const [sepayPayment, setSepayPayment] = useState(null);
+  const activeTab = defaultTab;
 
   async function loadSummary() {
     setIsLoading(true);
@@ -260,6 +335,10 @@ export function TenantPortalPage() {
         totals: {
           ...emptySummary.totals,
           ...(data.totals || {}),
+        },
+        serviceRates: {
+          ...emptySummary.serviceRates,
+          ...(data.serviceRates || {}),
         },
       });
     } catch (err) {
@@ -364,8 +443,11 @@ export function TenantPortalPage() {
     () => unpaidInvoices[0] || null,
     [unpaidInvoices],
   );
+  const billingCostInvoice = openInvoice || summary.invoices[0] || null;
+  const billingReading = billingCostInvoice?.utilityReading || null;
+  const occupantCount = getOccupantCount(activeContract);
   const paymentInstructions = summary.paymentInstructions;
-  const hasPaymentTarget = Boolean(openInvoice);
+  const serviceRates = summary.serviceRates || emptySummary.serviceRates;
   const transferContent = buildTransferContent(
     paymentInstructions.transferContentTemplate,
     room,
@@ -373,6 +455,7 @@ export function TenantPortalPage() {
   );
   const payableTransferContent = sepayPayment?.paymentCode || transferContent;
   const paymentQrUrl = sepayPayment?.qrCodeUrl || sepayQrImage;
+  const sepayInvoiceId = sepayPayment?.invoiceId || '';
   async function handleCopyTransferContent() {
     if (!payableTransferContent) return;
 
@@ -395,6 +478,109 @@ export function TenantPortalPage() {
       setPaymentActionId('');
     }
   }
+
+  const metricCards = (
+    <div className="dashboard-grid tenant-metric-grid">
+      <article className="metric-card metric-card-primary">
+        <div className="metric-card-icon">
+          <Home size={18} strokeWidth={2.5} />
+        </div>
+        <span>{text.myRoom}</span>
+        <strong>{room?.name || text.noRoom}</strong>
+        <small>{room ? `${text.floor} ${room.floor}` : text.noRoom}</small>
+      </article>
+      <article className="metric-card">
+        <div className="metric-card-icon">
+          <Banknote size={18} strokeWidth={2.5} />
+        </div>
+        <span>{text.monthlyRent}</span>
+        <strong>{formatMoney(activeContract?.monthlyPrice || 0)}</strong>
+        <small>
+          {activeContract
+            ? getStatusLabel(activeContract.status, text)
+            : text.emptyContract}
+        </small>
+      </article>
+      <article className="metric-card metric-card-warning">
+        <div className="metric-card-icon">
+          <QrCode size={18} strokeWidth={2.5} />
+        </div>
+        <span>{text.openAmount}</span>
+        <strong>{formatMoney(summary.totals.openPaymentAmount)}</strong>
+        <small>
+          {summary.totals.openPaymentCount} {text.items}
+        </small>
+      </article>
+      <article className="metric-card">
+        <div className="metric-card-icon">
+          <ReceiptText size={18} strokeWidth={2.5} />
+        </div>
+        <span>{text.invoiceTotal}</span>
+        <strong>{formatMoney(summary.totals.openInvoiceAmount)}</strong>
+        <small>
+          {summary.totals.openInvoiceCount} {text.items}
+        </small>
+      </article>
+    </div>
+  );
+
+  const monthlyCostPanel = (
+    <section className="dashboard-panel tenant-monthly-cost-panel">
+      <div className="panel-heading">
+        <div>
+          <span className="eyebrow">{text.billing}</span>
+          <h2>{text.monthlyCostSummary}</h2>
+        </div>
+        <ReceiptText size={20} strokeWidth={2.4} />
+      </div>
+
+      {billingCostInvoice ? (
+        <div className="monthly-cost-text">
+          <p>
+            <strong>{text.invoicePeriod}</strong>:{' '}
+            {formatInvoiceCode(billingCostInvoice)} - {text.dueDate}:{' '}
+            {formatDate(billingCostInvoice.dueDate)}
+          </p>
+          <p>
+            <strong>{text.rent}</strong>:{' '}
+            {formatMoney(billingCostInvoice.rentAmount)}
+          </p>
+          <p>
+            <strong>{text.electricity}</strong>: {text.oldIndex}{' '}
+            {formatNumber(billingReading?.electricityPrevious)}, {text.newIndex}{' '}
+            {formatNumber(billingReading?.electricityCurrent)}, {text.usage}{' '}
+            {formatNumber(billingReading?.electricityUsage)} kWh ={' '}
+            {formatMoney(billingReading?.electricityAmount)}
+          </p>
+          <p>
+            <strong>{text.water}</strong>: {text.oldIndex}{' '}
+            {formatNumber(billingReading?.waterPrevious)}, {text.newIndex}{' '}
+            {formatNumber(billingReading?.waterCurrent)}, {text.usage}{' '}
+            {formatNumber(billingReading?.waterUsage)} m3 ={' '}
+            {formatMoney(billingReading?.waterAmount)}
+          </p>
+          <p>
+            <strong>{text.internet}</strong>:{' '}
+            {formatMoney(billingReading?.internetAmount)} -{' '}
+            <strong>{text.trash}</strong>:{' '}
+            {formatMoney(billingReading?.trashAmount)} -{' '}
+            <strong>{text.parking}</strong>:{' '}
+            {formatMoney(billingReading?.parkingAmount)}
+          </p>
+          <p>
+            <strong>{text.services}</strong>:{' '}
+            {formatMoney(billingCostInvoice.serviceAmount)}
+          </p>
+          <p className="monthly-cost-total-line">
+            <strong>{text.invoiceTotal}</strong>:{' '}
+            {formatMoney(billingCostInvoice.totalAmount)}
+          </p>
+        </div>
+      ) : (
+        <p className="empty-note">{text.noMonthlyCost}</p>
+      )}
+    </section>
+  );
 
   return (
     <section className="dashboard-page tenant-portal-page">
@@ -425,7 +611,6 @@ export function TenantPortalPage() {
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}
-      {isLoading ? <p className="loading-note">{text.loadingData}</p> : null}
 
       <Modal
         isOpen={isContractHistoryOpen}
@@ -563,276 +748,356 @@ export function TenantPortalPage() {
         </div>
       </Modal>
 
-      <div className="dashboard-grid">
-        <article className="metric-card metric-card-primary">
-          <span>{text.myRoom}</span>
-          <strong>{room?.name || text.noRoom}</strong>
-          <small>{room ? `${text.floor} ${room.floor}` : text.noRoom}</small>
-        </article>
-        <article className="metric-card">
-          <span>{text.monthlyRent}</span>
-          <strong>{formatMoney(activeContract?.monthlyPrice || 0)}</strong>
-          <small>
-            {activeContract
-              ? getStatusLabel(activeContract.status, text)
-              : text.emptyContract}
-          </small>
-        </article>
-        <article className="metric-card metric-card-warning">
-          <span>{text.openAmount}</span>
-          <strong>{formatMoney(summary.totals.openPaymentAmount)}</strong>
-          <small>
-            {summary.totals.openPaymentCount} {text.items}
-          </small>
-        </article>
-        <article className="metric-card">
-          <span>{text.invoiceTotal}</span>
-          <strong>{formatMoney(summary.totals.openInvoiceAmount)}</strong>
-          <small>
-            {summary.totals.openInvoiceCount} {text.items}
-          </small>
-        </article>
-      </div>
+      {activeTab === 'overview' ? (
+        <>
+          {metricCards}
 
-      <div className="work-queue-grid">
-        <section className="dashboard-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">{text.activeContract}</span>
-              <h2>{text.activeContract}</h2>
-            </div>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => setIsContractHistoryOpen(true)}
-            >
-              <History className="button-icon" size={16} strokeWidth={2.5} />
-              {text.showContractHistory} ({summary.contracts.length})
-            </button>
-          </div>
-          {activeContracts.length === 0 ? (
-            <p className="empty-note">{text.emptyContract}</p>
-          ) : (
-            <div className="alert-list">
-              {activeContracts.map((contract) => (
-                <article className="alert-item" key={contract._id}>
-                  <strong>{contract.room?.name || text.noRoom}</strong>
-                  <span>
-                    {text.term}: {formatDate(contract.startDate)} {text.to}{' '}
-                    {formatDate(contract.endDate)}
-                  </span>
-                  <small>
-                    {text.monthlyRent}: {formatMoney(contract.monthlyPrice)}
-                  </small>
-                  <button
-                    className="secondary-button"
-                    disabled={downloadingContractId === contract._id}
-                    type="button"
-                    onClick={() => handleDownloadPdf(contract)}
-                  >
-                    <Download
-                      className="button-icon"
-                      size={16}
-                      strokeWidth={2.5}
-                    />
-                    {downloadingContractId === contract._id
-                      ? text.loading
-                      : text.downloadPdf}
-                  </button>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="dashboard-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="eyebrow">{text.billing}</span>
-              <h2>{text.invoice}</h2>
-            </div>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => setIsPaidInvoiceOpen(true)}
-            >
-              <History className="button-icon" size={16} strokeWidth={2.5} />
-              {text.showPaidInvoices} ({paidInvoices.length})
-            </button>
-          </div>
-          {unpaidInvoices.length === 0 ? (
-            <p className="empty-note">{text.emptyUnpaidInvoice}</p>
-          ) : (
-            <div className="alert-list">
-              {unpaidInvoices.map((invoice) => (
-                <article className="alert-item" key={invoice._id}>
+          <div className="tenant-overview-grid">
+            <section className="dashboard-panel tenant-info-panel">
+              <div className="panel-heading">
+                <div>
+                  <span className="eyebrow">{text.myRoom}</span>
+                  <h2>{text.roomAndContract}</h2>
+                </div>
+                <Home size={20} strokeWidth={2.4} />
+              </div>
+              <div className="tenant-info-list">
+                <div>
+                  <span>{text.myRoom}</span>
+                  <strong>{room?.name || text.noRoom}</strong>
+                </div>
+                <div>
+                  <span>{text.floor}</span>
+                  <strong>{room ? room.floor : '-'}</strong>
+                </div>
+                <div>
+                  <span>{text.maxOccupants}</span>
                   <strong>
-                    {text.invoice} {formatInvoiceCode(invoice)}
+                    {room?.maxOccupants
+                      ? `${room.maxOccupants} ${text.people}`
+                      : '-'}
                   </strong>
-                  <span>
-                    {text.rent}: {formatMoney(invoice.rentAmount)} -{' '}
-                    {text.services}: {formatMoney(invoice.serviceAmount)}
-                  </span>
-                  <small>
-                    {text.dueDate}: {formatDate(invoice.dueDate)} -{' '}
-                    {getStatusLabel(invoice.status, text)}
-                  </small>
-                  <button
-                    className="secondary-button"
-                    disabled={downloadingInvoiceId === invoice._id}
-                    type="button"
-                    onClick={() => handleDownloadInvoicePdf(invoice)}
-                  >
-                    <Download
-                      className="button-icon"
-                      size={16}
-                      strokeWidth={2.5}
-                    />
-                    {downloadingInvoiceId === invoice._id
-                      ? text.loading
-                      : text.downloadPdf}
-                  </button>
-                  {['draft', 'issued', 'overdue'].includes(invoice.status) ? (
-                    <button
-                      className="secondary-button"
-                      disabled={paymentActionId === invoice._id}
-                      type="button"
-                      onClick={() => handleCreateSepayPayment(invoice)}
-                    >
-                      <QrCode
-                        className="button-icon"
-                        size={16}
-                        strokeWidth={2.5}
-                      />
-                      {paymentActionId === invoice._id
-                        ? text.loading
-                        : text.sepayPay}
-                    </button>
-                  ) : null}
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+                </div>
+                <div>
+                  <span>{text.occupants}</span>
+                  <strong>{occupantCount || '-'}</strong>
+                </div>
+                <div>
+                  <span>{text.contractDeposit}</span>
+                  <strong>{formatMoney(activeContract?.deposit || 0)}</strong>
+                </div>
+                <div>
+                  <span>{text.term}</span>
+                  <strong>
+                    {activeContract
+                      ? `${formatDate(activeContract.startDate)} ${text.to} ${formatDate(
+                          activeContract.endDate,
+                        )}`
+                      : '-'}
+                  </strong>
+                </div>
+              </div>
+            </section>
 
-      <section className="payment-instruction-panel">
-        <div className="panel-heading">
-          <div>
-            <span className="eyebrow">{text.billing}</span>
-            <h2>{text.paymentInstructions}</h2>
+            <section className="dashboard-panel tenant-info-panel">
+              <div className="panel-heading">
+                <div>
+                  <span className="eyebrow">{text.services}</span>
+                  <h2>{text.serviceRates}</h2>
+                </div>
+                <Wrench size={20} strokeWidth={2.4} />
+              </div>
+              <div className="tenant-info-list service-rate-list">
+                <div>
+                  <Zap
+                    className="service-rate-icon"
+                    size={18}
+                    strokeWidth={2.4}
+                  />
+                  <span>{text.electricity}</span>
+                  <strong>
+                    {formatMoney(serviceRates.electricityUnitPrice)} / kWh
+                  </strong>
+                </div>
+                <div>
+                  <Droplets
+                    className="service-rate-icon"
+                    size={18}
+                    strokeWidth={2.4}
+                  />
+                  <span>{text.water}</span>
+                  <strong>
+                    {formatMoney(serviceRates.waterUnitPrice)} / m3
+                  </strong>
+                </div>
+                <div>
+                  <Wifi
+                    className="service-rate-icon"
+                    size={18}
+                    strokeWidth={2.4}
+                  />
+                  <span>{text.internet}</span>
+                  <strong>{formatMoney(serviceRates.internetFee)}</strong>
+                </div>
+                <div>
+                  <Trash2
+                    className="service-rate-icon"
+                    size={18}
+                    strokeWidth={2.4}
+                  />
+                  <span>{text.trash}</span>
+                  <strong>{formatMoney(serviceRates.trashFee)}</strong>
+                </div>
+                <div>
+                  <Car
+                    className="service-rate-icon"
+                    size={18}
+                    strokeWidth={2.4}
+                  />
+                  <span>{text.parking}</span>
+                  <strong>
+                    {formatMoney(serviceRates.parkingFeePerVehicle)}
+                  </strong>
+                </div>
+              </div>
+            </section>
           </div>
-        </div>
-        {hasPaymentTarget ? (
-          <div className="payment-instruction-grid">
-            <div className="payment-qr-box">
-              <span>{text.paymentQr}</span>
-              <img
-                alt={`${text.paymentQr} ${paymentInstructions.bankAccountName || text.invoice}`}
-                src={paymentQrUrl}
-              />
-            </div>
-            <div>
-              <span>{text.bankName}</span>
-              <strong>{paymentInstructions.bankName}</strong>
-            </div>
-            <div>
-              <span>{text.bankAccountNumber}</span>
-              <strong>{paymentInstructions.bankAccountNumber}</strong>
-            </div>
-            <div>
-              <span>{text.bankAccountName}</span>
-              <strong>{paymentInstructions.bankAccountName}</strong>
-            </div>
-            <div>
-              <span>{text.invoice}</span>
-              <strong>
-                {openInvoice ? formatInvoiceCode(openInvoice) : '-'}
-              </strong>
-            </div>
-            <div className="transfer-content-box">
-              <span>{text.transferContent}</span>
-              <strong>{payableTransferContent || '-'}</strong>
-              {payableTransferContent ? (
+
+          <div className="work-queue-grid">
+            <section className="dashboard-panel">
+              <div className="panel-heading">
+                <div>
+                  <span className="eyebrow">{text.activeContract}</span>
+                  <h2>{text.activeContract}</h2>
+                </div>
                 <button
                   className="secondary-button"
                   type="button"
-                  onClick={handleCopyTransferContent}
+                  onClick={() => setIsContractHistoryOpen(true)}
                 >
-                  <Copy className="button-icon" size={16} strokeWidth={2.5} />
-                  {text.copyTransferContent}
+                  <History
+                    className="button-icon"
+                    size={16}
+                    strokeWidth={2.5}
+                  />
+                  {text.showContractHistory} ({summary.contracts.length})
                 </button>
-              ) : null}
-            </div>
-            {paymentInstructions.paymentNote ? (
-              <p>{paymentInstructions.paymentNote}</p>
-            ) : null}
-            {sepayPayment ? (
-              <div className="momo-payment-box">
-                <span>{text.sepayCode}</span>
-                <strong>{sepayPayment.paymentCode}</strong>
               </div>
-            ) : null}
-          </div>
-        ) : (
-          <p className="empty-note">{text.paymentInstructionsMissing}</p>
-        )}
-      </section>
-
-      <section className="table-panel">
-        <div className="table-panel-header">
-          <div>
-            <span className="eyebrow">{text.billing}</span>
-            <h2>{text.paymentHistory}</h2>
-          </div>
-        </div>
-
-        {summary.payments.length === 0 ? (
-          <p>{text.emptyPayment}</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>{text.invoice}</th>
-                <th>{text.dueDate}</th>
-                <th>{text.openAmount}</th>
-                <th>{text.status}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summary.payments.map((payment) => (
-                <tr key={payment._id}>
-                  <td>
-                    <strong>
-                      {payment.invoice
-                        ? formatInvoiceCode(payment.invoice)
-                        : payment.note || text.invoice}
-                    </strong>
-                    <span>{getPaymentMethodLabel(payment.method, text)}</span>
-                  </td>
-                  <td>
-                    <strong>{formatDate(payment.dueDate)}</strong>
-                    <span>
-                      {text.paidAt}: {formatDate(payment.paidAt, '-')}
-                    </span>
-                  </td>
-                  <td>
-                    <strong>{formatMoney(payment.amount)}</strong>
-                    {getPaymentReference(payment) ? (
+              {activeContracts.length === 0 ? (
+                <p className="empty-note">{text.emptyContract}</p>
+              ) : (
+                <div className="alert-list">
+                  {activeContracts.map((contract) => (
+                    <article className="alert-item" key={contract._id}>
+                      <strong>{contract.room?.name || text.noRoom}</strong>
                       <span>
-                        {text.paymentCode}: {getPaymentReference(payment)}
+                        {text.term}: {formatDate(contract.startDate)} {text.to}{' '}
+                        {formatDate(contract.endDate)}
                       </span>
-                    ) : null}
-                  </td>
-                  <td>
-                    <strong>{getStatusLabel(payment.status, text)}</strong>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+                      <small>
+                        {text.monthlyRent}: {formatMoney(contract.monthlyPrice)}
+                      </small>
+                      <button
+                        className="secondary-button"
+                        disabled={downloadingContractId === contract._id}
+                        type="button"
+                        onClick={() => handleDownloadPdf(contract)}
+                      >
+                        <Download
+                          className="button-icon"
+                          size={16}
+                          strokeWidth={2.5}
+                        />
+                        {downloadingContractId === contract._id
+                          ? text.loading
+                          : text.downloadPdf}
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="tenant-billing-layout">
+            <aside className="tenant-billing-summary">{monthlyCostPanel}</aside>
+
+            <div className="tenant-billing-main">
+              <section className="dashboard-panel tenant-open-invoice-panel">
+                <div className="panel-heading">
+                  <div>
+                    <span className="eyebrow">{text.billing}</span>
+                    <h2>{text.invoice}</h2>
+                  </div>
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => setIsPaidInvoiceOpen(true)}
+                  >
+                    <History
+                      className="button-icon"
+                      size={16}
+                      strokeWidth={2.5}
+                    />
+                    {text.showPaidInvoices} ({paidInvoices.length})
+                  </button>
+                </div>
+                {unpaidInvoices.length === 0 ? (
+                  <p className="empty-note">{text.emptyUnpaidInvoice}</p>
+                ) : (
+                  <div className="tenant-invoice-payment-grid">
+                    <div className="alert-list">
+                      {unpaidInvoices.map((invoice) => (
+                        <article className="alert-item" key={invoice._id}>
+                          <strong>
+                            {text.invoice} {formatInvoiceCode(invoice)}
+                          </strong>
+                          <span>
+                            {text.rent}: {formatMoney(invoice.rentAmount)} -{' '}
+                            {text.services}:{' '}
+                            {formatMoney(invoice.serviceAmount)}
+                          </span>
+                          <small>
+                            {text.dueDate}: {formatDate(invoice.dueDate)} -{' '}
+                            {getStatusLabel(invoice.status, text)}
+                          </small>
+                          <button
+                            className="secondary-button"
+                            disabled={downloadingInvoiceId === invoice._id}
+                            type="button"
+                            onClick={() => handleDownloadInvoicePdf(invoice)}
+                          >
+                            <Download
+                              className="button-icon"
+                              size={16}
+                              strokeWidth={2.5}
+                            />
+                            {downloadingInvoiceId === invoice._id
+                              ? text.loading
+                              : text.downloadPdf}
+                          </button>
+                          {['draft', 'issued', 'overdue'].includes(
+                            invoice.status,
+                          ) ? (
+                            <button
+                              className="secondary-button"
+                              disabled={paymentActionId === invoice._id}
+                              type="button"
+                              onClick={() => handleCreateSepayPayment(invoice)}
+                            >
+                              <QrCode
+                                className="button-icon"
+                                size={16}
+                                strokeWidth={2.5}
+                              />
+                              {paymentActionId === invoice._id
+                                ? text.loading
+                                : text.sepayPay}
+                            </button>
+                          ) : null}
+                        </article>
+                      ))}
+                    </div>
+                    <div className="tenant-qr-slot">
+                      {sepayInvoiceId ? (
+                        <>
+                          <img
+                            alt={`${text.paymentQr} ${room?.name || text.invoice}`}
+                            src={paymentQrUrl}
+                          />
+                          <div>
+                            <span>{text.sepayCode}</span>
+                            <strong>{payableTransferContent}</strong>
+                            <small>{text.paymentQrNote}</small>
+                            <button
+                              className="secondary-button"
+                              type="button"
+                              onClick={handleCopyTransferContent}
+                            >
+                              <Copy
+                                className="button-icon"
+                                size={16}
+                                strokeWidth={2.5}
+                              />
+                              {text.copyTransferContent}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <QrCode size={42} strokeWidth={1.9} />
+                          <span>{text.paymentQr}</span>
+                          <small>{text.paymentQrNote}</small>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+
+          <section className="table-panel tenant-payment-history-panel">
+            <div className="table-panel-header">
+              <div>
+                <span className="eyebrow">{text.billing}</span>
+                <h2>{text.paymentHistory}</h2>
+              </div>
+              <History size={20} strokeWidth={2.4} />
+            </div>
+
+            {summary.payments.length === 0 ? (
+              <p>{text.emptyPayment}</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>{text.invoice}</th>
+                    <th>{text.dueDate}</th>
+                    <th>{text.openAmount}</th>
+                    <th>{text.status}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.payments.map((payment) => (
+                    <tr key={payment._id}>
+                      <td>
+                        <strong>
+                          {payment.invoice
+                            ? formatInvoiceCode(payment.invoice)
+                            : payment.note || text.invoice}
+                        </strong>
+                        <span>
+                          {getPaymentMethodLabel(payment.method, text)}
+                        </span>
+                      </td>
+                      <td>
+                        <strong>{formatDate(payment.dueDate)}</strong>
+                        <span>
+                          {text.paidAt}: {formatDate(payment.paidAt, '-')}
+                        </span>
+                      </td>
+                      <td>
+                        <strong>{formatMoney(payment.amount)}</strong>
+                        {getPaymentReference(payment) ? (
+                          <span>
+                            {text.paymentCode}: {getPaymentReference(payment)}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td>
+                        <strong>{getStatusLabel(payment.status, text)}</strong>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        </>
+      )}
     </section>
   );
 }

@@ -938,6 +938,13 @@ toan. Payment co invoice lien ket se tra them ma/noi dung thanh toan nhu `paymen
       "paymentNote": "Sau khi chuyen khoan, vui long gui bien lai cho chu tro.",
       "isConfigured": true
     },
+    "serviceRates": {
+      "electricityUnitPrice": 3500,
+      "waterUnitPrice": 15000,
+      "internetFee": 100000,
+      "trashFee": 30000,
+      "parkingFeePerVehicle": 100000
+    },
     "totals": {
       "openInvoiceAmount": 0,
       "openInvoiceCount": 0,

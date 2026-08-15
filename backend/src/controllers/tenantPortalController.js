@@ -77,6 +77,16 @@ function buildPaymentInstructions(setting) {
   };
 }
 
+function buildServiceRates(setting) {
+  return {
+    electricityUnitPrice: Number(setting?.electricityUnitPrice || 0),
+    internetFee: Number(setting?.internetFee || 0),
+    parkingFeePerVehicle: Number(setting?.parkingFeePerVehicle || 0),
+    trashFee: Number(setting?.trashFee || 0),
+    waterUnitPrice: Number(setting?.waterUnitPrice || 0),
+  };
+}
+
 export async function getTenantPortalSummary(req, res, next) {
   try {
     if (req.user.role !== 'tenant') {
@@ -133,6 +143,7 @@ export async function getTenantPortalSummary(req, res, next) {
         invoices,
         paymentInstructions: buildPaymentInstructions(serviceSetting),
         payments,
+        serviceRates: buildServiceRates(serviceSetting),
         totals: {
           openInvoiceAmount: openInvoices.reduce(
             (total, invoice) => total + Number(invoice.totalAmount || 0),

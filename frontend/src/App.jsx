@@ -44,6 +44,10 @@ export default function App() {
               <Route path="/" element={<RoleHome />} />
               <Route element={<ProtectedRoute allowedRoles={['tenant']} />}>
                 <Route path="/tenant-portal" element={<TenantPortalPage />} />
+                <Route
+                  path="/tenant-portal/billing"
+                  element={<TenantPortalPage defaultTab="billing" />}
+                />
               </Route>
               <Route element={<ProtectedRoute allowedRoles={['landlord']} />}>
                 <Route path="/rooms" element={<RoomsPage />} />

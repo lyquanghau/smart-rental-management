@@ -35,7 +35,12 @@ const utilityLinks = [
 ];
 
 const tenantLinks = [
-  { to: '/tenant-portal', labelKey: 'tenantPortal', icon: Home },
+  { to: '/tenant-portal', labelKey: 'tenantOverview', icon: Home, end: true },
+  {
+    to: '/tenant-portal/billing',
+    labelKey: 'tenantBilling',
+    icon: CreditCard,
+  },
 ];
 
 const labels = {
@@ -54,6 +59,8 @@ const labels = {
     services: 'Services',
     settings: 'Settings',
     signOut: 'Sign out',
+    tenantBilling: 'Bills & payments',
+    tenantOverview: 'Overview',
     tenantPortal: 'Tenant portal',
     utilityNav: 'Help and settings',
   },
@@ -72,14 +79,16 @@ const labels = {
     services: 'Dịch vụ',
     settings: 'Cài đặt',
     signOut: 'Đăng xuất',
+    tenantBilling: 'Hóa đơn & thanh toán',
+    tenantOverview: 'Tổng quan',
     tenantPortal: 'Cổng khách thuê',
     utilityNav: 'Hỗ trợ và cài đặt',
   },
 };
 
-function NavItem({ to, label, icon: Icon }) {
+function NavItem({ to, label, icon: Icon, end = false }) {
   return (
-    <NavLink to={to}>
+    <NavLink end={end} to={to}>
       <Icon aria-hidden="true" size={18} strokeWidth={2.4} />
       <span>{label}</span>
     </NavLink>
@@ -91,7 +100,6 @@ export function Sidebar({ isCollapsed, onToggle }) {
   const { language } = usePreferences();
   const text = labels[language] || labels.vi;
   const isTenant = user?.role === 'tenant';
-  const tenantPortalLabel = text.tenantPortal;
   const toggleLabel = isCollapsed ? 'Mở thanh bên' : 'Thu gọn thanh bên';
   const toggleIcon = isCollapsed ? 'arrow_forward' : 'arrow_back';
 
@@ -142,15 +150,7 @@ export function Sidebar({ isCollapsed, onToggle }) {
         <nav className="nav" aria-label={text.mainNav}>
           <span className="nav-section">{text.operations}</span>
           {(isTenant ? tenantLinks : mainLinks).map((item) => (
-            <NavItem
-              key={item.to}
-              {...item}
-              label={
-                item.labelKey === 'tenantPortal'
-                  ? tenantPortalLabel
-                  : text[item.labelKey]
-              }
-            />
+            <NavItem key={item.to} {...item} label={text[item.labelKey]} />
           ))}
           {!isTenant ? (
             <>
