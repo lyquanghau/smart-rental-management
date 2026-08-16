@@ -16,7 +16,7 @@ const serviceSettingSchema = new mongoose.Schema(
     },
     waterUnitPrice: {
       type: Number,
-      default: 15000,
+      default: 100000,
       min: 0,
     },
     internetFee: {

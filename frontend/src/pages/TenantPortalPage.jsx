@@ -261,6 +261,10 @@ function getOccupantCount(contract) {
   return contract ? 1 + (contract.occupants?.length || 0) : 0;
 }
 
+function getVehicleCount(contract) {
+  return Number(contract?.vehicleCount || 0);
+}
+
 function buildTransferContent(template, room, invoice) {
   if (!invoice) return '';
   const fallback = 'Thanh toán phòng {room} tháng {month}-{year}';
@@ -446,6 +450,7 @@ export function TenantPortalPage({ defaultTab = 'overview' }) {
   const billingCostInvoice = openInvoice || summary.invoices[0] || null;
   const billingReading = billingCostInvoice?.utilityReading || null;
   const occupantCount = getOccupantCount(activeContract);
+  const vehicleCount = getVehicleCount(activeContract);
   const paymentInstructions = summary.paymentInstructions;
   const serviceRates = summary.serviceRates || emptySummary.serviceRates;
   const transferContent = buildTransferContent(
@@ -553,10 +558,8 @@ export function TenantPortalPage({ defaultTab = 'overview' }) {
             {formatMoney(billingReading?.electricityAmount)}
           </p>
           <p>
-            <strong>{text.water}</strong>: {text.oldIndex}{' '}
-            {formatNumber(billingReading?.waterPrevious)}, {text.newIndex}{' '}
-            {formatNumber(billingReading?.waterCurrent)}, {text.usage}{' '}
-            {formatNumber(billingReading?.waterUsage)} m3 ={' '}
+            <strong>{text.water}</strong>: {text.usage}{' '}
+            {formatNumber(billingReading?.waterUsage)} {text.people} ={' '}
             {formatMoney(billingReading?.waterAmount)}
           </p>
           <p>
@@ -565,7 +568,8 @@ export function TenantPortalPage({ defaultTab = 'overview' }) {
             <strong>{text.trash}</strong>:{' '}
             {formatMoney(billingReading?.trashAmount)} -{' '}
             <strong>{text.parking}</strong>:{' '}
-            {formatMoney(billingReading?.parkingAmount)}
+            {formatNumber(billingReading?.parkingVehicleCount || vehicleCount)}{' '}
+            xe = {formatMoney(billingReading?.parkingAmount)}
           </p>
           <p>
             <strong>{text.services}</strong>:{' '}
@@ -783,6 +787,10 @@ export function TenantPortalPage({ defaultTab = 'overview' }) {
                   <strong>{occupantCount || '-'}</strong>
                 </div>
                 <div>
+                  <span>So xe</span>
+                  <strong>{vehicleCount}</strong>
+                </div>
+                <div>
                   <span>{text.contractDeposit}</span>
                   <strong>{formatMoney(activeContract?.deposit || 0)}</strong>
                 </div>
@@ -827,7 +835,7 @@ export function TenantPortalPage({ defaultTab = 'overview' }) {
                   />
                   <span>{text.water}</span>
                   <strong>
-                    {formatMoney(serviceRates.waterUnitPrice)} / m3
+                    {formatMoney(serviceRates.waterUnitPrice)} / {text.people}
                   </strong>
                 </div>
                 <div>
@@ -856,7 +864,7 @@ export function TenantPortalPage({ defaultTab = 'overview' }) {
                   />
                   <span>{text.parking}</span>
                   <strong>
-                    {formatMoney(serviceRates.parkingFeePerVehicle)}
+                    {formatMoney(serviceRates.parkingFeePerVehicle)} / xe
                   </strong>
                 </div>
               </div>

@@ -7,6 +7,7 @@ import { Notification } from '../src/models/Notification.js';
 import { Payment } from '../src/models/Payment.js';
 import { Room } from '../src/models/Room.js';
 import { ServiceSetting } from '../src/models/ServiceSetting.js';
+import { SupportRequest } from '../src/models/SupportRequest.js';
 import { Tenant } from '../src/models/Tenant.js';
 import { User } from '../src/models/User.js';
 import { UtilityReading } from '../src/models/UtilityReading.js';
@@ -51,6 +52,12 @@ test('business models require an owner for tenant data isolation', () => {
       message: 'Hoa don da thanh toan',
       title: 'Thanh toan thanh cong',
     }),
+    new SupportRequest({
+      requester: id(),
+      tenant: id(),
+      subject: 'Can ho tro',
+      description: 'Can kiem tra phong',
+    }),
   ];
 
   for (const model of models) {
@@ -60,6 +67,27 @@ test('business models require an owner for tenant data isolation', () => {
       `${model.constructor.modelName} lacks owner`,
     );
   }
+});
+
+test('support request validation keeps help tickets bounded', () => {
+  const request = new SupportRequest({
+    owner: id(),
+    requester: id(),
+    tenant: id(),
+    category: 'security',
+    description: 'Qua ngan',
+    priority: 'critical',
+    status: 'waiting',
+    subject: 'Loi',
+  });
+
+  const error = request.validateSync();
+
+  assert.ok(error?.errors.category);
+  assert.ok(error?.errors.description);
+  assert.ok(error?.errors.priority);
+  assert.ok(error?.errors.status);
+  assert.ok(error?.errors.subject);
 });
 
 test('room validation rejects invalid status and negative prices', () => {

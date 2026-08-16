@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Bell, CheckCheck } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Bell, CheckCheck, X } from 'lucide-react';
 import { usePreferences } from '../hooks/usePreferences.js';
 import {
   getNotifications,
@@ -10,6 +10,7 @@ import { getStoredUser } from '../services/sessionStorage.js';
 
 const labels = {
   en: {
+    closeNotifications: 'Close notifications',
     emptyNotifications: 'No notifications yet.',
     eyebrow: 'Dashboard',
     markAllRead: 'Mark all read',
@@ -19,6 +20,7 @@ const labels = {
     unreadNotifications: 'Unread notifications',
   },
   vi: {
+    closeNotifications: 'Đóng thông báo',
     emptyNotifications: 'Chưa có thông báo.',
     eyebrow: 'Bảng điều hành',
     markAllRead: 'Đánh dấu đã đọc',
@@ -43,6 +45,43 @@ function formatNotificationTime(value, language) {
   }).format(date);
 }
 
+function getLocalizedNotification(notification, language) {
+  if (language !== 'vi') return notification;
+
+  if (notification.type === 'payment_success') {
+    return {
+      ...notification,
+      message: notification.message
+        ?.replaceAll('Hoa don', 'Hóa đơn')
+        .replaceAll('phong', 'phòng')
+        .replaceAll('thang', 'tháng')
+        .replaceAll('da duoc thanh toan', 'đã được thanh toán'),
+      title: 'Hóa đơn đã thanh toán',
+    };
+  }
+
+  const supportTitleMap = {
+    'Yeu cau ho tro da dong': 'Yêu cầu hỗ trợ đã đóng',
+    'Yeu cau ho tro da duoc cap nhat': 'Yêu cầu hỗ trợ đã được cập nhật',
+    'Yeu cau ho tro moi': 'Yêu cầu hỗ trợ mới',
+  };
+
+  if (notification.type === 'support_request') {
+    return {
+      ...notification,
+      message: notification.message
+        ?.replaceAll('Khach thue', 'Khách thuê')
+        .replaceAll('Chu tro', 'Chủ trọ')
+        .replaceAll('da gui yeu cau', 'đã gửi yêu cầu')
+        .replaceAll('da cap nhat yeu cau', 'đã cập nhật yêu cầu')
+        .replaceAll('da dong yeu cau', 'đã đóng yêu cầu'),
+      title: supportTitleMap[notification.title] || notification.title,
+    };
+  }
+
+  return notification;
+}
+
 export function Header() {
   const { language } = usePreferences();
   const text = labels[language] || labels.vi;
@@ -50,6 +89,7 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const notificationMenuRef = useRef(null);
   const canUseNotifications = ['landlord', 'tenant'].includes(user?.role);
 
   async function loadNotifications() {
@@ -74,6 +114,27 @@ export function Header() {
     return () => window.clearInterval(intervalId);
   }, [canUseNotifications]);
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    function handleDocumentPointerDown(event) {
+      if (notificationMenuRef.current?.contains(event.target)) return;
+      setIsOpen(false);
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setIsOpen(false);
+    }
+
+    document.addEventListener('pointerdown', handleDocumentPointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handleDocumentPointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
   async function handleMarkRead(notification) {
     if (notification.readAt) return;
     await markNotificationRead(notification._id);
@@ -94,13 +155,16 @@ export function Header() {
         </div>
       </div>
       {canUseNotifications ? (
-        <div className="notification-menu">
+        <div className="notification-menu" ref={notificationMenuRef}>
           <button
             aria-expanded={isOpen}
             aria-label={text.notifications}
             className="notification-trigger"
             type="button"
-            onClick={() => setIsOpen((current) => !current)}
+            onClick={() => {
+              setIsOpen((current) => !current);
+              loadNotifications();
+            }}
           >
             <Bell size={18} strokeWidth={2.5} />
             <span className="notification-trigger-label">
@@ -116,50 +180,67 @@ export function Header() {
             ) : null}
           </button>
           {isOpen ? (
-            <div className="notification-popover">
+            <div className="notification-popover" role="menu">
               <div className="notification-popover-header">
                 <strong>{text.notifications}</strong>
-                <button
-                  className="icon-button"
-                  disabled={unreadCount === 0}
-                  type="button"
-                  onClick={handleMarkAllRead}
-                >
-                  <CheckCheck size={16} strokeWidth={2.5} />
-                  {text.markAllRead}
-                </button>
+                <div className="notification-popover-actions">
+                  <button
+                    className="notification-mark-read-button"
+                    disabled={unreadCount === 0}
+                    type="button"
+                    onClick={handleMarkAllRead}
+                  >
+                    <CheckCheck size={16} strokeWidth={2.5} />
+                    {text.markAllRead}
+                  </button>
+                  <button
+                    aria-label={text.closeNotifications}
+                    className="notification-close-button"
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <X size={18} strokeWidth={2.5} />
+                  </button>
+                </div>
               </div>
               {notifications.length === 0 ? (
                 <p className="empty-note">{text.emptyNotifications}</p>
               ) : (
                 <div className="notification-list">
-                  {notifications.map((notification) => (
-                    <button
-                      className={`notification-item ${
-                        notification.readAt ? '' : 'is-unread'
-                      }`}
-                      key={notification._id}
-                      type="button"
-                      onClick={() => handleMarkRead(notification)}
-                    >
-                      <span className="notification-item-topline">
-                        {!notification.readAt ? (
-                          <span
-                            aria-hidden="true"
-                            className="notification-unread-dot"
-                          />
-                        ) : null}
-                        <strong>{notification.title}</strong>
-                        <time>
-                          {formatNotificationTime(
-                            notification.createdAt,
-                            language,
-                          )}
-                        </time>
-                      </span>
-                      <span>{notification.message}</span>
-                    </button>
-                  ))}
+                  {notifications.map((notification) => {
+                    const displayNotification = getLocalizedNotification(
+                      notification,
+                      language,
+                    );
+
+                    return (
+                      <button
+                        className={`notification-item ${
+                          notification.readAt ? '' : 'is-unread'
+                        }`}
+                        key={notification._id}
+                        type="button"
+                        onClick={() => handleMarkRead(notification)}
+                      >
+                        <span className="notification-item-topline">
+                          {!notification.readAt ? (
+                            <span
+                              aria-hidden="true"
+                              className="notification-unread-dot"
+                            />
+                          ) : null}
+                          <strong>{displayNotification.title}</strong>
+                          <time>
+                            {formatNotificationTime(
+                              notification.createdAt,
+                              language,
+                            )}
+                          </time>
+                        </span>
+                        <span>{displayNotification.message}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

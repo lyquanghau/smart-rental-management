@@ -39,6 +39,7 @@ const emptyForm = {
   tenantPermanentAddress: '',
   occupantCount: '1',
   occupants: [],
+  vehicleCount: '0',
   startDate: '',
   durationMonths: '12',
   endDate: '',
@@ -134,6 +135,7 @@ const copy = {
     view: 'View',
     viewContract: 'View contract',
     viewPdf: 'Preview contract PDF',
+    vehicleCount: 'Vehicles',
     durationOptions: [
       { value: '3', label: '3 months' },
       { value: '6', label: '6 months' },
@@ -359,6 +361,7 @@ function toFormData(contract) {
     tenantPermanentAddress: contract.tenant?.permanentAddress || '',
     occupantCount: String((contract.occupants?.length || 0) + 1),
     occupants: contract.occupants || [],
+    vehicleCount: String(contract.vehicleCount ?? 0),
     startDate,
     durationMonths: getDurationMonths(startDate, endDate),
     endDate,
@@ -399,6 +402,7 @@ function toPayload(formData) {
       addMonthsToDateInput(formData.startDate, formData.durationMonths),
     monthlyPrice,
     deposit: monthlyPrice * Number(formData.depositMonths || 1),
+    vehicleCount: Number(formData.vehicleCount || 0),
     status: formData.status,
     occupants,
   };
@@ -410,7 +414,7 @@ export function ContractsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { showError, showSuccess, showToast } = useToast();
-  const text = copy[language] || copy.vi;
+  const text = { vehicleCount: 'So xe', ...(copy[language] || copy.vi) };
   const [contracts, setContracts] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [tenants, setTenants] = useState([]);
@@ -1038,6 +1042,19 @@ export function ContractsPage() {
             </select>
           </label>
 
+          <label>
+            {text.vehicleCount}
+            <input
+              disabled={isViewing}
+              min="0"
+              type="number"
+              value={formData.vehicleCount}
+              onChange={(event) =>
+                updateField('vehicleCount', event.target.value)
+              }
+            />
+          </label>
+
           {Number(formData.occupantCount) > 1 ? (
             <div className="contract-occupants-panel">
               <strong>{text.occupants}</strong>
@@ -1258,6 +1275,10 @@ export function ContractsPage() {
                         </span>
                         <span>
                           {getOccupantTotal(contract)} {text.people}
+                        </span>
+                        <span>
+                          {text.vehicleCount}:{' '}
+                          {Number(contract.vehicleCount || 0)}
                         </span>
                         {contract.occupants?.length > 0 ? (
                           <span>

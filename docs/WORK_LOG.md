@@ -1,6 +1,210 @@
 # Work Log
 
+## 2026-08-16
+
+### Implement Tro giup & Ho tro thanh module dung that
+
+- Kiem tra dau phien:
+  - Dang o nhanh `main`, dong bo voi `origin/main`.
+  - `main`, `origin/main`, `dev`, `origin/dev` cung commit `2e5652c`.
+  - Khong co nhanh local/remote nao con commit chua merge vao `main`.
+  - File phu tro/untracked tiep tuc giu ngoai commit neu chua duoc yeu cau: `chuyen_de_2.xlsx`,
+    `code.txt`, `docs/PROMPT_TEMPLATE.md`, `docs/bao_cao/`, `docs/contract/`, `docs/image/`.
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1672 modules.
+- Doi chieu tien do voi `chuyen_de_2.xlsx`:
+  - Du an da vuot MVP ban dau: co auth, phong, khach thue, hop dong, hoa don dich vu, PDF,
+    dashboard, tenant portal, SePay/VietQR, MoMo mock, notification va multi-tenant isolation.
+  - Huong hien tai van bam dung muc tieu Smart Rental va dang chuyen tu demo sang san pham co the
+    van hanh that cho chu tro nho.
+  - Khoang thieu noi bat theo work log la `Tro giup & Ho tro`: truoc do route `/help` chi co card
+    ghi chu tinh va con loi ma hoa tieng Viet.
+- Backend:
+  - Them model `SupportRequest` gom `owner`, `requester`, `tenant`, `category`, `subject`,
+    `description`, `priority`, `status`, `landlordReply`, `resolvedAt`, `closedAt`.
+  - Them route `/api/support-requests`:
+    - `GET /` danh sach ticket theo quyen.
+    - `GET /:id` chi tiet ticket theo quyen.
+    - `POST /` tenant tao ticket.
+    - `PATCH /:id` landlord cap nhat trang thai, muc do uu tien va phan hoi.
+    - `PATCH /:id/close` tenant dong ticket cua minh.
+  - Cach ly du lieu:
+    - Tenant chi xem/tao/dong ticket cua tai khoan tenant dang dang nhap.
+    - Landlord chi xem/cap nhat ticket co `owner = req.user._id`.
+  - Mo rong `Notification` voi `support_request`, `recipientRole`, `recipientUser` optional de
+    support notification khong bi tron unread giua chu tro va tenant.
+  - Mo rong API notification tenant de tra ca thong bao hoa don va thong bao support cua chinh user.
+- Frontend:
+  - Them `frontend/src/services/supportRequestService.js`.
+  - Lam lai `HelpSupportPage.jsx`:
+    - FAQ dung chung.
+    - Tenant co form tao ticket, danh sach ticket, xem phan hoi va dong ticket da xu ly.
+    - Landlord xem danh sach ticket, loc theo trang thai/loai/muc do, chon ticket va cap nhat phan hoi.
+    - Sua copy tieng Viet co dau cho trang `/help`.
+  - Them CSS rieng cho FAQ, bang ticket, filter, detail panel va dark mode.
+- Tai lieu:
+  - Cap nhat `docs/API.md` cho endpoint support request va notification support.
+  - Cap nhat `docs/MODULES.md` them module Help & Support.
+  - Cap nhat `docs/TEST_CHECKLIST.md` them checklist manual cho ticket ho tro va notification hai chieu.
+- Kiem tra:
+  - `npm run lint`: pass sau khi bo import thua.
+  - `npm run format:check`: pass.
+  - `git diff --check`: pass.
+  - `npm run test`: loi `spawn EPERM` trong sandbox Windows cua Node test runner.
+  - `npm run test` ngoai sandbox: pass 30 test, skip 1 integration test theo guard.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1673 modules.
+
+### Cho phep mot khach thue nhieu phong
+
+- Theo cau hoi ve khoa chinh va quan he du lieu, chot huong thiet ke:
+  - Khoa chinh van la MongoDB `_id`.
+  - `Tenant._id` dai dien mot ho so khach thue.
+  - `Room._id` dai dien mot phong.
+  - `Contract` la quan he chinh noi khach thue voi phong qua `tenant` va `room`.
+  - Mot khach thue co the co nhieu hop dong `active` o nhieu phong khac nhau.
+  - Moi phong van chi duoc co mot hop dong `active` tai mot thoi diem.
+- Backend:
+  - Khi tao hop dong bang khach thue da co, khong con ghi de `tenant.room` sang phong moi.
+  - Neu ho so tenant cu chua co `room`, backend moi dien `tenant.room` lam phong chinh/legacy.
+  - Khi tim khach thue trung theo phone/email luc tao hop dong moi, giu nguyen `tenant.room` neu da co.
+  - Dong bo trang thai phong dua tren hop dong active truoc, chi dung `Tenant.room` cho khach duoc gan
+    phong truc tiep nhung chua co hop dong active.
+  - Chi tiet phong lay khach hien tai tu hop dong active cua phong, tranh sai khi mot tenant co nhieu phong.
+- Giao dien hien tai da phu hop co ban:
+  - Trang Hop dong co the chon khach thue da co va tao hop dong cho phong khac.
+  - Trang Khach thue da render theo hop dong active, nen cung mot khach co the hien tren nhieu dong phong.
+- Tai lieu:
+  - Cap nhat `docs/API.md` cho rule mot tenant nhieu hop dong active o nhieu phong.
+  - Cap nhat `docs/MODULES.md` ve quan he `Tenant` - `Room` - `Contract`.
+  - Cap nhat `docs/TEST_CHECKLIST.md` them case manual tao mot khach thue nhieu phong.
+- Kiem tra:
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `git diff --check`: pass.
+  - `npm run test`: loi `spawn EPERM` trong sandbox Windows cua Node test runner.
+  - `npm run test` ngoai sandbox: pass 30 test, skip 1 integration test theo guard.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1673 modules.
+
 ## 2026-08-15
+
+### Lap dan y bao cao tot nghiep Smart Rental
+
+- Ra soat `chuyen_de_2.xlsx`, `docs/WORK_LOG.md`, cac tai lieu trong `docs` va mau bao cao
+  `docs/bao_cao/LVTN_Lan2.docx`.
+- Xac nhan mau bao cao hien la de tai LMS khac, chi dung lam khung trinh bay; noi dung can viet
+  lai theo Smart Rental.
+- Tao `docs/bao_cao/DAN_Y_BAO_CAO_SMART_RENTAL.md` gom:
+  - Phan dau bao cao: bia, loi cam on, loi cam doan, muc luc, danh muc.
+  - Chuong 1: gioi thieu de tai.
+  - Chuong 2: co so ly thuyet va cong nghe.
+  - Chuong 3: phan tich va thiet ke he thong.
+  - Chuong 4: cai dat va ket qua thuc hien.
+  - Chuong 5: kiem thu, danh gia va huong phat trien.
+  - Danh sach hinh, bang va viec can lam tiep de ra ban `.docx`.
+- Chuyen dan y thanh `docs/bao_cao/DAN_Y_BAO_CAO_SMART_RENTAL.docx` de gui thanh vien phu
+  trach bao cao:
+  - Co trang dau, heading, bang, bullet/numbering, doan ghi chu va nhan manh bang dam/nghieng.
+  - Da kiem tra cau truc OOXML cua file `.docx`: co `document.xml`, `styles.xml`,
+    `numbering.xml`, 879 doan va 14 bang.
+  - Chua render visual QA vi may hien khong co LibreOffice/`soffice` trong PATH.
+- Viet them `docs/bao_cao/NOI_DUNG_LY_THUYET_BAO_CAO_SMART_RENTAL.md` bang tieng Viet co dau,
+  gom noi dung ly thuyet co the dua vao chuong 2:
+  - Bai toan quan ly phong tro, kien truc full-stack/client-server va REST API.
+  - React, Vite, React Router, Axios, Node.js, Express, MongoDB Atlas, Mongoose.
+  - JWT, phan quyen, multi-tenant isolation, soft delete, PDF, SMTP, hoa don/thanh toan,
+    webhook, SePay/VietQR, MoMo mock, dashboard, notification, deploy, backup va kiem thu.
+- Theo yeu cau rut gon dung dan y da chot, tao them ban Chương 2 chinh thuc:
+  - `docs/bao_cao/CHUONG_2_CO_SO_LY_THUYET_SMART_RENTAL.md`.
+  - `docs/bao_cao/CHUONG_2_CO_SO_LY_THUYET_SMART_RENTAL.docx`.
+  - Noi dung chi gom cac muc 2.1 den 2.8: tong quan ung dung web quan ly phong tro, kien truc
+    full-stack, React/Vite, Node.js/Express, MongoDB Atlas/Mongoose, JWT/phan quyen, PDFKit va
+    thanh toan dien tu/webhook.
+  - Da kiem tra file Word khong co muc 2.9 tro len, cau truc DOCX hop le voi 193 doan va 4 bang.
+- Viet va xuat ban Chương 1:
+  - `docs/bao_cao/CHUONG_1_GIOI_THIEU_SMART_RENTAL.md`.
+  - `docs/bao_cao/CHUONG_1_GIOI_THIEU_SMART_RENTAL.docx`.
+  - Noi dung gom 1.1 den 1.7: dat van de, ly do chon de tai, muc tieu, doi tuong su dung,
+    pham vi, phuong phap thuc hien va bo cuc bao cao.
+  - Da kiem tra file Word dung pham vi Chương 1, cau truc DOCX hop le voi 133 doan va 1 bang.
+- Viet va xuat ban Chương 3 phan tich/thiet ke:
+  - `docs/bao_cao/CHUONG_3_PHAN_TICH_THIET_KE_SMART_RENTAL.md`.
+  - `docs/bao_cao/CHUONG_3_PHAN_TICH_THIET_KE_SMART_RENTAL.docx`.
+  - Noi dung gom 3.1 den 3.9: khao sat hien trang, yeu cau chuc nang, yeu cau phi chuc nang,
+    tac nhan/use case, quy trinh nghiep vu, kien truc he thong, database, API va giao dien.
+  - Cac so do/use case/activity/sequence/ERD/screenshot de placeholder "hinh can bo sung sau".
+  - Da kiem tra file Word dung pham vi Chương 3, khong lan Chương 4, cau truc DOCX co 360 doan
+    va 4 bang.
+- Tao `docs/bao_cao/HUONG_DAN_VE_SO_DO_CHUONG_3_SMART_RENTAL.md` huong dan thanh vien ve 9 so do:
+  - Use case tong quat, use case chu tro, use case khach thue.
+  - Activity tao hop dong, activity tao hoa don thang.
+  - Sequence thanh toan SePay/VietQR.
+  - Kien truc tong quan, ERD/model database va so do API/module backend.
+  - Ghi ro can ve hinh gi, noi mui ten ra sao, khi nao can note, khi nao can ghi quan he
+    `1:N`, `1:1`.
+  - Da xuat ban Word `docs/bao_cao/HUONG_DAN_VE_SO_DO_CHUONG_3_SMART_RENTAL.docx` theo cung
+    noi dung, co heading, bang checklist, dam/nghieng va danh sach de gui cho thanh vien lam bao
+    cao.
+  - Da kiem tra cau truc DOCX hop le, dung pham vi 9 so do, co 657 doan va 1 bang.
+- Sau khi doi chieu lai mat do hinh trong file mau, tao them ban huong dan day du hon:
+  - `docs/bao_cao/HUONG_DAN_HE_THONG_HINH_VE_DAY_DU_SMART_RENTAL.md`.
+  - `docs/bao_cao/HUONG_DAN_HE_THONG_HINH_VE_DAY_DU_SMART_RENTAL.docx`.
+  - Giai thich vi sao 9 so do chi la muc toi thieu, con neu bam theo file mau thi nen co khoang
+    45 den 55 hinh cho Smart Rental.
+  - Bo sung danh sach hinh de xuat cho Chuong 2 den `Hinh 2-15` va Chuong 3 den `Hinh 3-55`,
+    gom use case, activity, sequence, ERD, kien truc, wireframe va hinh minh hoa cong nghe.
+  - Da kiem tra cau truc DOCX hop le, noi dung dung pham vi huong dan mo rong va `npm run
+format:check` pass.
+- Tao ban huong dan rieng cho 3 loai so do ma nhom se ve truoc:
+  - `docs/bao_cao/HUONG_DAN_VE_USECASE_SEQUENCE_ACTIVITY_SMART_RENTAL.md`.
+  - `docs/bao_cao/HUONG_DAN_VE_USECASE_SEQUENCE_ACTIVITY_SMART_RENTAL.docx`.
+  - Noi dung tap trung vao use case diagram, sequence diagram va activity diagram cho cac chuc
+    nang: dang nhap/phan quyen, dashboard, phong, khach thue, hop dong, dich vu, chi so dien
+    nuoc, hoa don, thanh toan VietQR/SePay, tenant portal, thong bao va cai dat tai khoan.
+  - Da kiem tra cau truc DOCX hop le, noi dung dung pham vi 3 loai so do va `npm run
+format:check` pass.
+- Tao ban Chuong 3 moi theo dang san sang chen hinh:
+  - `docs/bao_cao/CHUONG_3_PHAN_TICH_THIET_KE_SMART_RENTAL_BAN_CHEN_HINH.md`.
+  - `docs/bao_cao/CHUONG_3_PHAN_TICH_THIET_KE_SMART_RENTAL_BAN_CHEN_HINH.docx`.
+  - Noi dung viet day du cac muc 3.1 den 3.10, cac vi tri can so do/screenshot chi de caption
+    hinh de nhom chen sau.
+  - File Word co 51 caption hinh, 4 bang; da kiem tra cau truc DOCX hop le va `npm run
+format:check` pass.
+- Tao ban Chuong 4 theo dang san sang chen hinh:
+  - `docs/bao_cao/CHUONG_4_CAI_DAT_KET_QUA_SMART_RENTAL_BAN_CHEN_HINH.md`.
+  - `docs/bao_cao/CHUONG_4_CAI_DAT_KET_QUA_SMART_RENTAL_BAN_CHEN_HINH.docx`.
+  - Noi dung viet day du cac muc 4.1 den 4.15: moi truong phat trien, cau truc ma nguon,
+    backend, frontend, auth, phong, khach thue, hop dong, dich vu/hoa don, thanh toan,
+    dashboard/thong bao, cong khach thue, deploy va ket qua dat duoc.
+  - Cac vi tri can anh/screenshot chi de caption hinh de nhom chen sau; file Word co 36 caption
+    hinh va 13 bang.
+- Tao ban Chuong 5 theo dang san sang chen hinh:
+  - `docs/bao_cao/CHUONG_5_KIEM_THU_DANH_GIA_SMART_RENTAL_BAN_CHEN_HINH.md`.
+  - `docs/bao_cao/CHUONG_5_KIEM_THU_DANH_GIA_SMART_RENTAL_BAN_CHEN_HINH.docx`.
+  - Noi dung viet day du cac muc 5.1 den 5.9: muc tieu kiem thu, pham vi kiem thu, phuong
+    phap kiem thu, kich ban kiem thu chuc nang, ket qua kiem thu tu dong, danh gia, han che,
+    huong phat trien va ket luan chuong.
+  - Cac vi tri can anh ket qua lenh/screenshot nghiep vu chi de caption hinh de nhom chen sau;
+    file Word co 14 caption hinh va 4 bang.
+- Tao tai lieu tham khao theo dinh dang APA:
+  - `docs/bao_cao/TAI_LIEU_THAM_KHAO_APA_SMART_RENTAL.md`.
+  - `docs/bao_cao/TAI_LIEU_THAM_KHAO_APA_SMART_RENTAL.docx`.
+  - Danh muc gom cac nguon chinh thuc cho React, Vite, Node.js, Express, MongoDB Atlas,
+    Mongoose, JWT/RFC 7519, REST, HTTP, OWASP Top 10, PDFKit, SePay, Vercel, Render, ESLint va
+    Prettier.
+  - Da kiem tra cau truc DOCX hop le va `npm run format:check` pass.
+  - Sua lai ngay thang truy cap trong danh muc tai lieu tham khao sang tieng Viet theo dang
+    `Truy cap ngay 15 thang 8 nam 2026, tu ...` va xuat lai file Word.
+- Tao muc luc tong hop cho bao cao:
+  - `docs/bao_cao/MUC_LUC_BAO_CAO_SMART_RENTAL.md`.
+  - `docs/bao_cao/MUC_LUC_BAO_CAO_SMART_RENTAL.docx`.
+  - Muc luc bao gom Chuong 1 den Chuong 5 va phan Tai lieu tham khao, bam theo cac file Word
+    bao cao hien co.
+  - Da kiem tra cau truc DOCX hop le, noi dung co du Chuong 1, Chuong 5 va Tai lieu tham khao;
+    `npm run format:check` pass.
 
 ### Nang cap cong khach thue theo huong san pham that
 
@@ -1834,3 +2038,59 @@ PATCH /api/payments/:id/cancel
   - Kiem tra notification hai chieu tren chuong header.
   - Sua va kiem tra hien thi tieng Viet khong loi ma hoa.
   - Chay `npm run lint`, `npm run format:check`, `npm run test`, `npm run build`.
+
+### Doi luong ghi chi so thanh ghi hoa don
+
+- Yeu cau:
+  - Doi khu vuc ghi chi so dien nuoc thanh form `Ghi hoa don`.
+  - Nuoc tinh co dinh 100000/nguoi/thang.
+  - Gui xe tinh co dinh 100000/nguoi/thang trong MVP.
+  - Chi cho nhap chi so dien moi; chi so dien cu tu dong lay tu thang truoc.
+  - Internet, nuoc, rac va gui xe tu dong dien khi chon hop dong, khong sua tren form ghi hoa don.
+- Implement:
+  - Backend `UtilityReading` giu schema cu de tranh migration, nhung controller chi tin `electricityCurrent`
+    tu request va tu tinh cac truong con lai.
+  - Dien cu lay tu `electricityCurrent` cua ban ghi gan nhat truoc do theo cung phong, dung voi thuc te
+    cong to dien gan voi phong.
+  - So nguoi = khach dai dien + danh sach `occupants` trong hop dong.
+  - Nuoc = so nguoi \* `ServiceSetting.waterUnitPrice`; default moi la `100000`.
+  - Gui xe = so nguoi \* `ServiceSetting.parkingFeePerVehicle`; default `100000`.
+  - Internet va rac lay tu `ServiceSetting`, form chi hien read-only.
+  - Frontend trang `Dich vu` chi gui `contract`, `month`, `year`, `electricityCurrent`, `note`.
+  - Cong khach thue hien nuoc theo so nguoi thay vi m3.
+- Ghi chu:
+  - Ghi chu cu ve viec tam quy uoc so xe = so nguoi da duoc thay the bang truong
+    `Contract.vehicleCount`.
+
+### Bo sung so xe vao hop dong va tinh phi gui xe theo xe
+
+- Yeu cau:
+  - Hop dong can luu so xe cua phong/hop dong.
+  - Phi gui xe khong tinh theo so nguoi nua ma tinh theo so xe dang ky.
+  - Form ghi hoa don khong dung nhieu input read-only, ma hien bang preview chi phi.
+  - Bo nut `Luu hoa don`; dua nut `Tao hoa don thang` len khu vuc ghi hoa don.
+- Implement:
+  - Them `Contract.vehicleCount`, validate khong am tren API hop dong.
+  - Form tao/sua hop dong them truong `So xe`, danh sach hop dong va chi tiet phong hien so xe.
+  - `UtilityReading` tinh `parkingVehicleCount` tu `Contract.vehicleCount`.
+  - Trang `Dich vu` tinh phi gui xe = so xe \* `parkingFeePerVehicle`.
+  - Trang `Dich vu` doi phan tu dong tinh thanh bang preview chi phi gom dien, nuoc, internet,
+    rac, gui xe va tong dich vu.
+  - Nut `Tao hoa don thang` nam trong form ghi hoa don; khi bam se luu chi so dien hien tai truoc
+    roi moi sinh hoa don.
+
+### Cai thien dropdown chuong thong bao
+
+- Van de:
+  - Dropdown thong bao trong header kho xem khi hover/doc noi dung dai.
+- Implement:
+  - Popover thong bao rong hon, cao toi da co scroll rieng.
+  - Item thong bao nen sang hon, chu noi dung dam va de doc hon.
+  - Mobile dung `position: fixed` de popover khong bi tran khoi man hinh.
+  - Bam chuong se refresh danh sach thong bao; click ra ngoai hoac bam `Escape` se dong popover.
+- Dieu chinh tiep:
+  - Sua copy tieng Viet trong `Header` bi loi ma hoa.
+  - Them nut `X` de dong dropdown thong bao truc tiep.
+  - Tach style nut `Danh dau da doc` va nut dong de hover/disabled de doc hon o ca light/dark mode.
+  - Doi notification payment/support tao moi sang tieng Viet co dau.
+  - Header tu Viet hoa cac notification cu dang luu khong dau trong database khi hien thi tieng Viet.

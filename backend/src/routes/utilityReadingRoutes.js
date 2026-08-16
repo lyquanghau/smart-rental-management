@@ -16,16 +16,13 @@ import {
 const router = Router();
 
 const readingRules = {
-  contract: [required('Hợp đồng')],
-  month: [required('Tháng'), minNumber('Tháng', 1)],
-  year: [required('Năm'), minNumber('Năm', 2000)],
-  electricityPrevious: [minNumber('Chỉ số điện cũ', 0)],
-  electricityCurrent: [minNumber('Chỉ số điện mới', 0)],
-  waterPrevious: [minNumber('Chỉ số nước cũ', 0)],
-  waterCurrent: [minNumber('Chỉ số nước mới', 0)],
-  internetAmount: [minNumber('Phí internet', 0)],
-  trashAmount: [minNumber('Phí rác', 0)],
-  parkingVehicleCount: [minNumber('Số xe', 0)],
+  contract: [required('Hop dong')],
+  month: [required('Thang'), minNumber('Thang', 1)],
+  year: [required('Nam'), minNumber('Nam', 2000)],
+  electricityCurrent: [
+    required('Chi so dien moi'),
+    minNumber('Chi so dien moi', 0),
+  ],
 };
 
 router.get('/', requireAuth, requireRole('landlord'), listUtilityReadings);

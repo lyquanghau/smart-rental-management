@@ -552,6 +552,12 @@ export function RoomsPage() {
                         text.emptyAssigned}
                     </span>
                   </li>
+                  <li>
+                    <strong>So xe</strong>
+                    <span>
+                      {Number(selectedRoom.activeContract.vehicleCount || 0)}
+                    </span>
+                  </li>
                   {selectedRoom.activeContract.occupants?.map(
                     (occupant, index) => (
                       <li key={`${occupant.fullName}-${index}`}>

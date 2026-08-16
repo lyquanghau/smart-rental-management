@@ -135,7 +135,7 @@ async function findOrCreateTenantForContract(body, ownerId, roomId) {
       });
     }
 
-    if (String(tenant.room || '') !== String(roomId)) {
+    if (!tenant.room) {
       tenant.room = roomId;
       await tenant.save();
     }
@@ -219,7 +219,7 @@ async function findOrCreateTenantForContract(body, ownerId, roomId) {
       existingTenant.permanentAddress = payload.permanentAddress;
     }
 
-    if (String(existingTenant.room || '') !== String(roomId)) {
+    if (!existingTenant.room) {
       existingTenant.room = roomId;
     }
 
@@ -555,6 +555,10 @@ function buildPlainRoomContractPdf(contract, res) {
   );
   addPlainContractParagraph(
     document,
+    `So xe dang ky: ${Number(contract.vehicleCount || 0)} xe.`,
+  );
+  addPlainContractParagraph(
+    document,
     'Hình thức thanh toán: Thanh toán theo tháng theo thỏa thuận giữa hai bên hoặc theo hướng dẫn thanh toán của hệ thống Smart Rental.',
   );
   addPlainContractParagraph(
@@ -689,6 +693,8 @@ async function normalizeContractPayload(
   const endDate = parseOptionalDate(body.endDate);
   const monthlyPrice = Number(body.monthlyPrice);
   const deposit = body.deposit === undefined ? 0 : Number(body.deposit);
+  const vehicleCount =
+    body.vehicleCount === undefined ? 0 : Number(body.vehicleCount);
   const occupants = normalizeOccupants(body.occupants);
 
   if (!startDate) {
@@ -789,6 +795,7 @@ async function normalizeContractPayload(
     endDate,
     monthlyPrice,
     deposit,
+    vehicleCount,
     status: body.status || 'active',
     occupants,
   };

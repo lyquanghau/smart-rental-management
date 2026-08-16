@@ -15,30 +15,32 @@ function normalizeRoomPayload(body) {
 }
 
 async function syncRoomOccupancyStatuses(ownerId) {
-  const activeTenantsByRoom = await Tenant.aggregate([
-    {
-      $match: {
-        owner: ownerId,
-        deletedAt: null,
-        room: { $ne: null },
-      },
-    },
-    {
-      $group: {
-        _id: '$room',
-        total: { $sum: 1 },
-      },
-    },
+  const activeContracts = await Contract.find({
+    owner: ownerId,
+    deletedAt: null,
+    room: { $ne: null },
+    status: 'active',
+  }).select('room tenant');
+  const activeTenantIds = activeContracts.map((contract) => contract.tenant);
+  const [directAssignedTenants, rooms] = await Promise.all([
+    Tenant.find({
+      _id: { $nin: activeTenantIds },
+      owner: ownerId,
+      deletedAt: null,
+      room: { $ne: null },
+    }).select('room'),
+    Room.find({
+      owner: ownerId,
+      deletedAt: null,
+      status: { $ne: 'maintenance' },
+    }),
   ]);
 
   const occupiedRoomIds = new Set(
-    activeTenantsByRoom.map((item) => String(item._id)),
+    [...activeContracts, ...directAssignedTenants].map((item) =>
+      String(item.room),
+    ),
   );
-  const rooms = await Room.find({
-    owner: ownerId,
-    deletedAt: null,
-    status: { $ne: 'maintenance' },
-  });
 
   await Promise.all(
     rooms.map((room) => {
@@ -96,19 +98,15 @@ export async function getRoom(req, res, next) {
   try {
     await syncRoomOccupancyStatuses(req.user._id);
 
-    const [room, currentTenants, activeContract] = await Promise.all([
+    const [room, activeContract] = await Promise.all([
       Room.findOne(ownerFilter(req, { _id: req.params.id })),
-      Tenant.find({
-        owner: req.user._id,
-        room: req.params.id,
-        deletedAt: null,
-      }).sort({ fullName: 1 }),
       Contract.findOne({
         deletedAt: null,
         owner: req.user._id,
         room: req.params.id,
         status: 'active',
       })
+        .select('tenant occupants vehicleCount status startDate endDate')
         .populate('tenant', 'fullName phone email identityNumber')
         .sort({ startDate: -1 }),
     ]);
@@ -116,6 +114,10 @@ export async function getRoom(req, res, next) {
     if (!room) {
       throw createHttpError(404, 'Không tìm thấy phòng');
     }
+
+    const currentTenants = activeContract?.tenant
+      ? [activeContract.tenant]
+      : [];
 
     res.json({
       data: {

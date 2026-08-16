@@ -4,11 +4,15 @@ import { UtilityReading } from '../models/UtilityReading.js';
 import { createHttpError } from '../utils/httpError.js';
 import { ownerFilter } from '../utils/ownership.js';
 
+const LEGACY_WATER_UNIT_PRICE = 15000;
+const DEFAULT_WATER_FEE_PER_PERSON = 100000;
+
 const readingPopulate = [
   { path: 'room', select: 'name floor price maxOccupants status' },
   {
     path: 'contract',
-    select: 'room tenant startDate endDate monthlyPrice status',
+    select:
+      'room tenant startDate endDate monthlyPrice status occupants vehicleCount',
     populate: [
       { path: 'room', select: 'name floor price maxOccupants status' },
       { path: 'tenant', select: 'fullName phone email identityNumber' },
@@ -31,10 +35,30 @@ function normalizeMonthYear(month, year) {
 }
 
 async function getServiceSettingSnapshot(ownerId) {
-  return (
+  const setting =
     (await ServiceSetting.findOne({ owner: ownerId }).sort({ createdAt: 1 })) ||
-    (await ServiceSetting.create({ owner: ownerId }))
-  );
+    (await ServiceSetting.create({ owner: ownerId }));
+
+  if (Number(setting.waterUnitPrice) === LEGACY_WATER_UNIT_PRICE) {
+    setting.waterUnitPrice = DEFAULT_WATER_FEE_PER_PERSON;
+    return setting.save();
+  }
+
+  return setting;
+}
+
+function getContractOccupantCount(contract) {
+  return 1 + (contract.occupants?.length || 0);
+}
+
+async function getPreviousElectricityCurrent({ month, ownerId, roomId, year }) {
+  const previousReading = await UtilityReading.findOne({
+    owner: ownerId,
+    room: roomId,
+    $or: [{ year: { $lt: year } }, { year, month: { $lt: month } }],
+  }).sort({ year: -1, month: -1 });
+
+  return Number(previousReading?.electricityCurrent || 0);
 }
 
 async function normalizeReadingPayload(body, ownerId) {
@@ -43,7 +67,7 @@ async function normalizeReadingPayload(body, ownerId) {
     _id: body.contract,
     deletedAt: null,
     owner: ownerId,
-  });
+  }).select('room tenant monthlyPrice status occupants vehicleCount');
 
   if (!contract || contract.status !== 'active') {
     throw createHttpError(400, 'Hợp đồng không hợp lệ', {
@@ -52,11 +76,27 @@ async function normalizeReadingPayload(body, ownerId) {
   }
 
   const setting = await getServiceSettingSnapshot(ownerId);
-  const electricityPrevious = Number(body.electricityPrevious || 0);
+  const occupantCount = getContractOccupantCount(contract);
+  const electricityPrevious = await getPreviousElectricityCurrent({
+    month,
+    ownerId,
+    roomId: contract.room,
+    year,
+  });
   const electricityCurrent = Number(body.electricityCurrent || 0);
-  const waterPrevious = Number(body.waterPrevious || 0);
-  const waterCurrent = Number(body.waterCurrent || 0);
-  const parkingVehicleCount = Number(body.parkingVehicleCount || 0);
+  const waterPrevious = 0;
+  const waterCurrent = occupantCount;
+  const parkingVehicleCount = Number(contract.vehicleCount || 0);
+
+  if (
+    body.electricityCurrent === undefined ||
+    body.electricityCurrent === null ||
+    body.electricityCurrent === ''
+  ) {
+    throw createHttpError(400, 'Can nhap chi so dien moi', {
+      electricityCurrent: 'Chi so dien moi la bat buoc',
+    });
+  }
 
   if (electricityCurrent < electricityPrevious) {
     throw createHttpError(400, 'Chỉ số điện không hợp lệ', {
@@ -64,18 +104,12 @@ async function normalizeReadingPayload(body, ownerId) {
     });
   }
 
-  if (waterCurrent < waterPrevious) {
-    throw createHttpError(400, 'Chỉ số nước không hợp lệ', {
-      waterCurrent: 'Chỉ số nước mới không được nhỏ hơn chỉ số cũ',
-    });
-  }
-
   const electricityUsage = electricityCurrent - electricityPrevious;
-  const waterUsage = waterCurrent - waterPrevious;
+  const waterUsage = occupantCount;
   const electricityAmount = electricityUsage * setting.electricityUnitPrice;
   const waterAmount = waterUsage * setting.waterUnitPrice;
-  const internetAmount = Number(body.internetAmount ?? setting.internetFee);
-  const trashAmount = Number(body.trashAmount ?? setting.trashFee);
+  const internetAmount = Number(setting.internetFee || 0);
+  const trashAmount = Number(setting.trashFee || 0);
   const parkingAmount = parkingVehicleCount * setting.parkingFeePerVehicle;
 
   return {

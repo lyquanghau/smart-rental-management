@@ -35,6 +35,11 @@ const contractSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    vehicleCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     status: {
       type: String,
       enum: ['active', 'ended', 'cancelled'],

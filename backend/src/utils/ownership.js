@@ -10,7 +10,7 @@ export function ownerFilter(req, extraFilters = {}) {
 
 export async function getTenantForUser(userId) {
   const tenant = await Tenant.findOne({ user: userId, deletedAt: null }).select(
-    '_id owner room',
+    '_id owner room fullName user',
   );
 
   if (!tenant) {

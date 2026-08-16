@@ -54,11 +54,6 @@ const emptyReadingForm = {
   contract: '',
   electricityPrevious: '',
   electricityCurrent: '',
-  waterPrevious: '',
-  waterCurrent: '',
-  internetAmount: '',
-  trashAmount: '',
-  parkingVehicleCount: '0',
   note: '',
 };
 
@@ -70,7 +65,7 @@ const copy = {
     bankAccountNumber: 'Account number',
     bankCode: 'VietQR bank code',
     bankName: 'Bank',
-    calculator: 'Monthly service calculator',
+    calculator: 'Monthly invoice entry',
     cancel: 'Cancel invoice',
     cancelled: 'Invoice cancelled.',
     cancelScheduled: 'Invoice will be cancelled.',
@@ -85,7 +80,7 @@ const copy = {
     electricityPrevious: 'Previous electricity index',
     electricityUnitPrice: 'Electricity price / kWh',
     emptyInvoices: 'No invoices for this month.',
-    emptyReadings: 'No utility readings for this month.',
+    emptyReadings: 'No invoice entries for this month.',
     generate: 'Generate monthly invoices',
     generated: 'Generated invoices',
     invoicedAmount: 'Invoiced amount',
@@ -100,17 +95,17 @@ const copy = {
     month: 'Month',
     note: 'Note',
     parkingFeePerVehicle: 'Parking fee / vehicle',
-    parkingVehicleCount: 'Vehicles',
-    readingForm: 'Record utility reading',
-    readings: 'Utility readings',
+    parkingVehicleCount: 'Auto vehicles',
+    readingForm: 'Record monthly invoice',
+    readings: 'Invoice entries',
     reload: 'Reload',
     rent: 'Rent',
     roomTenant: 'Room / tenant',
-    saveReading: 'Save reading',
+    saveReading: 'Save invoice entry',
     saveSetting: 'Save service prices',
     saving: 'Saving...',
     settingsSaved: 'Service prices saved.',
-    readingSaved: 'Utility reading saved.',
+    readingSaved: 'Invoice entry saved.',
     invoicesGenerated: 'Monthly invoices generated.',
     selectContract: 'Select active contract',
     serviceAmount: 'Services',
@@ -129,7 +124,7 @@ const copy = {
     water: 'Water',
     waterCurrent: 'Current water index',
     waterPrevious: 'Previous water index',
-    waterUnitPrice: 'Water price / m3',
+    waterUnitPrice: 'Water fee / person',
     year: 'Year',
   },
   vi: {
@@ -140,14 +135,14 @@ const copy = {
     transferContentTemplate: 'Mẫu nội dung chuyển khoản',
     transferNote: 'Ghi chú thanh toán cho khách thuê',
     activeContracts: 'hợp đồng đang hiệu lực',
-    calculator: 'Tính dịch vụ hằng tháng',
+    calculator: 'Ghi hóa đơn hằng tháng',
     dueDate: 'Hạn thanh toán hóa đơn',
     electricity: 'Điện',
     electricityCurrent: 'Chỉ số điện mới',
     electricityPrevious: 'Chỉ số điện cũ',
     electricityUnitPrice: 'Đơn giá điện / kWh',
     emptyInvoices: 'Chưa có hóa đơn tháng này.',
-    emptyReadings: 'Chưa có chỉ số dịch vụ tháng này.',
+    emptyReadings: 'Chưa có bản ghi hóa đơn tháng này.',
     generate: 'Tạo hóa đơn tháng',
     generated: 'Hóa đơn đã tạo',
     invoicedAmount: 'Tổng hóa đơn',
@@ -156,18 +151,18 @@ const copy = {
     loading: 'Đang tải...',
     month: 'Tháng',
     note: 'Ghi chú',
-    parkingFeePerVehicle: 'Phí gửi xe / xe',
-    parkingVehicleCount: 'Số xe',
-    readingForm: 'Ghi chỉ số điện nước',
-    readings: 'Chỉ số dịch vụ',
+    parkingFeePerVehicle: 'Phí gửi xe / người',
+    parkingVehicleCount: 'Số xe tự tính',
+    readingForm: 'Ghi hóa đơn',
+    readings: 'Bản ghi hóa đơn',
     reload: 'Tải lại',
     rent: 'Tiền phòng',
     roomTenant: 'Phòng / khách thuê',
-    saveReading: 'Lưu chỉ số',
+    saveReading: 'Lưu hóa đơn',
     saveSetting: 'Lưu đơn giá',
     saving: 'Đang lưu...',
     settingsSaved: 'Đã lưu đơn giá dịch vụ.',
-    readingSaved: 'Đã lưu chỉ số điện nước.',
+    readingSaved: 'Đã lưu bản ghi hóa đơn.',
     invoicesGenerated: 'Đã tạo hóa đơn tháng.',
     selectContract: 'Chọn hợp đồng đang hiệu lực',
     serviceAmount: 'Dịch vụ',
@@ -179,7 +174,7 @@ const copy = {
     water: 'Nước',
     waterCurrent: 'Chỉ số nước mới',
     waterPrevious: 'Chỉ số nước cũ',
-    waterUnitPrice: 'Đơn giá nước / m3',
+    waterUnitPrice: 'Phí nước / người',
     year: 'Năm',
   },
 };
@@ -241,6 +236,18 @@ function getContractLabel(contract) {
   return `${roomName} - ${tenantName}`;
 }
 
+function getOccupantCount(contract) {
+  return 1 + (contract?.occupants?.length || 0);
+}
+
+function getVehicleCount(contract) {
+  return Number(contract?.vehicleCount || 0);
+}
+
+function getRoomId(value) {
+  return value?.room?._id || value?.room || '';
+}
+
 function toNumber(value) {
   return Number(value || 0);
 }
@@ -282,13 +289,7 @@ function toReadingPayload(form, month, year) {
     contract: form.contract,
     month,
     year,
-    electricityPrevious: toNumber(form.electricityPrevious),
     electricityCurrent: toNumber(form.electricityCurrent),
-    waterPrevious: toNumber(form.waterPrevious),
-    waterCurrent: toNumber(form.waterCurrent),
-    internetAmount: toNumber(form.internetAmount),
-    trashAmount: toNumber(form.trashAmount),
-    parkingVehicleCount: toNumber(form.parkingVehicleCount),
     note: form.note,
   };
 }
@@ -336,6 +337,8 @@ export function ServicesPage() {
   const text = {
     ...(invoiceCopy[language] || invoiceCopy.vi),
     ...(copy[language] || copy.vi),
+    parkingFeePerVehicle:
+      language === 'en' ? 'Parking fee / vehicle' : 'Phi gui xe / xe',
   };
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
   const [year, setYear] = useState(currentDate.getFullYear());
@@ -347,6 +350,7 @@ export function ServicesPage() {
   const [settingForm, setSettingForm] = useState(emptySetting);
   const [readingForm, setReadingForm] = useState(emptyReadingForm);
   const [contracts, setContracts] = useState([]);
+  const [allReadings, setAllReadings] = useState([]);
   const [readings, setReadings] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [error, setError] = useState('');
@@ -369,6 +373,40 @@ export function ServicesPage() {
     [activeContracts, readingForm.contract],
   );
 
+  const previousElectricityCurrent = useMemo(() => {
+    const selectedRoomId = getRoomId(selectedContract);
+
+    if (!selectedRoomId) return 0;
+
+    const previousReadings = allReadings
+      .filter((reading) => {
+        if (getRoomId(reading) !== selectedRoomId) return false;
+        if (Number(reading.year) < Number(year)) return true;
+        return (
+          Number(reading.year) === Number(year) &&
+          Number(reading.month) < Number(month)
+        );
+      })
+      .sort((left, right) => {
+        if (Number(right.year) !== Number(left.year)) {
+          return Number(right.year) - Number(left.year);
+        }
+
+        return Number(right.month) - Number(left.month);
+      });
+
+    return Number(previousReadings[0]?.electricityCurrent || 0);
+  }, [allReadings, month, selectedContract, year]);
+
+  const occupantCount = useMemo(
+    () => getOccupantCount(selectedContract),
+    [selectedContract],
+  );
+  const vehicleCount = useMemo(
+    () => getVehicleCount(selectedContract),
+    [selectedContract],
+  );
+
   const invoiceTotal = useMemo(
     () =>
       invoices.reduce(
@@ -381,48 +419,60 @@ export function ServicesPage() {
   const preview = useMemo(() => {
     const setting = toSettingPayload(settingForm);
     const electricityUsage = Math.max(
-      toNumber(readingForm.electricityCurrent) -
-        toNumber(readingForm.electricityPrevious),
+      toNumber(readingForm.electricityCurrent) - previousElectricityCurrent,
       0,
     );
-    const waterUsage = Math.max(
-      toNumber(readingForm.waterCurrent) - toNumber(readingForm.waterPrevious),
-      0,
-    );
+    const waterUsage = selectedContract ? occupantCount : 0;
     const electricityAmount = electricityUsage * setting.electricityUnitPrice;
     const waterAmount = waterUsage * setting.waterUnitPrice;
-    const internetAmount = toNumber(readingForm.internetAmount);
-    const trashAmount = toNumber(readingForm.trashAmount);
-    const parkingAmount =
-      toNumber(readingForm.parkingVehicleCount) * setting.parkingFeePerVehicle;
+    const internetAmount = selectedContract ? setting.internetFee : 0;
+    const trashAmount = selectedContract ? setting.trashFee : 0;
+    const parkingAmount = selectedContract
+      ? vehicleCount * setting.parkingFeePerVehicle
+      : 0;
 
     return {
       electricityUsage,
       waterUsage,
+      internetAmount,
+      parkingAmount,
+      parkingVehicleCount: selectedContract ? vehicleCount : 0,
       serviceTotal:
         electricityAmount +
         waterAmount +
         internetAmount +
         trashAmount +
         parkingAmount,
+      trashAmount,
+      electricityAmount,
+      waterAmount,
     };
-  }, [readingForm, settingForm]);
+  }, [
+    occupantCount,
+    previousElectricityCurrent,
+    readingForm.electricityCurrent,
+    selectedContract,
+    settingForm,
+    vehicleCount,
+  ]);
 
   async function loadData(nextMonth = month, nextYear = year) {
     setIsLoading(true);
     setError('');
 
     try {
-      const [setting, contractData, readingData, invoiceData] =
+      const [setting, contractData, allReadingData, readingData, invoiceData] =
         await Promise.all([
           getServiceSetting(),
           getContracts(),
+          getUtilityReadings(),
           getUtilityReadings({ month: nextMonth, year: nextYear }),
           getInvoices({ month: nextMonth, year: nextYear }),
         ]);
 
       setSettingForm(toSettingForm(setting));
       setContracts(contractData);
+      setAllReadings(allReadingData);
       setReadings(readingData);
       setInvoices(invoiceData);
     } catch (err) {
@@ -446,11 +496,17 @@ export function ServicesPage() {
   }
 
   function selectContract(contractId) {
+    const existingReading = readings.find(
+      (reading) => (reading.contract?._id || reading.contract) === contractId,
+    );
+
     setReadingForm((current) => ({
       ...current,
       contract: contractId,
-      internetAmount: settingForm.internetFee,
-      trashAmount: settingForm.trashFee,
+      electricityCurrent: existingReading?.electricityCurrent
+        ? String(existingReading.electricityCurrent)
+        : '',
+      note: existingReading?.note || '',
     }));
   }
 
@@ -481,30 +537,19 @@ export function ServicesPage() {
     }
   }
 
-  async function handleSaveReading(event) {
-    event.preventDefault();
-    setIsSavingReading(true);
-    setError('');
-
-    try {
-      await saveUtilityReading(toReadingPayload(readingForm, month, year));
-      setReadingForm(emptyReadingForm);
-      await loadData();
-      showSuccess(text.readingSaved);
-    } catch (err) {
-      setError(err.message);
-      showError(err.message);
-    } finally {
-      setIsSavingReading(false);
-    }
-  }
-
-  async function handleGenerateInvoices() {
+  async function handleGenerateInvoices(event) {
+    event?.preventDefault();
     setIsGenerating(true);
+    setIsSavingReading(Boolean(selectedContract));
     setError('');
 
     try {
+      if (selectedContract) {
+        await saveUtilityReading(toReadingPayload(readingForm, month, year));
+      }
+
       await generateMonthlyInvoices({ month, year, dueDate });
+      setReadingForm(emptyReadingForm);
       await loadData();
       showSuccess(text.invoicesGenerated);
     } catch (err) {
@@ -512,6 +557,7 @@ export function ServicesPage() {
       showError(err.message);
     } finally {
       setIsGenerating(false);
+      setIsSavingReading(false);
     }
   }
 
@@ -947,7 +993,7 @@ export function ServicesPage() {
 
         <form
           className="form-panel compact-form-panel service-reading-panel"
-          onSubmit={handleSaveReading}
+          onSubmit={handleGenerateInvoices}
         >
           <h2>
             <Zap className="button-icon" size={18} strokeWidth={2.4} />
@@ -969,18 +1015,6 @@ export function ServicesPage() {
             </select>
           </label>
           <label>
-            {text.electricityPrevious}
-            <input
-              min="0"
-              required
-              type="number"
-              value={readingForm.electricityPrevious}
-              onChange={(event) =>
-                updateReading('electricityPrevious', event.target.value)
-              }
-            />
-          </label>
-          <label>
             {text.electricityCurrent}
             <input
               min="0"
@@ -989,67 +1023,6 @@ export function ServicesPage() {
               value={readingForm.electricityCurrent}
               onChange={(event) =>
                 updateReading('electricityCurrent', event.target.value)
-              }
-            />
-          </label>
-          <label>
-            {text.waterPrevious}
-            <input
-              min="0"
-              required
-              type="number"
-              value={readingForm.waterPrevious}
-              onChange={(event) =>
-                updateReading('waterPrevious', event.target.value)
-              }
-            />
-          </label>
-          <label>
-            {text.waterCurrent}
-            <input
-              min="0"
-              required
-              type="number"
-              value={readingForm.waterCurrent}
-              onChange={(event) =>
-                updateReading('waterCurrent', event.target.value)
-              }
-            />
-          </label>
-          <label>
-            {text.internetFee}
-            <input
-              inputMode="numeric"
-              value={formatMoneyInput(readingForm.internetAmount)}
-              onChange={(event) =>
-                updateReading(
-                  'internetAmount',
-                  parseMoneyInput(event.target.value),
-                )
-              }
-            />
-          </label>
-          <label>
-            {text.trashFee}
-            <input
-              inputMode="numeric"
-              value={formatMoneyInput(readingForm.trashAmount)}
-              onChange={(event) =>
-                updateReading(
-                  'trashAmount',
-                  parseMoneyInput(event.target.value),
-                )
-              }
-            />
-          </label>
-          <label>
-            {text.parkingVehicleCount}
-            <input
-              min="0"
-              type="number"
-              value={readingForm.parkingVehicleCount}
-              onChange={(event) =>
-                updateReading('parkingVehicleCount', event.target.value)
               }
             />
           </label>
@@ -1067,16 +1040,96 @@ export function ServicesPage() {
             </div>
             <div>
               <span>{text.water}</span>
-              <strong>{preview.waterUsage} m3</strong>
+              <strong>{preview.waterUsage} người</strong>
             </div>
             <div>
               <span>{text.serviceTotal}</span>
               <strong>{formatMoney(preview.serviceTotal)}</strong>
             </div>
           </div>
-          <button disabled={isSavingReading || !selectedContract} type="submit">
-            <Save className="button-icon" size={16} strokeWidth={2.5} />
-            {isSavingReading ? text.saving : text.saveReading}
+          <div className="invoice-preview-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>{text.note}</th>
+                  <th>{text.quantity}</th>
+                  <th>{text.unitPrice}</th>
+                  <th>{text.total}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{text.electricity}</td>
+                  <td>
+                    {previousElectricityCurrent} -{' '}
+                    {toNumber(readingForm.electricityCurrent)} ={' '}
+                    {preview.electricityUsage} kWh
+                  </td>
+                  <td>
+                    {formatMoney(toNumber(settingForm.electricityUnitPrice))}
+                  </td>
+                  <td>{formatMoney(preview.electricityAmount)}</td>
+                </tr>
+                <tr>
+                  <td>{text.water}</td>
+                  <td>{occupantCount} nguoi</td>
+                  <td>{formatMoney(toNumber(settingForm.waterUnitPrice))}</td>
+                  <td>{formatMoney(preview.waterAmount)}</td>
+                </tr>
+                <tr>
+                  <td>{text.internetFee}</td>
+                  <td>1</td>
+                  <td>{formatMoney(toNumber(settingForm.internetFee))}</td>
+                  <td>{formatMoney(preview.internetAmount)}</td>
+                </tr>
+                <tr>
+                  <td>{text.trashFee}</td>
+                  <td>1</td>
+                  <td>{formatMoney(toNumber(settingForm.trashFee))}</td>
+                  <td>{formatMoney(preview.trashAmount)}</td>
+                </tr>
+                <tr>
+                  <td>{text.parkingVehicleCount}</td>
+                  <td>{preview.parkingVehicleCount} xe</td>
+                  <td>
+                    {formatMoney(toNumber(settingForm.parkingFeePerVehicle))}
+                  </td>
+                  <td>{formatMoney(preview.parkingAmount)}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>{text.serviceTotal}</strong>
+                  </td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>
+                    <strong>{formatMoney(preview.serviceTotal)}</strong>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <label>
+            {text.dueDate}
+            <input
+              required
+              type="date"
+              value={dueDate}
+              onChange={(event) => setDueDate(event.target.value)}
+            />
+          </label>
+          <button
+            disabled={
+              isGenerating ||
+              !dueDate ||
+              !selectedContract ||
+              readingForm.electricityCurrent === ''
+            }
+            type="submit"
+          >
+            <FilePlus2 className="button-icon" size={16} strokeWidth={2.5} />
+            {isGenerating || isSavingReading ? text.saving : text.generate}
           </button>
         </form>
       </div>
@@ -1114,7 +1167,7 @@ export function ServicesPage() {
                     <span>{formatMoney(reading.electricityAmount)}</span>
                   </td>
                   <td>
-                    <strong>{reading.waterUsage} m3</strong>
+                    <strong>{reading.waterUsage} người</strong>
                     <span>{formatMoney(reading.waterAmount)}</span>
                   </td>
                   <td>
@@ -1141,23 +1194,6 @@ export function ServicesPage() {
               {invoices.length} {text.visibleInvoices}
             </p>
           </div>
-          <label className="inline-field">
-            {text.dueDate}
-            <input
-              required
-              type="date"
-              value={dueDate}
-              onChange={(event) => setDueDate(event.target.value)}
-            />
-          </label>
-          <button
-            disabled={isGenerating || !dueDate}
-            type="button"
-            onClick={handleGenerateInvoices}
-          >
-            <FilePlus2 className="button-icon" size={16} strokeWidth={2.5} />
-            {isGenerating ? text.saving : text.generate}
-          </button>
         </div>
         {!isLoading && invoices.length === 0 ? (
           <p>{text.emptyInvoices}</p>

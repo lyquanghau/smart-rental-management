@@ -74,21 +74,39 @@ async function normalizeTenantPayload(body, ownerId) {
 async function syncRoomStatus(ownerId, roomId) {
   if (!roomId) return;
 
-  const room = await Room.findOne({
-    _id: roomId,
-    owner: ownerId,
-    deletedAt: null,
-  });
+  const [room, activeContractCount, activeContractTenantIds] =
+    await Promise.all([
+      Room.findOne({
+        _id: roomId,
+        owner: ownerId,
+        deletedAt: null,
+      }),
+      Contract.countDocuments({
+        deletedAt: null,
+        owner: ownerId,
+        room: roomId,
+        status: 'active',
+      }),
+      Contract.find({
+        deletedAt: null,
+        owner: ownerId,
+        status: 'active',
+      }).distinct('tenant'),
+    ]);
 
   if (!room || room.status === 'maintenance') return;
 
-  const activeTenantCount = await Tenant.countDocuments({
+  const directAssignedTenantCount = await Tenant.countDocuments({
+    _id: { $nin: activeContractTenantIds },
     owner: ownerId,
     room: roomId,
     deletedAt: null,
   });
 
-  room.status = activeTenantCount > 0 ? 'occupied' : 'available';
+  room.status =
+    activeContractCount > 0 || directAssignedTenantCount > 0
+      ? 'occupied'
+      : 'available';
   await room.save();
 }
 

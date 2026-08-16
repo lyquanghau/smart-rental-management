@@ -1,6 +1,9 @@
 import { ServiceSetting } from '../models/ServiceSetting.js';
 import { ownerFilter } from '../utils/ownership.js';
 
+const LEGACY_WATER_UNIT_PRICE = 15000;
+const DEFAULT_WATER_FEE_PER_PERSON = 100000;
+
 function normalizeSettingPayload(body) {
   return {
     electricityUnitPrice: Number(body.electricityUnitPrice || 0),
@@ -20,11 +23,21 @@ function normalizeSettingPayload(body) {
   };
 }
 
+async function normalizeLegacyServiceSetting(setting) {
+  if (Number(setting.waterUnitPrice) !== LEGACY_WATER_UNIT_PRICE) {
+    return setting;
+  }
+
+  setting.waterUnitPrice = DEFAULT_WATER_FEE_PER_PERSON;
+  return setting.save();
+}
+
 export async function getServiceSetting(req, res, next) {
   try {
-    const setting =
+    const setting = await normalizeLegacyServiceSetting(
       (await ServiceSetting.findOne(ownerFilter(req)).sort({ createdAt: 1 })) ||
-      (await ServiceSetting.create({ owner: req.user._id }));
+        (await ServiceSetting.create({ owner: req.user._id })),
+    );
 
     res.json({ data: setting });
   } catch (error) {

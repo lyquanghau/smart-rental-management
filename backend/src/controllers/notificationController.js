@@ -1,23 +1,45 @@
 import { Notification } from '../models/Notification.js';
 import { Invoice } from '../models/Invoice.js';
+import { SupportRequest } from '../models/SupportRequest.js';
 import { createHttpError } from '../utils/httpError.js';
 import { getTenantForUser, ownerFilter } from '../utils/ownership.js';
 
 async function buildNotificationFilter(req, extraFilters = {}) {
   if (req.user.role === 'landlord') {
-    return ownerFilter(req, extraFilters);
+    return ownerFilter(req, {
+      ...extraFilters,
+      recipientRole: { $in: ['landlord', null] },
+    });
   }
 
   const tenant = await getTenantForUser(req.user._id);
-  const invoices = await Invoice.find({
-    owner: tenant.owner,
-    tenant: tenant._id,
-  }).select('_id');
+  const [invoices, supportRequests] = await Promise.all([
+    Invoice.find({
+      owner: tenant.owner,
+      tenant: tenant._id,
+    }).select('_id'),
+    SupportRequest.find({
+      owner: tenant.owner,
+      requester: req.user._id,
+      tenant: tenant._id,
+    }).select('_id'),
+  ]);
 
   return {
     ...extraFilters,
-    entityType: 'invoice',
-    entityId: { $in: invoices.map((invoice) => invoice._id) },
+    $or: [
+      {
+        entityType: 'invoice',
+        entityId: { $in: invoices.map((invoice) => invoice._id) },
+      },
+      {
+        entityType: 'support_request',
+        entityId: {
+          $in: supportRequests.map((supportRequest) => supportRequest._id),
+        },
+        recipientUser: req.user._id,
+      },
+    ],
     owner: tenant.owner,
   };
 }
@@ -59,7 +81,7 @@ export async function markNotificationRead(req, res, next) {
       throw createHttpError(404, 'Khong tim thay thong bao');
     }
 
-    res.json({ data: notification, message: 'Da danh dau thong bao da doc' });
+    res.json({ data: notification, message: 'Đã đánh dấu thông báo đã đọc' });
   } catch (error) {
     next(error);
   }
@@ -73,7 +95,7 @@ export async function markAllNotificationsRead(req, res, next) {
       readAt: new Date(),
     });
 
-    res.json({ message: 'Da danh dau tat ca thong bao da doc' });
+    res.json({ message: 'Đã đánh dấu tất cả thông báo đã đọc' });
   } catch (error) {
     next(error);
   }

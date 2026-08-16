@@ -10,7 +10,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['payment_success', 'payment_failed', 'system'],
+      enum: ['payment_success', 'payment_failed', 'support_request', 'system'],
       default: 'system',
       index: true,
     },
@@ -28,11 +28,27 @@ const notificationSchema = new mongoose.Schema(
     },
     entityType: {
       type: String,
-      enum: ['invoice', 'payment', 'contract', 'room', 'tenant', 'system'],
+      enum: [
+        'invoice',
+        'payment',
+        'contract',
+        'room',
+        'tenant',
+        'support_request',
+        'system',
+      ],
       default: 'system',
     },
     entityId: {
       type: mongoose.Schema.Types.ObjectId,
+    },
+    recipientRole: {
+      type: String,
+      enum: ['landlord', 'tenant'],
+    },
+    recipientUser: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
     sourceEventKey: {
       type: String,
@@ -50,5 +66,6 @@ const notificationSchema = new mongoose.Schema(
 );
 
 notificationSchema.index({ owner: 1, readAt: 1, createdAt: -1 });
+notificationSchema.index({ recipientUser: 1, readAt: 1, createdAt: -1 });
 
 export const Notification = mongoose.model('Notification', notificationSchema);

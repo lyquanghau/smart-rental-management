@@ -7,7 +7,8 @@ import { getTenantForUser, ownerFilter } from '../utils/ownership.js';
 
 const paymentPopulate = {
   path: 'contract',
-  select: 'room tenant startDate endDate monthlyPrice deposit status',
+  select:
+    'room tenant startDate endDate monthlyPrice deposit status occupants vehicleCount',
   populate: [
     { path: 'room', select: 'name floor price maxOccupants status' },
     { path: 'tenant', select: 'fullName phone email identityNumber room' },

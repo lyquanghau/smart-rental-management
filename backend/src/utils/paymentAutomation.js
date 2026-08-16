@@ -8,7 +8,7 @@ const paidStatuses = new Set(['paid']);
 
 function formatInvoiceLabel(invoice) {
   const roomName = invoice.room?.name || 'N/A';
-  return `phong ${roomName} thang ${invoice.month}/${invoice.year}`;
+  return `phòng ${roomName} tháng ${invoice.month}/${invoice.year}`;
 }
 
 function notifyDiscordPaymentSuccess(invoice) {
@@ -100,10 +100,10 @@ export async function markInvoicePaidFromGateway({
         $setOnInsert: {
           entityId: invoice._id,
           entityType: 'invoice',
-          message: `Hoa don ${formatInvoiceLabel(invoice)} da duoc thanh toan ${Number(invoice.totalAmount).toLocaleString('vi-VN')} VND.`,
+          message: `Hóa đơn ${formatInvoiceLabel(invoice)} đã được thanh toán ${Number(invoice.totalAmount).toLocaleString('vi-VN')} VND.`,
           owner: invoice.owner,
           sourceEventKey: eventKey,
-          title: 'Hoa don da thanh toan',
+          title: 'Hóa đơn đã thanh toán',
           type: 'payment_success',
         },
       },

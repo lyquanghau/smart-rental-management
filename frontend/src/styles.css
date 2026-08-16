@@ -195,6 +195,7 @@ a {
 }
 
 .notification-menu {
+  display: flex;
   position: relative;
 }
 
@@ -249,13 +250,15 @@ a {
   box-shadow: var(--shadow-lg);
   display: grid;
   gap: var(--space-3);
-  max-width: min(420px, calc(100vw - 32px));
+  max-height: min(70vh, 560px);
+  max-width: min(520px, calc(100vw - 32px));
+  overflow: hidden;
   padding: var(--space-4);
   position: absolute;
   right: 0;
   top: calc(100% + 12px);
-  width: 420px;
-  z-index: 60;
+  width: 520px;
+  z-index: 100;
 }
 
 .notification-popover-header {
@@ -269,24 +272,59 @@ a {
   font-size: 1rem;
 }
 
-.notification-popover-header .icon-button {
+.notification-popover-actions {
+  align-items: center;
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.notification-mark-read-button,
+.notification-close-button {
+  align-items: center;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #075985;
   display: inline-flex;
   flex: 0 0 auto;
   gap: var(--space-2);
-  min-width: max-content;
-  padding: 0 12px;
+  min-height: 38px;
+  padding: 0 0.8rem;
   white-space: nowrap;
   width: auto;
+}
+
+.notification-mark-read-button:hover:not(:disabled),
+.notification-close-button:hover {
+  background: #075985;
+  border-color: #075985;
+  color: #ffffff;
+}
+
+.notification-mark-read-button:disabled {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.notification-close-button {
+  justify-content: center;
+  padding: 0;
+  width: 38px;
 }
 
 .notification-list {
   display: grid;
   gap: var(--space-2);
+  max-height: min(56vh, 440px);
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .notification-item {
   align-items: start;
-  background: var(--color-surface-muted);
+  background: #ffffff;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text);
@@ -300,6 +338,7 @@ a {
 }
 
 .notification-item:hover {
+  background: #f8fafc;
   border-color: #7dd3fc;
   box-shadow: var(--shadow-sm);
 }
@@ -332,9 +371,10 @@ a {
 }
 
 .notification-item span {
-  color: var(--color-muted);
-  font-size: 0.82rem;
-  line-height: 1.45;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .notification-item.is-unread {
@@ -4160,6 +4200,40 @@ html {
   font-size: 1rem;
 }
 
+.service-reading-panel .metric-strip {
+  display: none;
+}
+
+.invoice-preview-table {
+  grid-column: 1 / -1;
+  overflow-x: auto;
+}
+
+.invoice-preview-table table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.invoice-preview-table th,
+.invoice-preview-table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.65rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.invoice-preview-table th {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.invoice-preview-table td:last-child,
+.invoice-preview-table th:last-child {
+  text-align: right;
+}
+
 .services-table-panel {
   border-radius: 14px;
 }
@@ -4634,6 +4708,30 @@ html {
   border-color: #254468;
 }
 
+[data-theme='dark'] .notification-mark-read-button,
+[data-theme='dark'] .notification-close-button {
+  background: #0f172a;
+  border-color: #38bdf8;
+  color: #bae6fd;
+}
+
+[data-theme='dark'] .notification-mark-read-button:hover:not(:disabled),
+[data-theme='dark'] .notification-close-button:hover {
+  background: #38bdf8;
+  border-color: #38bdf8;
+  color: #082f49;
+}
+
+[data-theme='dark'] .notification-mark-read-button:disabled {
+  background: #111827;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .notification-item:hover {
+  background: #13233d;
+}
+
 [data-theme='dark'] .notification-trigger {
   background: #0f172a;
   border-color: #38bdf8;
@@ -4688,8 +4786,10 @@ html {
   }
 
   .notification-popover {
-    right: -8px;
-    width: min(420px, calc(100vw - 24px));
+    position: fixed;
+    right: 12px;
+    top: 72px;
+    width: calc(100vw - 24px);
   }
 
   .sidebar,
@@ -5134,9 +5234,129 @@ html {
   min-width: 820px;
 }
 
+.support-layout {
+  align-items: start;
+}
+
+.support-faq-list {
+  display: grid;
+  gap: 12px;
+}
+
+.support-faq-item {
+  border-bottom: 1px solid #e0ecff;
+  display: grid;
+  gap: 6px;
+  padding-bottom: 12px;
+}
+
+.support-faq-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.support-faq-item p,
+.support-ticket-detail p,
+.support-reply-box p {
+  color: #52657a;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.support-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.support-table-panel {
+  grid-column: 1 / -1;
+  overflow: auto;
+}
+
+.support-table-panel table {
+  min-width: 920px;
+}
+
+.selected-row td {
+  background: #eef6ff;
+}
+
+.support-detail-panel {
+  grid-column: 1 / -1;
+}
+
+.support-ticket-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.support-ticket-detail dl {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+}
+
+.support-ticket-detail dl div,
+.support-reply-box {
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.support-ticket-detail dt {
+  color: #6b7c93;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.support-ticket-detail dd {
+  color: #172033;
+  font-weight: 700;
+  margin: 0;
+}
+
+.support-reply-box {
+  margin-top: 12px;
+}
+
 [data-theme='dark'] .contract-occupants-panel {
   background: #0b1426;
   border-color: #2b4f76;
+}
+
+[data-theme='dark'] .support-faq-item {
+  border-color: #2b4f76;
+}
+
+[data-theme='dark'] .support-faq-item p,
+[data-theme='dark'] .support-ticket-detail p,
+[data-theme='dark'] .support-reply-box p {
+  color: #b6c7dc;
+}
+
+[data-theme='dark'] .selected-row td {
+  background: #10243d;
+}
+
+[data-theme='dark'] .support-ticket-detail dl div,
+[data-theme='dark'] .support-reply-box {
+  background: #0b1426;
+  border-color: #2b4f76;
+}
+
+[data-theme='dark'] .support-ticket-detail dt {
+  color: #94a9c3;
+}
+
+[data-theme='dark'] .support-ticket-detail dd {
+  color: #e5eefb;
 }
 
 [data-theme='dark'] .modal-panel:not(.pdf-modal-panel) .modal-header,
@@ -5183,6 +5403,18 @@ html {
   }
 
   .contract-occupant-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .support-filter-row {
+    justify-content: stretch;
+  }
+
+  .support-filter-row .compact-filter {
+    width: 100%;
+  }
+
+  .support-ticket-detail dl {
     grid-template-columns: 1fr;
   }
 

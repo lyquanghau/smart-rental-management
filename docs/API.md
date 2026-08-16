@@ -506,6 +506,7 @@ Request:
   "endDate": "2027-06-01",
   "monthlyPrice": 2700000,
   "deposit": 2700000,
+  "vehicleCount": 1,
   "status": "active"
 }
 ```
@@ -513,6 +514,9 @@ Request:
 Ghi chú:
 
 - Không cho tạo thêm hợp đồng `active` nếu phòng đã có hợp đồng `active` khác.
+- Cho phep cung mot `tenant` co nhieu hop dong `active` o nhieu phong khac nhau. Quan he phong
+  dang thue duoc xac dinh tu `Contract.room`, khong dua vao `Tenant.room`.
+- `vehicleCount` la so xe dang ky cho phong/hop dong, dung de tinh phi gui xe hang thang.
 - Khi tạo hợp đồng `active` cho khách thuê chưa có tài khoản, backend tạo tài khoản `tenant` và
   trả thêm `temporaryAccount` trong response để chủ trọ gửi thông tin đăng nhập cho khách.
 - `temporaryAccount.user.username` được sinh từ số điện thoại kèm mã tenant, ví dụ
@@ -536,6 +540,7 @@ Request:
   "endDate": "2027-06-01",
   "monthlyPrice": 2800000,
   "deposit": 2800000,
+  "vehicleCount": 2,
   "status": "active"
 }
 ```
@@ -547,6 +552,8 @@ Ghi chú:
 
 Ghi chu nghiep vu: khong doi `room` truc tiep tren hop dong da co. Neu khach chuyen phong,
 tao hop dong moi tu hop dong cu de giu lich su phong va gia thue.
+Neu khach thue them phong moi ma van giu phong cu, tao hop dong moi voi cung `tenant` va `room`
+moi; backend giu nguyen ho so tenant va chi them quan he thue phong moi qua `Contract`.
 
 ### DELETE /contracts/:id
 
@@ -694,7 +701,7 @@ Request:
 ```json
 {
   "electricityUnitPrice": 3500,
-  "waterUnitPrice": 15000,
+  "waterUnitPrice": 100000,
   "internetFee": 100000,
   "trashFee": 30000,
   "parkingFeePerVehicle": 100000,
@@ -711,6 +718,8 @@ Ghi chu:
 - Cac truong `bankName`, `bankAccountNumber`, `bankAccountName`,
   `transferContentTemplate`, `paymentNote` dung de hien thi huong dan chuyen khoan
   trong cong khach thue.
+- `waterUnitPrice` la phi nuoc co dinh moi nguoi/thang. `parkingFeePerVehicle` hien dung nhu phi
+  gui xe moi nguoi/thang trong luong ghi hoa don MVP.
 - `transferContentTemplate` ho tro placeholder `{room}`, `{month}`, `{year}`.
 
 ### GET /utility-readings
@@ -726,6 +735,11 @@ Response trả danh sách chỉ số điện/nước kèm phòng và hợp đồ
 
 ### POST /utility-readings
 
+Ghi chu nghiep vu moi: day la API ghi hoa don dich vu hang thang, khong con la form nhap day du
+chi so dien nuoc. Request chi can `contract`, `month`, `year`, `electricityCurrent` va `note`
+neu co. Backend tu lay dien cu tu ban ghi gan nhat cua cung phong, nuoc theo so nguoi,
+internet/rac theo cau hinh va gui xe theo so nguoi trong hop dong.
+
 Tạo hoặc cập nhật chỉ số theo `room + month + year`.
 
 Request:
@@ -735,13 +749,7 @@ Request:
   "contract": "contract-object-id",
   "month": 7,
   "year": 2026,
-  "electricityPrevious": 120,
   "electricityCurrent": 168,
-  "waterPrevious": 45,
-  "waterCurrent": 57,
-  "internetAmount": 100000,
-  "trashAmount": 30000,
-  "parkingVehicleCount": 1,
   "note": "Chỉ số tháng 7/2026"
 }
 ```
@@ -749,12 +757,21 @@ Request:
 Backend tự tính:
 
 ```txt
+electricityPrevious = electricityCurrent cua ban ghi gan nhat truoc thang hien tai, cung phong
 electricityUsage = electricityCurrent - electricityPrevious
-waterUsage = waterCurrent - waterPrevious
-serviceTotal = electricityAmount + waterAmount + internet + trash + parking
+waterUsage = so nguoi o trong hop dong
+waterAmount = waterUsage * waterUnitPrice
+internetAmount = internetFee trong ServiceSetting
+trashAmount = trashFee trong ServiceSetting
+parkingVehicleCount = vehicleCount trong hop dong
+parkingAmount = parkingVehicleCount * parkingFeePerVehicle
+serviceTotal = electricityAmount + waterAmount + internetAmount + trashAmount + parkingAmount
 ```
 
 ### PUT /utility-readings/:id
+
+Request giong `POST /utility-readings`; cac truong nuoc, internet, rac va gui xe khong can gui
+tu frontend vi backend se tu tinh lai.
 
 Cập nhật chỉ số dịch vụ.
 
@@ -940,7 +957,7 @@ toan. Payment co invoice lien ket se tra them ma/noi dung thanh toan nhu `paymen
     },
     "serviceRates": {
       "electricityUnitPrice": 3500,
-      "waterUnitPrice": 15000,
+      "waterUnitPrice": 100000,
       "internetFee": 100000,
       "trashFee": 30000,
       "parkingFeePerVehicle": 100000
@@ -960,7 +977,7 @@ toan. Payment co invoice lien ket se tra them ma/noi dung thanh toan nhu `paymen
 Cac API thong bao yeu cau user da dang nhap.
 
 - `landlord`: xem thong bao thuoc owner hien tai.
-- `tenant`: xem thong bao thanh toan cua cac hoa don thuoc ho so khach thue dang dang nhap.
+- `tenant`: xem thong bao thanh toan cua cac hoa don thuoc ho so khach thue dang dang nhap va thong bao ho tro gui den tai khoan tenant.
 
 ### GET /notifications
 
@@ -1000,6 +1017,88 @@ Danh dau mot thong bao da doc.
 ### PATCH /notifications/read-all
 
 Danh dau tat ca thong bao trong pham vi user hien tai da doc.
+
+## Support Requests
+
+Cac API yeu cau ho tro dung route `/support-requests` va yeu cau JWT.
+
+Muc tieu MVP:
+
+- Khach thue tao va xem ticket cua minh.
+- Chu tro xem ticket thuoc nha tro cua minh, cap nhat trang thai, muc do uu tien va phan hoi.
+- Khach thue dong ticket sau khi da duoc xu ly.
+- He thong tao notification noi bo, khong gui email trong phien ban dau.
+
+Gia tri hop le:
+
+- `category`: `billing`, `contract`, `room`, `account`, `other`
+- `priority`: `normal`, `urgent`
+- `status`: `open`, `in_progress`, `resolved`, `closed`
+
+### GET /support-requests
+
+Query optional:
+
+```txt
+status=open
+priority=urgent
+category=room
+limit=30
+```
+
+Phan quyen:
+
+- `landlord`: tra ticket co `owner` la tai khoan chu tro dang dang nhap.
+- `tenant`: chi tra ticket co `requester` la tai khoan tenant dang dang nhap.
+
+### GET /support-requests/:id
+
+Tra chi tiet ticket theo dung pham vi quyen nhu danh sach.
+
+### POST /support-requests
+
+Yeu cau role `tenant`.
+
+Request:
+
+```json
+{
+  "category": "room",
+  "subject": "May lanh phong 102 bi loi",
+  "description": "May lanh khong lam lanh tu toi qua, nho chu tro kiem tra giup.",
+  "priority": "urgent"
+}
+```
+
+Backend tu gan:
+
+- `owner` tu ho so `Tenant.owner`.
+- `requester` la user tenant dang dang nhap.
+- `tenant` la ho so tenant lien ket voi user.
+
+Sau khi tao ticket, backend tao notification `support_request` cho chu tro.
+
+### PATCH /support-requests/:id
+
+Yeu cau role `landlord`.
+
+Request:
+
+```json
+{
+  "status": "in_progress",
+  "priority": "urgent",
+  "landlordReply": "Da tiep nhan. Chu tro se kiem tra trong hom nay."
+}
+```
+
+Backend chi cho chu tro cap nhat ticket thuoc `owner` cua minh. Khi cap nhat, backend tao notification `support_request` cho tenant lien quan.
+
+### PATCH /support-requests/:id/close
+
+Yeu cau role `tenant`.
+
+Khach thue dong ticket cua minh sau khi van de da duoc xu ly. Backend tao notification cho chu tro.
 
 ## Webhooks
 

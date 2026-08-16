@@ -16,7 +16,8 @@ const invoicePopulate = [
   { path: 'tenant', select: 'fullName phone email identityNumber' },
   {
     path: 'contract',
-    select: 'room tenant startDate endDate monthlyPrice status occupants',
+    select:
+      'room tenant startDate endDate monthlyPrice status occupants vehicleCount',
   },
   { path: 'utilityReading' },
 ];
@@ -347,9 +348,7 @@ function buildMonthlyInvoiceRows(invoice, setting) {
   rows.push({
     amount: waterAmount,
     label: 'Nước',
-    quantity: reading
-      ? `${reading.waterPrevious || 0} -> ${reading.waterCurrent || 0} (${waterUsage} m3)`
-      : `${waterUsage} m3`,
+    quantity: `${waterUsage} người`,
     unitPrice:
       setting?.waterUnitPrice ||
       (waterUsage > 0 ? waterAmount / waterUsage : 0),

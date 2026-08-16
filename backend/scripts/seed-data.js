@@ -45,7 +45,7 @@ export const serviceSetting = {
   paymentNote: '',
   transferContentTemplate: 'Thanh toan phong {room} thang {month}-{year}',
   trashFee: 30000,
-  waterUnitPrice: 15000,
+  waterUnitPrice: 100000,
 };
 
 export const utilityReadings = [];

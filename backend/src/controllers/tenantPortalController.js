@@ -16,7 +16,8 @@ const invoicePopulate = [
   { path: 'tenant', select: 'fullName phone email identityNumber room user' },
   {
     path: 'contract',
-    select: 'room tenant startDate endDate monthlyPrice deposit status',
+    select:
+      'room tenant startDate endDate monthlyPrice deposit status occupants vehicleCount',
     populate: contractPopulate,
   },
   { path: 'utilityReading' },
@@ -25,7 +26,8 @@ const invoicePopulate = [
 const paymentPopulate = [
   {
     path: 'contract',
-    select: 'room tenant startDate endDate monthlyPrice deposit status',
+    select:
+      'room tenant startDate endDate monthlyPrice deposit status occupants vehicleCount',
     populate: contractPopulate,
   },
   {

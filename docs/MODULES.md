@@ -65,6 +65,15 @@ mat khau ban dau duoc sinh ngau nhien va chi gui qua email khach thue. Neu SMTP 
 hoac gui email that bai, backend khong tao/cap lai tai khoan tenant vi chu tro khong duoc phep
 nhin thay mat khau plaintext.
 
+Quan he khach thue - phong hien tai:
+
+- `Tenant._id` la khoa chinh ho so mot nguoi khach thue.
+- `Room._id` la khoa chinh phong.
+- `Contract` la quan he chinh noi khach thue voi phong qua `tenant` va `room`.
+- Mot khach thue co the co nhieu hop dong `active` o nhieu phong khac nhau.
+- Moi phong chi duoc co mot hop dong `active` tai mot thoi diem.
+- Truong `Tenant.room` chi con dong vai tro phong chinh/du lieu cu cho luong gan phong truc tiep; cac man hinh van hanh nen uu tien doc phong tu hop dong active.
+
 ## Contracts
 
 Quản lý hợp đồng giữa khách thuê và phòng. Module đã có model, seed data, API CRUD cơ bản và giao diện quản lý hợp đồng trong frontend.
@@ -85,6 +94,8 @@ Endpoint nền:
 
 Xoa hop dong khong xoa khach thue. Neu khach chuyen phong, frontend dung nut tao hop dong moi
 tu hop dong cu va backend chan update `room` truc tiep tren hop dong da co.
+Neu mot khach thue dang thue them phong khac, backend tao them `Contract` moi cho phong moi va
+khong ghi de `Tenant.room`; trang Khach thue co the hien cung mot khach tren nhieu dong phong/hop dong active.
 
 ## Payments
 
@@ -118,6 +129,16 @@ Bo sung pilot-ready:
 - Cong khach thue hien them thong tin phong/hop dong, don gia dich vu va breakdown hoa don
   chua thanh toan de khach tu kiem tra tien phong, dien, nuoc, internet, rac, gui xe truoc khi
   chuyen khoan.
+- Luong `Dich vu` hien ghi hoa don dich vu hang thang: chu tro chon hop dong active va chi nhap
+  chi so dien moi. Dien cu tu dong lay tu ban ghi gan nhat cua cung phong.
+- Nuoc la phi co dinh theo so nguoi trong hop dong, mac dinh `100000`/nguoi/thang.
+- Hop dong co `vehicleCount` de luu so xe cua phong do.
+- Gui xe tinh theo `vehicleCount` trong hop dong, mac dinh `100000`/xe/thang.
+- Internet va rac lay tu `ServiceSetting`, hien read-only tren form ghi hoa don.
+
+Ghi chu: `UtilityReading` dang dong vai tro ban ghi hoa don dich vu cua tung phong theo thang.
+Ten model giu nguyen de tranh migration lon trong MVP, nhung UI/API khong yeu cau nhap nuoc,
+internet, rac hoac xe tren form ghi hoa don; so xe lay tu hop dong.
 
 Quản lý điện, nước và dịch vụ hằng tháng. Module này tách riêng hóa đơn phải thu
 khỏi thanh toán:
@@ -166,6 +187,27 @@ hợp đồng sắp hết hạn và khoản thu cần xử lý.
 Endpoint nền:
 
 - `GET /api/dashboard/summary`
+
+## Help & Support
+
+Module Tro giup & Ho tro bien route `/help` tu trang ghi chu tinh thanh cong cu van hanh that:
+
+- FAQ dung chung cho chu tro va khach thue.
+- Khach thue tao ticket ho tro bang van ban, khong upload file trong MVP.
+- Khach thue xem ticket cua minh va dong ticket khi van de da duoc xu ly.
+- Chu tro xem ticket thuoc nha tro cua minh, loc theo trang thai/loai/muc do, phan hoi va cap nhat tien do.
+- Backend dung `SupportRequest` co `owner`, `requester`, `tenant`, `category`, `subject`, `description`, `priority`, `status`, `landlordReply`, `resolvedAt`, `closedAt`.
+- Du lieu tiep tuc cach ly theo `owner` va `Tenant.user`: tenant khong xem duoc ticket cua tenant khac, chu tro khong xem duoc ticket cua chu tro khac.
+- Notification noi bo tao thong bao khi tenant tao ticket, landlord cap nhat ticket hoac tenant dong ticket.
+- Notification support co `recipientRole`/`recipientUser` optional de thong bao support cua tenant khong bi tron unread voi landlord.
+
+Endpoint nen:
+
+- `GET /api/support-requests`
+- `GET /api/support-requests/:id`
+- `POST /api/support-requests`
+- `PATCH /api/support-requests/:id`
+- `PATCH /api/support-requests/:id/close`
 
 ## SePay/MoMo auto payment & Notifications
 

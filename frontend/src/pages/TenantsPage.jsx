@@ -724,14 +724,20 @@ export function TenantsPage() {
                         <strong>{tenant.fullName}</strong>
                         <span>{tenant.identityNumber || text.noId}</span>
                         {contract ? (
-                          <span>
-                            <Users
-                              className="inline-icon"
-                              size={14}
-                              strokeWidth={2.5}
-                            />{' '}
-                            {occupantTotal} {text.roomOccupants || text.tenants}
-                          </span>
+                          <>
+                            <span>
+                              <Users
+                                className="inline-icon"
+                                size={14}
+                                strokeWidth={2.5}
+                              />{' '}
+                              {occupantTotal}{' '}
+                              {text.roomOccupants || text.tenants}
+                            </span>
+                            <span>
+                              So xe: {Number(contract.vehicleCount || 0)}
+                            </span>
+                          </>
                         ) : null}
                       </td>
                       <td>
