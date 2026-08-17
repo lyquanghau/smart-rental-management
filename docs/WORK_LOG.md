@@ -1,5 +1,67 @@
 # Work Log
 
+## 2026-08-17
+
+### Chuan bi du lieu demo bao cao ngay 18/08
+
+- Kiem tra dau phien:
+  - Dang o nhanh `main`, dong bo voi `origin/main`.
+  - `main`, `origin/main`, `dev`, `origin/dev` cung commit `d80977a`.
+  - Khong co nhanh local/remote nao con commit chua merge vao `main`.
+  - File phu tro/untracked tiep tuc giu ngoai commit neu chua duoc yeu cau: `chuyen_de_2.xlsx`,
+    `code.txt`, `docs/PROMPT_TEMPLATE.md`, `docs/bao_cao/`, `docs/contract/`, `docs/image/`.
+  - `npm run lint`: pass.
+  - `npm run format:check`: pass.
+  - `npm run build`: loi `spawn EPERM` trong sandbox Windows cua Vite/esbuild.
+  - `npm run build` ngoai sandbox: pass, build 1673 modules.
+- Cap nhat seed demo:
+  - `backend/scripts/seed-data.js` tao 30 phong, trong do co phong trong, phong dang thue va
+    phong bao tri.
+  - Them 4 khach thue, 4 hop dong active, 4 chi so dich vu va 4 hoa don mau.
+  - Hoa don demo gom du 4 tinh huong:
+    - Phong `101`: chua den han thanh toan, due date sau ngay chay seed 14 ngay.
+    - Phong `102`: sap den han thanh toan, due date sau ngay chay seed 3 ngay.
+    - Phong `103`: tre han thanh toan, due date truoc ngay chay seed 5 ngay.
+    - Phong `104`: da thanh toan de doi chieu doanh thu.
+  - Them tai khoan demo:
+    - Landlord: `admin@smartrental.local` / `Admin@123456`.
+    - Tenant: `tenant@smartrental.local` / `Tenant@123456`.
+- Cap nhat `backend/scripts/seed-reset.js`:
+  - Link tai khoan tenant theo `userEmail` trong seed data thay vi hard-code email cu.
+  - Khi invoice co trang thai `paid`, tao `paidAt` va payment `paid`.
+  - Khi invoice `overdue`, payment sinh ra cung co trang thai `overdue`.
+- Da chay `npm run seed:reset` thanh cong:
+  - MongoDB connected.
+  - Reset and seeded 30 rooms, 2 users, 4 tenants.
+
+### Chinh lai cau hinh QR thanh toan demo
+
+- Xac dinh nguyen nhan QR quet ra tai khoan la:
+  - Seed demo dang cau hinh tai khoan ngan hang mau `VCB / 1234567890 / SMART RENTAL DEMO`.
+  - Khi tenant bam `Hien QR thanh toan`, backend tao QR dong qua VietQR dua tren cau hinh nay nen
+    app ngan hang tu dien dung so tien/noi dung nhung sai tai khoan nhan.
+- Cap nhat `backend/scripts/seed-data.js`:
+  - Doi ten chu tai khoan seed thanh `LY QUANG HAU`.
+  - Doi ngan hang thanh `TMCP Quan doi`, ma VietQR `MB`.
+  - Xoa so tai khoan gia khoi seed de tranh quet ra tai khoan demo sai.
+- Ghi chu:
+  - Anh QR tinh `frontend/src/assets/payment/sepay-qr-qronly.png` chi dung lam fallback hien thi.
+  - De QR tu dien so tien va noi dung chuyen khoan cho tung hoa don, can cau hinh day du
+    `Ma ngan hang VietQR`, `So tai khoan`, `Chu tai khoan` trong trang `Dich vu`.
+  - Do anh QR hien che giua so tai khoan, chua the dien day du `bankAccountNumber` neu khong co
+    so tai khoan that.
+
+### Hien thi tien tro trong ban ghi hoa don thang
+
+- Cap nhat `frontend/src/pages/ServicesPage.jsx`:
+  - Preview ban ghi hoa don hien them `Tien phong` lay tu `Contract.monthlyPrice`.
+  - Metric preview hien them tien phong va tong hoa don.
+  - Bang preview chi phi hien them dong tien phong va dong tong hoa don.
+- Ly do:
+  - Backend da luu `rentAmount`, `serviceAmount`, `totalAmount` dung.
+  - UI nhap ban ghi thang truoc do chi nhan manh phan dich vu, de gay hieu nham la hoa don
+    khong co tien tro thang.
+
 ## 2026-08-16
 
 ### Implement Tro giup & Ho tro thanh module dung that

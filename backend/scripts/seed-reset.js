@@ -50,19 +50,19 @@ async function resetSeed() {
   await User.insertMany(usersToInsert);
 
   const owner = await User.findOne({ email: 'admin@smartrental.local' });
-  const demoTenantUser = await User.findOne({
-    email: 'tenant@smartrental.local',
-  });
 
   await Room.insertMany(
     rooms.map((room) => ({ ...room, owner: owner._id, deletedAt: null })),
   );
 
   for (const tenant of tenants) {
-    const room = await Room.findOne({
-      owner: owner._id,
-      name: tenant.roomName,
-    });
+    const [room, tenantUser] = await Promise.all([
+      Room.findOne({
+        owner: owner._id,
+        name: tenant.roomName,
+      }),
+      tenant.userEmail ? User.findOne({ email: tenant.userEmail }) : null,
+    ]);
     await Tenant.create({
       owner: owner._id,
       fullName: tenant.fullName,
@@ -70,9 +70,7 @@ async function resetSeed() {
       email: tenant.email,
       identityNumber: tenant.identityNumber,
       room: room?._id,
-      ...(tenant.email === 'an@example.com' && demoTenantUser
-        ? { user: demoTenantUser._id }
-        : {}),
+      ...(tenantUser ? { user: tenantUser._id } : {}),
     });
   }
 
@@ -194,6 +192,7 @@ async function resetSeed() {
       serviceAmount,
       totalAmount,
       status: invoiceData.status,
+      ...(invoiceData.status === 'paid' ? { paidAt: new Date() } : {}),
       note: invoiceData.note,
       items: [
         {
@@ -217,8 +216,14 @@ async function resetSeed() {
       contract: contract._id,
       amount: totalAmount,
       dueDate: invoiceData.dueDate,
+      ...(invoiceData.status === 'paid' ? { paidAt: new Date() } : {}),
       method: 'cash',
-      status: 'pending',
+      status:
+        invoiceData.status === 'paid'
+          ? 'paid'
+          : invoiceData.status === 'overdue'
+            ? 'overdue'
+            : 'pending',
       note: invoiceData.note,
     });
   }

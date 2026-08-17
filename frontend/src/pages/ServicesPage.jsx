@@ -418,6 +418,9 @@ export function ServicesPage() {
 
   const preview = useMemo(() => {
     const setting = toSettingPayload(settingForm);
+    const rentAmount = selectedContract
+      ? Number(selectedContract.monthlyPrice || 0)
+      : 0;
     const electricityUsage = Math.max(
       toNumber(readingForm.electricityCurrent) - previousElectricityCurrent,
       0,
@@ -437,6 +440,7 @@ export function ServicesPage() {
       internetAmount,
       parkingAmount,
       parkingVehicleCount: selectedContract ? vehicleCount : 0,
+      rentAmount,
       serviceTotal:
         electricityAmount +
         waterAmount +
@@ -445,6 +449,13 @@ export function ServicesPage() {
         parkingAmount,
       trashAmount,
       electricityAmount,
+      totalAmount:
+        rentAmount +
+        electricityAmount +
+        waterAmount +
+        internetAmount +
+        trashAmount +
+        parkingAmount,
       waterAmount,
     };
   }, [
@@ -1035,6 +1046,10 @@ export function ServicesPage() {
           </label>
           <div className="metric-strip">
             <div>
+              <span>{text.rent}</span>
+              <strong>{formatMoney(preview.rentAmount)}</strong>
+            </div>
+            <div>
               <span>{text.electricity}</span>
               <strong>{preview.electricityUsage} kWh</strong>
             </div>
@@ -1045,6 +1060,10 @@ export function ServicesPage() {
             <div>
               <span>{text.serviceTotal}</span>
               <strong>{formatMoney(preview.serviceTotal)}</strong>
+            </div>
+            <div>
+              <span>{text.total}</span>
+              <strong>{formatMoney(preview.totalAmount)}</strong>
             </div>
           </div>
           <div className="invoice-preview-table">
@@ -1058,6 +1077,12 @@ export function ServicesPage() {
                 </tr>
               </thead>
               <tbody>
+                <tr>
+                  <td>{text.rent}</td>
+                  <td>1</td>
+                  <td>{formatMoney(preview.rentAmount)}</td>
+                  <td>{formatMoney(preview.rentAmount)}</td>
+                </tr>
                 <tr>
                   <td>{text.electricity}</td>
                   <td>
@@ -1104,6 +1129,16 @@ export function ServicesPage() {
                   <td>-</td>
                   <td>
                     <strong>{formatMoney(preview.serviceTotal)}</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>{text.total}</strong>
+                  </td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>
+                    <strong>{formatMoney(preview.totalAmount)}</strong>
                   </td>
                 </tr>
               </tbody>
